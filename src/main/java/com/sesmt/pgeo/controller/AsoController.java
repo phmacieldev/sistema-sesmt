@@ -2,11 +2,14 @@ package com.sesmt.pgeo.controller;
 
 import com.sesmt.pgeo.audit.AuditService;
 import com.sesmt.pgeo.service.AsoService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+@Tag(name = "ASO", description = "Atualização de status de envio e recebimento do ASO")
 @RestController
 @RequiredArgsConstructor
 public class AsoController {
@@ -14,6 +17,7 @@ public class AsoController {
     private final AsoService asoService;
     private final AuditService auditService;
 
+    @Operation(summary = "Atualiza status ASO", description = "Marca exame como enviado ou recebido. Campo: 'enviado' ou 'recebido'")
     @PostMapping("/atualizar_status_aso")
     public Map<String, Object> atualizarStatusAso(@RequestBody Map<String, Object> dados) {
         try {

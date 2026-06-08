@@ -1,0 +1,100 @@
+name: Deploy — Servidor Interno
+
+# ──────────────────────────────────────────────────────────────────────────────
+# PRÉ-REQUISITOS (TI faz UMA VEZ no servidor):
+#
+# 1. Instalar Docker + Docker Compose no servidor Linux
+#
+# 2. Instalar o self-hosted runner do GitHub no servidor:
+#    github.com/phmacieldev/sistema-sesmt → Settings → Actions → Runners → New
+#    O agente CHAMA o GitHub (sem precisar abrir nenhuma porta no firewall).
+#
+# 3. Criar Secrets no GitHub (Settings → Secrets and Variables → Actions):
+#    DB_PASSWORD  → senha que será usada pelo PostgreSQL interno
+#    SECRET_KEY   → string aleatória longa (ex: openssl rand -hex 32)
+#
+# Opcionais (têm padrão):
+#    DB_NAME      → nome do banco (padrão: pgeo_db)
+#    DB_USER      → usuário do banco (padrão: pgeo_user)
+#
+# Após esses passos, cada push na branch main fará deploy automático.
+# ──────────────────────────────────────────────────────────────────────────────
+
+on:
+  # Aciona deploy somente depois que o CI (testes + build) passou no main
+  workflow_run:
+    workflows: ["CI — Build & Testes"]
+    types: [completed]
+    branches: [main]
+
+  # Permite acionar manualmente pela interface do GitHub (útil para rollback)
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy no Servidor Interno
+    runs-on: self-hosted   # agente instalado no servidor da empresa
+
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Criar arquivo .env com secrets do GitHub
+        # O docker-compose.yml lê as variáveis deste arquivo
+        run: |
+          cat > .env << 'ENVEOF'
+          DB_NAME=${{ secrets.DB_NAME || 'pgeo_db' }}
+          DB_USER=${{ secrets.DB_USER || 'pgeo_user' }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          SECRET_KEY=${{ secrets.SECRET_KEY }}
+          ENVEOF
+
+      - name: Validar secrets obrigatórios
+        run: |
+          if [ -z "${{ secrets.DB_PASSWORD }}" ]; then
+            echo "ERRO: Secret DB_PASSWORD não configurado."
+            echo "Acesse: github.com/phmacieldev/sistema-sesmt → Settings → Secrets → Actions"
+            exit 1
+          fi
+          if [ -z "${{ secrets.SECRET_KEY }}" ]; then
+            echo "ERRO: Secret SECRET_KEY não configurado."
+            exit 1
+          fi
+          echo "✓ Secrets validados"
+
+      - name: Build e deploy
+        run: |
+          docker compose build --no-cache --pull
+          docker compose up -d --force-recreate
+          docker compose ps
+
+      - name: Aguardar aplicação iniciar (máx 90s)
+        run: |
+          echo "Aguardando aplicação subir..."
+          for i in $(seq 1 18); do
+            STATUS=$(docker inspect --format='{{.State.Health.Status}}' pgeo-app 2>/dev/null || echo "waiting")
+            if [ "$STATUS" = "healthy" ]; then
+              echo "✓ Aplicação saudável após $((i * 5))s"
+              exit 0
+            fi
+            echo "  $((i * 5))s — status: $STATUS"
+            sleep 5
+          done
+          echo "✗ Timeout — últimos logs:"
+          docker compose logs --tail=50 app
+          exit 1
+
+      - name: Limpar imagens Docker antigas
+        if: success()
+        run: docker image prune -f
+
+      - name: Resumo do deploy
+        if: success()
+        run: |
+          echo "============================================"
+          echo "  Deploy concluído com sucesso"
+          echo "  Commit: ${{ github.sha }}"
+          echo "  Acesso: http://<IP-DO-SERVIDOR>:8080"
+          echo "============================================"

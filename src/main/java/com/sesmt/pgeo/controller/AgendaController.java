@@ -8,6 +8,9 @@ import com.sesmt.pgeo.repository.AgendamentoRepository;
 import com.sesmt.pgeo.repository.FuncionarioRepository;
 import com.sesmt.pgeo.service.AgendamentoService;
 import com.sesmt.pgeo.service.PdfService;
+import com.sesmt.pgeo.util.AppConstants;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.*;
@@ -20,6 +23,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
+@Tag(name = "Agendamentos", description = "Criação, edição, calendário e APIs de suporte para agendamentos de exames")
 @Controller
 @RequiredArgsConstructor
 public class AgendaController {
@@ -39,6 +43,7 @@ public class AgendaController {
         return "agenda";
     }
 
+    @Operation(summary = "Lista eventos do calendário", description = "Retorna todos os agendamentos formatados para o FullCalendar")
     @GetMapping("/agenda_events_json")
     @ResponseBody
     public List<Map<String, Object>> agendaEventsJson() {
@@ -100,6 +105,7 @@ public class AgendaController {
      * Bug fix: data_sangue agora é optional (required = false).
      * Bug fix: tipo_exame convertido para Enum antes de passar ao Service.
      */
+    @Operation(summary = "Criar agendamento", description = "Cria um novo agendamento de exame. Retorna {ok, id} ou {duplicado, id} ou {erro, mensagem}")
     @PostMapping("/agendar")
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
     @ResponseBody
@@ -209,6 +215,7 @@ public class AgendaController {
 
     // ── APIs de autocomplete ──────────────────────────────────────────
 
+    @Operation(summary = "Buscar funcionário por matrícula")
     @GetMapping("/buscar_funcionario/{matricula}")
     @ResponseBody
     public Map<String, Object> buscarFuncionario(@PathVariable String matricula) {
@@ -226,6 +233,7 @@ public class AgendaController {
             .orElse(Map.of("encontrado", false));
     }
 
+    @Operation(summary = "Autocomplete de funcionários por nome (mínimo 2 caracteres, máximo 10 resultados)")
     @GetMapping("/buscar_funcionarios_nome")
     @ResponseBody
     public List<Map<String, Object>> buscarPorNome(@RequestParam("q") String q) {
@@ -264,17 +272,18 @@ public class AgendaController {
 
     // ── Verificar limite de sangue (para o formulário) ────────────────
 
+    @Operation(summary = "Verifica disponibilidade de sangue para uma data")
     @GetMapping("/verificar_limite_sangue")
     @ResponseBody
     public Map<String, Object> verificarLimiteSangue(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data) {
         long atual = agendamentoService.countSanguePorData(data);
-        boolean atingido = atual >= 5;
+        boolean atingido = atual >= AppConstants.LIMITE_SANGUE_DIA;
         Map<String, Object> r = new LinkedHashMap<>();
         r.put("atual",    atual);
-        r.put("limite",   5);
+        r.put("limite",   AppConstants.LIMITE_SANGUE_DIA);
         r.put("atingido", atingido);
-        r.put("vagas",    Math.max(0, 5 - atual));
+        r.put("vagas",    Math.max(0L, AppConstants.LIMITE_SANGUE_DIA - atual));
         return r;
     }
 

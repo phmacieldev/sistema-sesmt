@@ -20,10 +20,13 @@ public class AuthController {
     public String login(
             @RequestParam(required = false) String error,
             @RequestParam(required = false) String logout,
+            @RequestParam(required = false) String bloqueado,
             Model model) {
 
-        if (error != null)  model.addAttribute("erro", "Usuário ou senha inválidos.");
-        if (logout != null) model.addAttribute("info", "Você saiu do sistema.");
+        if (error != null)     model.addAttribute("erro", "Usuário ou senha inválidos.");
+        if (logout != null)    model.addAttribute("info", "Você saiu do sistema.");
+        if (bloqueado != null) model.addAttribute("erro",
+            "Muitas tentativas de login. Aguarde 15 minutos e tente novamente.");
 
         return "login";
     }

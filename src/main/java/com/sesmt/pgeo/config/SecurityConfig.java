@@ -2,6 +2,8 @@ package com.sesmt.pgeo.config;
 
 import com.sesmt.pgeo.model.Usuario;
 import com.sesmt.pgeo.repository.UsuarioRepository;
+import com.sesmt.pgeo.security.LoginRateLimitFilter;
+import com.sesmt.pgeo.service.LoginAttemptService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -15,6 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import java.time.LocalDateTime;
 
@@ -26,11 +29,15 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
-                                           UsuarioRepository usuarioRepo) throws Exception {
+                                           UsuarioRepository usuarioRepo,
+                                           LoginAttemptService loginAttemptService) throws Exception {
         http
+            .addFilterBefore(new LoginRateLimitFilter(loginAttemptService),
+                             UsernamePasswordAuthenticationFilter.class)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/static/**", "/css/**", "/js/**", "/error").permitAll()
                 .requestMatchers("/login", "/login/**").permitAll()
+                .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                 .requestMatchers("/ws/**").authenticated()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
@@ -38,8 +45,8 @@ public class SecurityConfig {
             .formLogin(form -> form
                 .loginPage("/login")
                 .loginProcessingUrl("/login")
-                .successHandler(loginSuccessHandler(usuarioRepo))
-                .failureHandler(loginFailureHandler())
+                .successHandler(loginSuccessHandler(usuarioRepo, loginAttemptService))
+                .failureHandler(loginFailureHandler(loginAttemptService))
                 .usernameParameter("username")
                 .passwordParameter("password")
                 .permitAll()
@@ -92,12 +99,14 @@ public class SecurityConfig {
     }
 
     /**
-     * Registra login bem-sucedido com usuário e IP.
+     * Registra login bem-sucedido, zera contador de rate limiting e atualiza último acesso.
      */
-    private AuthenticationSuccessHandler loginSuccessHandler(UsuarioRepository usuarioRepo) {
+    private AuthenticationSuccessHandler loginSuccessHandler(UsuarioRepository usuarioRepo,
+                                                              LoginAttemptService loginAttemptService) {
         return (request, response, authentication) -> {
             String username = authentication.getName();
             String ip = getClientIp(request);
+            loginAttemptService.registrarSucesso(ip);
             usuarioRepo.findByUsername(username).ifPresent(u -> {
                 u.setUltimoLogin(LocalDateTime.now());
                 usuarioRepo.save(u);
@@ -108,13 +117,13 @@ public class SecurityConfig {
     }
 
     /**
-     * Registra tentativa de login falha com IP.
-     * Útil para detectar brute force nos logs.
+     * Registra tentativa falha e incrementa contador de rate limiting por IP.
      */
-    private AuthenticationFailureHandler loginFailureHandler() {
+    private AuthenticationFailureHandler loginFailureHandler(LoginAttemptService loginAttemptService) {
         return (request, response, exception) -> {
             String username = request.getParameter("username");
             String ip = getClientIp(request);
+            loginAttemptService.registrarFalha(ip);
             log.warn("LOGIN FALHOU | usuario={} | ip={} | motivo={}",
                 username, ip, exception.getMessage());
             response.sendRedirect("/login?error=true");

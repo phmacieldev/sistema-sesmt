@@ -1,10 +1,9 @@
 package com.sesmt.pgeo.audit;
 
+import com.sesmt.pgeo.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -66,8 +65,6 @@ public class AuditService {
 
     /** Retorna o username do usuário autenticado na sessão atual */
     public String getUsuarioAtual() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated()) return "sistema";
-        return auth.getName();
+        return SecurityUtils.getUsuarioAtual();
     }
 }
