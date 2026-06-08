@@ -9,10 +9,11 @@ import com.sesmt.pgeo.model.enums.StatusFuncionario;
 import com.sesmt.pgeo.model.enums.TipoExame;
 import com.sesmt.pgeo.repository.AgendamentoRepository;
 import com.sesmt.pgeo.repository.FuncionarioRepository;
+import com.sesmt.pgeo.util.AppConstants;
+import com.sesmt.pgeo.util.SecurityUtils;
 import com.sesmt.pgeo.websocket.NotificacaoService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,7 +35,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class AgendamentoService {
 
-    private static final int LIMITE_SANGUE_DIA = 5;
+    private static final int LIMITE_SANGUE_DIA = AppConstants.LIMITE_SANGUE_DIA;
 
     private static final List<String> HORARIOS = List.of(
         "08:00","08:30","09:00","09:30",
@@ -226,8 +227,7 @@ public class AgendamentoService {
         return String.format("ADM%d%04d", ano, proximo);
     }
 
-    private String getUsuarioAtual() {
-        var auth = SecurityContextHolder.getContext().getAuthentication();
-        return (auth != null && auth.isAuthenticated()) ? auth.getName() : "sistema";
+    private static String getUsuarioAtual() {
+        return SecurityUtils.getUsuarioAtual();
     }
 }

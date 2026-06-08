@@ -6,6 +6,7 @@ import com.sesmt.pgeo.model.MedicalLeave;
 import com.sesmt.pgeo.repository.AgendamentoRepository;
 import com.sesmt.pgeo.repository.FuncionarioRepository;
 import com.sesmt.pgeo.repository.MedicalLeaveRepository;
+import com.sesmt.pgeo.util.AppConstants;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
@@ -126,7 +127,7 @@ public class DashboardController {
             dia.put("dataFormatada",  entry.getKey().format(diaSemanaFmt));
             dia.put("agendamentos",   entry.getValue());
             dia.put("total",          total);           // Integer — sem cast unsafe
-            dia.put("cheio",          total >= 5);      // Boolean
+            dia.put("cheio",          total >= AppConstants.LIMITE_SANGUE_DIA); // Boolean
             porDia.add(dia);
         }
 
@@ -150,8 +151,8 @@ public class DashboardController {
 
     @GetMapping("/dashboard_exames")
     public String dashboardExames(Model model) {
-        List<Funcionario> funcionarios = funcionarioRepo.findAll().stream()
-            .filter(Funcionario::isAtivo)
+        List<Funcionario> funcionarios = funcionarioRepo.findByAtivoTrue()
+            .stream()
             .sorted(Comparator.comparing(
                 f -> f.getAso() != null ? f.getAso() : LocalDate.MIN))
             .toList();

@@ -2,6 +2,8 @@ package com.sesmt.pgeo.controller;
 
 import com.sesmt.pgeo.exception.RegraDeNegocioException;
 import com.sesmt.pgeo.model.Funcionario;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import com.sesmt.pgeo.model.HistoricoCargo;
 import com.sesmt.pgeo.repository.AgendamentoRepository;
 import com.sesmt.pgeo.repository.FuncionarioRepository;
@@ -17,6 +19,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.util.List;
 import java.util.Map;
 
+@Tag(name = "Funcionários", description = "Perfil, alteração de cargo e gestão de funcionários")
 @Controller
 @RequiredArgsConstructor
 public class FuncionarioController {
@@ -91,6 +94,7 @@ public class FuncionarioController {
 
     // ── API JSON: buscar funcionário com status ───────────────────────
 
+    @Operation(summary = "Buscar funcionário por matrícula (API JSON)")
     @GetMapping("/api/funcionario/{matricula}")
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
     @ResponseBody

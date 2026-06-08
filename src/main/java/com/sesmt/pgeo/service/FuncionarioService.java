@@ -8,8 +8,8 @@ import com.sesmt.pgeo.model.HistoricoCargo;
 import com.sesmt.pgeo.model.enums.StatusFuncionario;
 import com.sesmt.pgeo.repository.FuncionarioRepository;
 import com.sesmt.pgeo.repository.HistoricoCargoRepository;
+import com.sesmt.pgeo.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -143,8 +143,7 @@ public class FuncionarioService {
         return String.format("ADM%d%04d", ano, proximo);
     }
 
-    private String getUsuarioAtual() {
-        var auth = SecurityContextHolder.getContext().getAuthentication();
-        return (auth != null && auth.isAuthenticated()) ? auth.getName() : "sistema";
+    private static String getUsuarioAtual() {
+        return SecurityUtils.getUsuarioAtual();
     }
 }

@@ -30,4 +30,7 @@ public interface FuncionarioRepository extends JpaRepository<Funcionario, Long> 
         List<Funcionario> result = findUltimosCadastrados(PageRequest.of(0, 1));
         return result.isEmpty() ? Optional.empty() : Optional.of(result.get(0));
     }
+
+    /** Retorna apenas funcionários ativos, evitando carregar inativos desnecessariamente */
+    List<Funcionario> findByAtivoTrue();
 }
