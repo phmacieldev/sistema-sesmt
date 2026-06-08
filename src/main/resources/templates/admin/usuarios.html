@@ -145,7 +145,9 @@
 
                         <!-- Reset de senha -->
                         <button class="btn btn-warning btn-sm"
-                                th:onclick="|abrirReset(${u.id}, '${u.username}')|">
+                                th:data-uid="${u.id}"
+                                th:data-uname="${u.username}"
+                                onclick="abrirReset(this.dataset.uid, this.dataset.uname)">
                             Reset senha
                         </button>
                     </div>

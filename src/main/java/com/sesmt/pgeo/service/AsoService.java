@@ -66,8 +66,8 @@ public class AsoService {
                     "ASO de " + ag.getFuncionarioNome() + " marcado como recebido. " +
                     "Data ASO atualizada para " + ag.getDataClinico());
             } else {
-                // Revertendo: restaura a data anterior do ASO
-                if (func != null && ag.getDataAsoAnterior() != null) {
+                // Revertendo: restaura a data anterior (pode ser null se funcionário não tinha ASO)
+                if (func != null) {
                     func.setAso(ag.getDataAsoAnterior());
                     funcionarioRepo.save(func);
                 }
