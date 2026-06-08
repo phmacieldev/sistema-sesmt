@@ -1,0 +1,88 @@
+package com.sesmt.pgeo.exception;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
+
+import jakarta.servlet.http.HttpServletRequest;
+import java.util.Map;
+
+@Slf4j
+@ControllerAdvice
+public class GlobalExceptionHandler {
+
+    /** Retorna true se a requisição espera JSON (fetch/AJAX) */
+    private boolean isJsonRequest(HttpServletRequest req) {
+        String accept = req.getHeader("Accept");
+        String contentType = req.getHeader("Content-Type");
+        return (accept != null && accept.contains("application/json"))
+            || (contentType != null && contentType.contains("application/json"))
+            || "XMLHttpRequest".equals(req.getHeader("X-Requested-With"));
+    }
+
+    @ExceptionHandler(RecursoNaoEncontradoException.class)
+    public Object handleNaoEncontrado(RecursoNaoEncontradoException ex,
+                                      Model model, HttpServletRequest req) {
+        log.warn("Recurso não encontrado [{}]: {}", req.getRequestURI(), ex.getMessage());
+        if (isJsonRequest(req)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("erro", true, "mensagem", ex.getMessage()));
+        }
+        model.addAttribute("titulo", "Não encontrado");
+        model.addAttribute("mensagem", ex.getMessage());
+        model.addAttribute("status", 404);
+        return "error/erro";
+    }
+
+    @ExceptionHandler(RegraDeNegocioException.class)
+    public Object handleRegraDeNegocio(RegraDeNegocioException ex,
+                                       Model model, HttpServletRequest req) {
+        log.warn("Regra de negócio [{}]: {}", req.getRequestURI(), ex.getMessage());
+        if (isJsonRequest(req)) {
+            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("erro", true, "mensagem", ex.getMessage()));
+        }
+        model.addAttribute("titulo", "Operação não permitida");
+        model.addAttribute("mensagem", ex.getMessage());
+        model.addAttribute("status", 422);
+        return "error/erro";
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public Object handleAcessoNegado(AccessDeniedException ex,
+                                     Model model, HttpServletRequest req) {
+        log.warn("Acesso negado [{}]", req.getRequestURI());
+        if (isJsonRequest(req)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("erro", true, "mensagem", "Acesso negado."));
+        }
+        model.addAttribute("titulo", "Acesso negado");
+        model.addAttribute("mensagem", "Você não tem permissão para realizar esta ação.");
+        model.addAttribute("status", 403);
+        return "error/erro";
+    }
+
+    @ExceptionHandler(Exception.class)
+    public Object handleGenerico(Exception ex, Model model, HttpServletRequest req) {
+        log.error("Erro interno [{}]: {}", req.getRequestURI(), ex.getMessage(), ex);
+        if (isJsonRequest(req)) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("erro", true, "mensagem", "Erro interno do servidor."));
+        }
+        model.addAttribute("titulo", "Erro interno");
+        model.addAttribute("mensagem",
+            "Ocorreu um erro inesperado. O suporte foi notificado. Tente novamente em instantes.");
+        model.addAttribute("status", 500);
+        return "error/erro";
+    }
+}

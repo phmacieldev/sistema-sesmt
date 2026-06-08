@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Exames de Sangue — PGEO</title>
+    <style>
+        body { font-family: Arial; background: #f4f6f9; margin: 20px; }
+        .nav { text-align: center; margin-bottom: 20px; }
+        .nav a { margin: 5px; padding: 10px 15px; background: #3498db; color: white;
+                 text-decoration: none; border-radius: 5px; }
+        h2 { text-align: center; color: #2c3e50; }
+
+        .filtro { display: flex; justify-content: center; align-items: center;
+                  gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+        .filtro select, .filtro button { padding: 8px 12px; border-radius: 6px;
+                                         border: 1px solid #ccc; font-size: 14px; }
+        .filtro button { background: #2ecc71; color: white; border: none;
+                         cursor: pointer; font-weight: bold; }
+
+        /* Cards por dia */
+        .dias-container { display: flex; flex-direction: column; gap: 16px; }
+
+        .dia-card { background: white; border-radius: 10px;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden; }
+
+        .dia-header { display: flex; align-items: center; justify-content: space-between;
+                      padding: 12px 18px; border-bottom: 1px solid #ecf0f1; }
+
+        .dia-titulo { font-size: 15px; font-weight: bold; color: #2c3e50; }
+
+        .dia-contador { display: flex; align-items: center; gap: 8px; }
+        .badge { padding: 4px 12px; border-radius: 20px; font-size: 13px;
+                 font-weight: bold; color: white; }
+        .badge-ok    { background: #27ae60; }
+        .badge-cheio { background: #e74c3c; }
+        .badge-aviso { background: #f39c12; }
+
+        /* Barra de progresso */
+        .barra-container { padding: 0 18px 4px; }
+        .barra-bg { background: #ecf0f1; border-radius: 4px; height: 6px; margin-top: 4px; }
+        .barra-fill { height: 6px; border-radius: 4px; transition: width 0.3s; }
+        .barra-ok    { background: #27ae60; }
+        .barra-aviso { background: #f39c12; }
+        .barra-cheio { background: #e74c3c; }
+
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 9px 18px; text-align: left; font-size: 13px; }
+        th { background: #f8f9fa; color: #7f8c8d; font-weight: bold;
+             text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
+        tr:not(:last-child) td { border-bottom: 1px solid #f0f0f0; }
+        td:first-child { font-weight: 500; color: #2c3e50; }
+
+        .sem-dados { text-align: center; color: #bdc3c7; padding: 40px;
+                     font-size: 15px; }
+
+        /* Resumo do mês */
+        .resumo { display: flex; gap: 16px; justify-content: center;
+                  margin-bottom: 24px; flex-wrap: wrap; }
+        .resumo-card { background: white; padding: 16px 28px; border-radius: 10px;
+                       box-shadow: 0 2px 8px rgba(0,0,0,0.08); text-align: center; }
+        .resumo-card h3 { margin: 0; font-size: 28px; }
+        .resumo-card p  { margin: 4px 0 0; font-size: 12px; color: #95a5a6;
+                          text-transform: uppercase; letter-spacing: 0.5px; }
+        .cor-verde  { color: #27ae60; }
+        .cor-azul   { color: #2980b9; }
+        .cor-laranja{ color: #f39c12; }
+    </style>
+</head>
+<body>
+
+<div class="nav">
+    <a th:href="@{/dashboard}">Dashboard</a>
+    <a th:href="@{/agenda}">Agenda</a>
+    <a th:href="@{/dashboard_exames}">Vencimentos ASO</a>
+</div>
+
+<h2>📋 Exames de Sangue</h2>
+
+<!-- Filtro de mês/ano -->
+<div class="filtro">
+    <form th:action="@{/dashboard_sangue}" method="GET" style="display:flex;gap:10px;align-items:center;">
+        <label style="font-weight:bold;">Mês:</label>
+        <select name="mes">
+            <option th:each="m,s : ${ {1,2,3,4,5,6,7,8,9,10,11,12} }"
+                    th:value="${m}"
+                    th:text="${{'Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'}[s.index]}"
+                    th:selected="${m == mesFiltro}"></option>
+        </select>
+        <select name="ano">
+            <option th:each="a : ${anos}" th:value="${a}" th:text="${a}"
+                    th:selected="${a == anoFiltro}"></option>
+        </select>
+        <button type="submit">Filtrar</button>
+    </form>
+</div>
+
+<!-- Resumo do mês -->
+<div class="resumo">
+    <div class="resumo-card">
+        <h3 class="cor-azul"  th:text="${totalAgendamentos}">0</h3>
+        <p>Total no mês</p>
+    </div>
+    <div class="resumo-card">
+        <h3 class="cor-verde" th:text="${diasComAgendamento}">0</h3>
+        <p>Dias com coleta</p>
+    </div>
+    <div class="resumo-card">
+        <h3 class="cor-laranja" th:text="${diasCheios}">0</h3>
+        <p>Dias no limite</p>
+    </div>
+</div>
+
+<!-- Cards agrupados por dia -->
+<div class="dias-container">
+
+    <div th:if="${#lists.isEmpty(porDia)}" class="sem-dados">
+        Nenhum exame de sangue agendado neste período.
+    </div>
+
+    <!--
+        porDia é uma List<Map> com: {data, dataFormatada, agendamentos, total, cheio}
+        Cada dia tem seus agendamentos agrupados.
+    -->
+    <div th:each="dia : ${porDia}" class="dia-card">
+
+        <div class="dia-header">
+            <span class="dia-titulo"
+                  th:text="${dia.dataFormatada}">DD/MM/YYYY (Dia)</span>
+            <div class="dia-contador">
+                <span class="badge"
+                      th:classappend="${dia.total >= 5 ? 'badge-cheio' : dia.total >= 4 ? 'badge-aviso' : 'badge-ok'}"
+                      th:text="${dia.total + '/5'}">0/5</span>
+            </div>
+        </div>
+
+        <!-- Barra de progresso -->
+        <div class="barra-container">
+            <div class="barra-bg">
+                <div class="barra-fill"
+                     th:classappend="${dia.total >= 5 ? 'barra-cheio' : dia.total >= 4 ? 'barra-aviso' : 'barra-ok'}"
+                     th:style="'width:' + (${dia.total} * 20) + '%'"></div>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Funcionário</th>
+                    <th>Setor</th>
+                    <th>Função</th>
+                    <th>Tipo de Exame</th>
+                    <th>Clínico</th>
+                    <th>Hora</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="a : ${dia.agendamentos}">
+                    <td th:text="${a.funcionarioNome}">—</td>
+                    <td th:text="${a.funcionarioSetor ?: '—'}">—</td>
+                    <td th:text="${a.funcionarioFuncao ?: '—'}">—</td>
+                    <td th:text="${a.tipoExameDescricao}">—</td>
+                    <td th:text="${a.dataClinico != null ? #temporals.format(a.dataClinico, 'dd/MM/yyyy') : '—'}">—</td>
+                    <td th:text="${a.horaClinico ?: '—'}">—</td>
+                </tr>
+            </tbody>
+        </table>
+
+    </div>
+</div>
+
+</body>
+</html>

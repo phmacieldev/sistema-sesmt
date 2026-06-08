@@ -1,0 +1,88 @@
+version: '3.9'
+
+# =============================================
+# PGEO — Stack completa para produção
+#
+# Serviços:
+#   db   → PostgreSQL 16 (banco de dados)
+#   app  → Spring Boot (aplicação)
+#
+# Uso:
+#   Primeira vez:  docker compose up -d --build
+#   Parar:         docker compose down
+#   Ver logs:      docker compose logs -f app
+#   Reiniciar app: docker compose restart app
+# =============================================
+
+services:
+
+  # ── Banco de Dados ──────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: pgeo-db
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB:       ${DB_NAME:-pgeo_db}
+      POSTGRES_USER:     ${DB_USER:-pgeo_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-pgeo_pass}
+      PGDATA:            /var/lib/postgresql/data/pgdata
+
+    volumes:
+      # Dados persistem mesmo se o container for recriado
+      - pgeo_db_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-pgeo_user} -d ${DB_NAME:-pgeo_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+      # Nota para a TI: o banco NÃO está exposto na rede.
+      # Para acessar via DBeaver/pgAdmin durante manutenção, use:
+      #   docker exec -it pgeo-db psql -U pgeo_user -d pgeo_db
+      # Ou adicione temporariamente a linha abaixo e reinicie:
+      #   ports:
+      #     - "127.0.0.1:5432:5432"   (só localhost, não rede)
+
+  # ── Aplicação Spring Boot ───────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pgeo-app
+    restart: unless-stopped
+
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST:     db          # nome do serviço acima — Docker resolve o DNS
+      DB_PORT:     5432
+      DB_NAME:     ${DB_NAME:-pgeo_db}
+      DB_USER:     ${DB_USER:-pgeo_user}
+      DB_PASSWORD: ${DB_PASSWORD:-pgeo_pass}
+      SECRET_KEY:  ${SECRET_KEY:-troque-esta-chave-em-producao}
+
+    ports:
+      - "8080:8080"
+
+    volumes:
+      # Logs persistem entre restarts
+      - pgeo_logs:/app/logs
+
+    depends_on:
+      db:
+        condition: service_healthy   # só sobe após o banco estar pronto
+
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/login || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s             # Spring Boot precisa de tempo para subir
+
+# ── Volumes persistentes ────────────────────
+volumes:
+  pgeo_db_data:
+    driver: local
+  pgeo_logs:
+    driver: local

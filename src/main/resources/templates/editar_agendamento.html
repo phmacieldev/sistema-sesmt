@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Editar Agendamento — PGEO</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <style>
+        body { font-family: Arial; background: #f4f6f9; }
+        .container { width: 420px; margin: 40px auto; background: white;
+                     padding: 25px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #2c3e50; }
+        label { display: block; font-size: 13px; font-weight: bold; color: #555; margin-bottom: 4px; }
+        input, select { width: 100%; padding: 8px; margin-bottom: 15px; border-radius: 5px;
+                        border: 1px solid #ccc; box-sizing: border-box; }
+        .btn-salvar { width: 100%; padding: 10px; background: #2ecc71; color: white;
+                      border: none; border-radius: 5px; cursor: pointer; font-size: 15px; }
+        .btn-salvar:hover { background: #27ae60; }
+        .btn-voltar { display: inline-block; margin-bottom: 15px; padding: 8px 12px;
+                      background: #3498db; color: white; text-decoration: none; border-radius: 5px; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!--
+        Jinja2:   <a href="/dashboard">← Voltar</a>
+        Thymeleaf: @{} monta a URL dinamicamente com variáveis do model
+    -->
+    <a th:href="${origem == 'dashboard' ? '/dashboard' : '/agenda'}" class="btn-voltar">← Voltar</a>
+
+    <h2>Editar Agendamento</h2>
+
+    <!--
+        Jinja2:   <form method="POST" action="/editar_agendamento/{{agendamento.id}}">
+        Thymeleaf: @{/editar_agendamento/{id}(id=${agendamento.id})}
+                   Sintaxe de URL com variável: {id} é substituído pelo valor entre ()
+    -->
+    <form th:action="@{/editar_agendamento/{id}(id=${agendamento.id})}" method="POST">
+
+        <!--
+            Passa a origem como campo hidden para o controller saber
+            para onde redirecionar após salvar (mesmo comportamento do Flask)
+        -->
+        <input type="hidden" name="origem" th:value="${origem}">
+
+        <label>Nome</label>
+        <!--
+            Jinja2:   value="{{ agendamento.funcionario_nome }}"
+            Thymeleaf: th:value="${agendamento.funcionarioNome}"
+            Nota: camelCase no Java vs snake_case no Python
+        -->
+        <input type="text" name="nome" th:value="${agendamento.funcionarioNome}" required>
+
+        <label>Setor</label>
+        <input type="text" name="setor" th:value="${agendamento.funcionarioSetor}" required>
+
+        <label>Função</label>
+        <input type="text" name="funcao" th:value="${agendamento.funcionarioFuncao}" required>
+
+        <label>Tipo de Exame</label>
+        <select name="tipo_exame" required>
+            <!--
+                Itera sobre o enum TipoExame, compara via getDescricao()
+                e usa a descricao como value (igual ao que o controller espera via fromDescricao())
+            -->
+            <option th:each="tipo : ${T(com.sesmt.pgeo.model.enums.TipoExame).values()}"
+                    th:value="${tipo.descricao}"
+                    th:text="${tipo.descricao}"
+                    th:selected="${tipo == agendamento.tipoExame}">
+            </option>
+        </select>
+
+        <label>Data Exame de Sangue
+            <span style="font-weight:normal;font-size:12px;color:#7f8c8d;">(opcional para alguns cargos)</span>
+        </label>
+        <!-- th:value passa LocalDate como ISO YYYY-MM-DD — compatível com flatpickr -->
+        <input type="text" name="data_sangue" id="data_sangue"
+               th:value="${agendamento.dataSangue}">
+
+        <label>Data Exame Clínico</label>
+        <input type="text" name="data_clinico" id="data_clinico"
+               th:value="${agendamento.dataClinico}" required>
+
+        <label>Horário</label>
+        <select name="hora" required>
+            <option th:each="h : ${horarios}"
+                    th:value="${h}"
+                    th:text="${h}"
+                    th:selected="${h == agendamento.horaClinico}">
+            </option>
+        </select>
+
+        <label>Observações
+            <span style="font-weight:normal;font-size:12px;color:#7f8c8d;">(opcional)</span>
+        </label>
+        <textarea name="observacoes" rows="2"
+                  style="width:100%;padding:8px;border:1px solid #ddd;border-radius:5px;
+                         font-size:14px;box-sizing:border-box;margin-bottom:15px;resize:vertical;"
+                  th:text="${agendamento.observacoes}"></textarea>
+
+        <button type="submit" class="btn-salvar">Salvar Alterações</button>
+    </form>
+</div>
+
+<script>
+    flatpickr("#data_sangue", {
+        dateFormat: "Y-m-d", altInput: true, altFormat: "d/m/Y",
+        disable: [d => d.getDay() === 0 || d.getDay() === 6]
+    });
+    flatpickr("#data_clinico", {
+        dateFormat: "Y-m-d", altInput: true, altFormat: "d/m/Y",
+        disable: [d => d.getDay() === 0 || d.getDay() === 6]
+    });
+</script>
+</body>
+</html>

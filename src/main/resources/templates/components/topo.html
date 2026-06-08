@@ -1,0 +1,22 @@
+<!--
+    components/topo.html — Componente de navegação do calendário
+
+    Jinja2:   {% include "components/topo.html" %}
+    Thymeleaf: <div th:replace="~{components/topo :: topo}"></div>
+
+    O atributo th:fragment="topo" nomeia este bloco para ser
+    referenciado pelo th:replace das outras páginas.
+-->
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="topo" class="topo">
+    <div class="titulo">📅 Agenda de Exames Ocupacionais</div>
+    <div class="botoes">
+        <a th:href="@{/agendar}"          class="botao">Novo Agendamento</a>
+        <a th:href="@{/dashboard}"         class="botao">Dashboard</a>
+        <a th:href="@{/dashboard_exames}"  class="botao">Exames</a>
+        <a th:href="@{/dashboard_estatisticas}" class="botao">Estatísticas</a>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<!--
+    login.html — Página de login
+    Equivalente ao login.html do Flask, mas com Spring Security.
+
+    O Spring Security processa o POST em /login automaticamente.
+    O CSRF token é inserido pelo Thymeleaf automaticamente via th:action.
+-->
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Login — PGEO</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .card {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            width: 360px;
+        }
+        h2 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 8px;
+        }
+        .sub {
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 13px;
+            margin-bottom: 25px;
+        }
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 4px;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            margin-bottom: 16px;
+            transition: border-color 0.2s;
+        }
+        input:focus {
+            outline: none;
+            border-color: #2ecc71;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #2ecc71;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        button:hover { background: #27ae60; }
+        .alerta-erro {
+            background: #fde8e8;
+            color: #c0392b;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .alerta-info {
+            background: #eafaf1;
+            color: #27ae60;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>PGEO</h2>
+        <p class="sub">Sistema de Exames Ocupacionais — SESMT</p>
+
+        <!--
+            Jinja2: <form action="/dashboard">
+            Thymeleaf: th:action="@{/login}" — insere o CSRF token automaticamente!
+            method="post" é obrigatório para o Spring Security processar o login.
+        -->
+        <div th:if="${erro}" class="alerta-erro">
+            <span th:text="${erro}"></span>
+        </div>
+        <div th:if="${info}" class="alerta-info">
+            <span th:text="${info}"></span>
+        </div>
+
+        <form th:action="@{/login}" method="post">
+            <label for="username">Usuário</label>
+            <input type="text" id="username" name="username"
+                   placeholder="Seu usuário" required autofocus>
+
+            <label for="password">Senha</label>
+            <input type="password" id="password" name="password"
+                   placeholder="Sua senha" required>
+
+            <button type="submit">Entrar</button>
+        </form>
+    </div>
+</body>
+</html>

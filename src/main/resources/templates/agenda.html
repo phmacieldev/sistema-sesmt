@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<!--
+    agenda.html — Calendário de agendamentos (FullCalendar)
+
+    Thymeleaf não usa {% extends %} como o Jinja2.
+    Usamos th:replace e th:fragment para incluir componentes.
+
+    Jinja2:   {% extends "base.html" %}  {% block content %}...{% endblock %}
+    Thymeleaf: cada página é independente, inclui fragmentos com th:replace/th:insert
+-->
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Agenda de Exames — PGEO</title>
+    <link rel="stylesheet" th:href="@{/static/css/agenda.css}">
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+</head>
+<body>
+
+    <!-- Componente de topo — equivalente ao {% include "components/topo.html" %} -->
+    <div th:replace="~{components/topo :: topo}"></div>
+
+    <div id="calendar"></div>
+
+    <!-- Modal de agendamento — equivalente ao {% include "components/modal_agendamento.html" %} -->
+    <div th:replace="~{components/modal_agendamento :: modal}"></div>
+
+    <script th:src="@{/static/js/agenda.js}"></script>
+
+</body>
+</html>

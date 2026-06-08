@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Estatísticas — PGEO</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: Arial; background: #f4f6f9; margin: 20px; }
+        .nav { text-align: center; margin-bottom: 20px; }
+        .nav a { margin: 5px; padding: 10px 15px; background: #3498db; color: white;
+                 text-decoration: none; border-radius: 5px; }
+        h2 { text-align: center; }
+        .filtro { text-align: center; margin-bottom: 20px; }
+        .filtro select, .filtro button { padding: 8px 12px; border-radius: 6px; border: 1px solid #ccc; }
+        .filtro button { background: #2ecc71; color: white; border: none; cursor: pointer; }
+        .cards { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; margin-bottom: 30px; }
+        .card { background: white; padding: 20px 30px; border-radius: 10px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center; min-width: 130px; }
+        .card h3 { margin: 0; font-size: 28px; color: #2c3e50; }
+        .card p { margin: 5px 0 0; font-size: 13px; color: #7f8c8d; }
+        .graficos { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
+        .grafico-box { background: white; padding: 20px; border-radius: 10px;
+                       box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+
+<div class="nav">
+    <a th:href="@{/dashboard}">Dashboard</a>
+    <a th:href="@{/agenda}">Agenda</a>
+</div>
+
+<h2>Estatísticas de Exames</h2>
+
+<!-- Filtro de ano -->
+<div class="filtro">
+    <form th:action="@{/dashboard_estatisticas}" method="GET">
+        <label>Ano:</label>
+        <select name="ano">
+            <option value="">Todos</option>
+            <option th:each="a : ${anosDisponiveis}"
+                    th:value="${a}" th:text="${a}"
+                    th:selected="${anoFiltro != null and anoFiltro == a}"></option>
+        </select>
+        <button type="submit">Filtrar</button>
+    </form>
+</div>
+
+<!-- Cards de totais por tipo -->
+<div class="cards">
+    <!--
+        Jinja2:   {% for tipo, qtd in contador_tipo_exame.items() %}
+        Thymeleaf: th:each="entry : ${contadorTipoExame.entrySet()}"
+    -->
+    <div class="card" th:each="entry : ${contadorTipoExame.entrySet()}">
+        <h3 th:text="${entry.value}">0</h3>
+        <p th:text="${entry.key}">Tipo</p>
+    </div>
+</div>
+
+<!-- Gráficos -->
+<div class="graficos">
+    <div class="grafico-box">
+        <h3 style="text-align:center">Exames por Mês</h3>
+        <canvas id="graficoMes" width="500" height="250"></canvas>
+    </div>
+    <div class="grafico-box">
+        <h3 style="text-align:center">Distribuição por Tipo</h3>
+        <canvas id="graficoPizza" width="300" height="300"></canvas>
+    </div>
+</div>
+
+<script th:inline="javascript">
+/*
+    th:inline="javascript" permite injetar variáveis do Thymeleaf
+    diretamente no JavaScript.
+
+    Jinja2:   var dados = {{ contador_exames_mes | tojson }};
+    Thymeleaf: var dados = /*[[${contadorExamesMes}]]*/ null;
+
+    O Thymeleaf substitui o comentário pelo valor serializado automaticamente.
+*/
+var meses         = /*[[${meses}]]*/ [];
+var examesPorMes  = /*[[${contadorExamesMes}]]*/ [];
+var tiposExame    = /*[[${tiposExame}]]*/ [];
+var tiposTotais   = /*[[${contadorTipoExame.values()}]]*/ [];
+
+// Gráfico de barras — exames por mês
+new Chart(document.getElementById("graficoMes"), {
+    type: "bar",
+    data: {
+        labels: meses,
+        datasets: [{
+            label: "Exames realizados",
+            data: examesPorMes,
+            backgroundColor: "#2ecc71"
+        }]
+    },
+    options: { responsive: false, plugins: { legend: { display: false } } }
+});
+
+// Gráfico de pizza — por tipo
+new Chart(document.getElementById("graficoPizza"), {
+    type: "doughnut",
+    data: {
+        labels: Object.keys(/*[[${contadorTipoExame}]]*/ {}),
+        datasets: [{
+            data: Object.values(/*[[${contadorTipoExame}]]*/ {}),
+            backgroundColor: ["#27ae60","#2980b9","#e74c3c","#f1c40f","#ff8800"]
+        }]
+    },
+    options: { responsive: false }
+});
+</script>
+</body>
+</html>

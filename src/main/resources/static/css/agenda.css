@@ -1,0 +1,68 @@
+/* agenda.css — idêntico ao projeto Flask original */
+
+.modal {
+    display: none; position: fixed; z-index: 1000;
+    left: 0; top: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5);
+}
+.modal-content {
+    background: white; margin: 10% auto; padding: 20px;
+    width: 400px; border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2); position: relative;
+}
+.close { position: absolute; right: 10px; top: 10px; font-size: 20px; cursor: pointer; }
+.modal-acoes { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+.btn-editar {
+    background: #2f80ed; color: white; border: none;
+    padding: 6px 10px; border-radius: 6px; cursor: pointer;
+    text-decoration: none; font-size: 14px;
+}
+.btn-editar:hover { background: #1c5ed6; }
+.btn-cancelar {
+    background: #e74c3c; color: white; border: none;
+    padding: 6px 10px; border-radius: 6px; cursor: pointer;
+}
+.btn-cancelar:hover { background: #c0392b; }
+.fc-timegrid-slot { height: 80px !important; }
+.fc .fc-event { width: 100% !important; margin-bottom: 4px; }
+
+body { font-family: Arial; margin: 20px; background: #f4f6f9; }
+
+.topo {
+    display: flex; flex-direction: column;
+    align-items: center; margin-bottom: 20px; gap: 10px;
+}
+.titulo { font-size: 22px; font-weight: bold; text-align: center; }
+.botoes { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.botao {
+    background: #2f80ed; color: white; padding: 8px 14px;
+    border-radius: 6px; text-decoration: none; font-size: 14px;
+}
+.botao:hover { background: #1c5ed6; }
+
+#calendar {
+    background: white; padding: 15px; border-radius: 10px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+}
+
+@media (max-width: 768px) {
+    .topo { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .botoes { width: 100%; }
+    .botao { flex: 1; text-align: center; }
+}
+
+.notificacoes { position: fixed; top: 20px; right: 20px; z-index: 999; }
+.alerta {
+    padding: 12px 18px; margin-bottom: 10px; border-radius: 6px;
+    color: white; font-size: 14px; box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+    opacity: 1; transition: opacity 0.5s ease;
+}
+.sucesso { background: #27ae60; }
+.sumir   { opacity: 0; }
+
+.btn-acao {
+    margin-bottom: 15px; background: #3498db; color: white;
+    padding: 6px 12px; border: none; border-radius: 6px;
+    font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block;
+}
+.btn-acao:hover { background: #2c6fd6; }

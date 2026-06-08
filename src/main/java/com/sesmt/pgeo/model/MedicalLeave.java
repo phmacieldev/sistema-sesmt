@@ -1,0 +1,65 @@
+package com.sesmt.pgeo.model;
+
+import jakarta.persistence.*;
+import lombok.Data;
+import lombok.ToString;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+/**
+ * Entidade MedicalLeave (Atestados Médicos).
+ *
+ * Equivalente ao modelo Flask:
+ *   class MedicalLeave(db.Model):
+ *       __tablename__ = "medical_leaves"
+ *       ...
+ */
+@Entity
+@Table(name = "medical_leaves")
+@Data
+@ToString(exclude = "funcionario")
+@NoArgsConstructor
+@AllArgsConstructor
+public class MedicalLeave {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    // ManyToOne = muitos atestados podem pertencer a um funcionário
+    // Equivalente ao db.ForeignKey("funcionario.id") do SQLAlchemy
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "funcionario_id", nullable = false)
+    private Funcionario funcionario;
+
+    @Column(name = "data_afastamento", nullable = false)
+    private LocalDate dataAfastamento;
+
+    @Column(name = "dias_afastamento", nullable = false)
+    private Integer diasAfastamento;
+
+    @Column(length = 100)
+    private String motivo;
+
+    @Column(length = 10)
+    private String cid;
+
+    @Column(name = "medico_nome", length = 200)
+    private String medicoNome;
+
+    @Column(name = "medico_crm", length = 50)
+    private String medicoCrm;
+
+    @Column(name = "data_lancamento")
+    private LocalDateTime dataLancamento = LocalDateTime.now();
+
+    @PrePersist
+    public void prePersist() {
+        if (dataLancamento == null) {
+            dataLancamento = LocalDateTime.now();
+        }
+    }
+}

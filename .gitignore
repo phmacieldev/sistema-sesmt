@@ -1,0 +1,35 @@
+# ── Segredos — NUNCA no Git ──────────────────
+.env
+*.env.local
+
+# ── Build Maven ───────────────────────────────
+target/
+*.jar
+*.war
+
+# ── IDE ───────────────────────────────────────
+.idea/
+*.iml
+.vscode/
+*.classpath
+*.project
+.settings/
+*.suo
+*.user
+
+# ── Sistema operacional ───────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Logs ──────────────────────────────────────
+logs/
+*.log
+
+# ── Docker (volumes e overrides locais) ───────
+docker-compose.override.yml
+
+# Estes PODEM ir pro Git (sem segredos):
+# docker-compose.yml ✓
+# Dockerfile         ✓
+# deploy.sh          ✓
+# .env.example       ✓

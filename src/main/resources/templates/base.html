@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<!--
+    base.html — Template base Thymeleaf
+    Equivalente ao base.html do Jinja2.
+
+    Diferenças principais:
+      Jinja2:     {% block title %}{% endblock %}
+      Thymeleaf:  <th:block th:fragment="..."> ou layout:fragment="..."
+
+    Usamos th:replace / th:fragment para composição de layouts.
+    O atributo xmlns:th é obrigatório para o parser do Thymeleaf.
+-->
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!--
+        th:text → equivalente ao {{ }} do Jinja2
+        Exemplo Jinja: <title>{% block title %}{% endblock %}</title>
+        Thymeleaf usa layout:title ou simplesmente define em cada página
+    -->
+    <title th:text="${titulo != null ? titulo + ' — PGEO' : 'PGEO'}">PGEO</title>
+
+    <!-- CSS da aplicação -->
+    <!--
+        Jinja2:    {{ url_for('static', filename='css/agenda.css') }}
+        Thymeleaf: th:href="@{/static/css/agenda.css}"
+        O @{} é o equivalente ao url_for() do Flask
+    -->
+    <link rel="stylesheet" th:href="@{/static/css/agenda.css}">
+
+    <!-- FullCalendar -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+
+    <!-- Slot para CSS adicional de cada página -->
+    <th:block th:replace="~{::head}"></th:block>
+</head>
+<body>
+
+    <!-- Slot para conteúdo de cada página -->
+    <th:block th:replace="~{::content}"></th:block>
+
+    <!-- JS global -->
+    <script th:src="@{/static/js/agenda.js}"></script>
+
+    <!-- Slot para scripts adicionais de cada página -->
+    <th:block th:replace="~{::scripts}"></th:block>
+
+</body>
+</html>

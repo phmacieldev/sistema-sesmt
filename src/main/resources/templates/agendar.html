@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Agendar Exame — PGEO</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body { font-family: Arial; background: #f4f6f9; }
+        .container { width: 400px; margin: auto; margin-top: 40px; background: white;
+                     padding: 25px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h2 { text-align: center; }
+        input, select { width: 100%; padding: 8px; margin-top: 8px; margin-bottom: 15px;
+                        border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #2ecc71; color: white;
+                 border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #27ae60; }
+        .nav { text-align: center; margin-bottom: 15px; }
+        .nav a { margin: 5px; padding: 8px 12px; background: #3498db; color: white;
+                 text-decoration: none; border-radius: 5px; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0;
+                 width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
+        .modal-content { background: #fff; margin: 15% auto; padding: 20px;
+                         border-radius: 8px; width: 400px; text-align: center; }
+        .modal-buttons { display: flex; justify-content: space-around; margin-top: 20px; }
+        .btn-cancel { background: #e74c3c; }
+        .toast { position: fixed; top: 20px; right: 20px; background: #27ae60; color: white;
+                 padding: 14px 18px; border-radius: 8px; font-size: 14px; font-weight: bold;
+                 opacity: 0; transform: translateY(-20px); transition: all .4s ease; z-index: 9999; }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        #sugestoes { position: absolute; background: white; border: 1px solid #ccc; width: 100%;
+                     display: none; max-height: 150px; overflow-y: auto; z-index: 999; }
+        .item-sugestao { padding: 6px; cursor: pointer; border-bottom: 1px solid #eee; }
+        .item-sugestao:hover { background: #f2f2f2; }
+        .btn-acao { margin-bottom: 15px; background: #3498db; color: white; padding: 6px 12px;
+                    border: none; border-radius: 6px; font-weight: bold; cursor: pointer;
+                    text-decoration: none; display: inline-block; width: auto; }
+        .btn-acao:hover { background: #2c6fd6; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <div class="nav">
+        <a th:href="@{/dashboard}">Dashboard</a>
+        <a th:href="@{/agenda}">Agenda</a>
+        <a th:href="@{/dashboard_exames}">Exames</a>
+    </div>
+
+    <h2>Agendar Exame</h2>
+
+    <!--
+        Jinja2:   <form id="form-agendar" method="POST" action="/agendar">
+        Thymeleaf: th:action="@{/agendar}" injeta o CSRF token automaticamente.
+        O submit é interceptado pelo JS (igual ao Flask) e feito via $.post()
+    -->
+    <form id="form-agendar" th:action="@{/agendar}" method="POST">
+
+        <label>Tipo de exame</label>
+        <select id="tipo_exame" name="tipo_exame" required>
+            <option value="">Selecione</option>
+            <option th:each="tipo : ${tiposExame}"
+                    th:value="${tipo.descricao}"
+                    th:text="${tipo.descricao}"></option>
+        </select>
+
+        <label>Matrícula
+            <span id="label-adm" style="display:none;font-weight:normal;font-size:12px;
+                  color:#f39c12;">— Deixar em branco para pré-admissional</span>
+        </label>
+        <input type="text" id="matricula" name="matricula">
+        <div id="aviso-pre-adm" style="display:none;padding:8px 10px;background:#fef9e7;
+             border:1px solid #fce5a0;border-radius:5px;font-size:13px;color:#856404;
+             margin-top:-10px;margin-bottom:15px;">
+            ⚠ Admissional sem matrícula: o funcionário será cadastrado como
+            <strong>Pré-admissional</strong>. Após a contratação, acesse o perfil
+            dele para vincular a matrícula real.
+        </div>
+
+        <label>Nome</label>
+        <div style="position:relative">
+            <input id="nome" name="nome" autocomplete="off" required>
+            <div id="sugestoes"></div>
+        </div>
+
+        <div id="alerta-agendamento"
+             style="display:none;margin-top:8px;padding:8px;background:#fff3cd;
+                    border:1px solid #ffeeba;border-radius:6px;font-size:13px;color:#856404;"></div>
+
+        <label>Setor</label>
+        <input id="setor" name="setor">
+
+        <label>Função</label>
+        <input id="funcao" name="funcao">
+
+        <div id="campo-sangue-wrapper">
+        <label>Data exame de sangue
+            <span id="info-sangue" style="font-weight:normal;font-size:12px;color:#7f8c8d;margin-left:6px;">
+                (máx. 5 por dia — opcional para alguns cargos)
+            </span>
+        </label>
+        <input type="text" name="data_sangue" id="data_sangue">
+        <div id="aviso-limite-sangue" style="display:none;padding:6px 10px;background:#fff3cd;
+             border:1px solid #ffeeba;border-radius:5px;font-size:13px;color:#856404;margin-top:-10px;margin-bottom:10px;">
+            ⚠ Limite de 5 exames de sangue atingido nesta data. Escolha outra data.
+        </div>
+        </div><!-- /campo-sangue-wrapper -->
+
+        <label>Data exame clínico</label>
+        <input type="text" name="data_clinico" required>
+
+        <label>Horário</label>
+        <select name="hora" required>
+            <option value="">Selecione</option>
+            <!--
+                Jinja2:   {% for h in horarios %} <option>{{h}}</option> {% endfor %}
+                Thymeleaf: th:each="h : ${horarios}" th:value="${h}" th:text="${h}"
+            -->
+            <option th:each="h : ${horarios}" th:value="${h}" th:text="${h}"></option>
+        </select>
+
+        <label>Observações
+            <span style="font-weight:normal;font-size:12px;color:#7f8c8d;">
+                (opcional — gestante, retorno de licença, exame adicional etc.)
+            </span>
+        </label>
+        <textarea name="observacoes" rows="2"
+                  style="width:100%;padding:8px;border:1px solid #ccc;border-radius:5px;
+                         font-size:14px;box-sizing:border-box;margin-bottom:15px;resize:vertical;"
+                  placeholder="Ex: Funcionária gestante. Solicitar audiometria adicional."></textarea>
+
+        <button type="submit">Agendar</button>
+
+    </form>
+</div>
+
+<!-- Modal de confirmação -->
+<div id="modal-confirm" class="modal">
+    <div class="modal-content">
+        <h3>Confirma o agendamento?</h3>
+        <p id="modal-text" style="text-align:left;line-height:1.6;"></p>
+        <div class="modal-buttons">
+            <button class="btn-confirm">Confirmar</button>
+            <button class="btn-cancel">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal duplicado -->
+<div id="modal-duplicado" class="modal">
+    <div class="modal-content">
+        <h3>Funcionário já possui exame agendado</h3>
+        <p id="duplicado-text"></p>
+        <div class="modal-buttons">
+            <button id="btn-editar" style="background:#3498db">Editar Agendamento</button>
+            <button id="btn-cancelar-dup" class="btn-cancel">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast-agendamento" class="toast">✔ Agendamento realizado com sucesso</div>
+
+<script>
+$(document).ready(function(){
+
+    // Autocomplete — idêntico ao Flask
+    $("#nome").on("keyup", function(){
+        let texto = $(this).val();
+        if(texto.length < 2){ $("#sugestoes").hide(); return; }
+        $.getJSON("/buscar_funcionarios_nome", {q: texto}, function(data){
+            let html = "";
+            data.forEach(f => {
+                html += `<div class="item-sugestao"
+                    data-matricula="${f.matricula}" data-nome="${f.nome}"
+                    data-setor="${f.setor}" data-funcao="${f.funcao}"
+                    data-exige-sangue="${f.exigeSangue}">${f.nome}</div>`;
+            });
+            html ? $("#sugestoes").html(html).show() : $("#sugestoes").hide();
+        });
+    });
+
+    $(document).on("click", ".item-sugestao", function(){
+        $("#matricula").val($(this).data("matricula"));
+        $("#nome").val($(this).data("nome"));
+        $("#setor").val($(this).data("setor"));
+        $("#funcao").val($(this).data("funcao"));
+        $("#sugestoes").hide();
+        // Oculta campo sangue se o cargo não exige
+        if ($(this).data("exige-sangue") === false || $(this).data("exige-sangue") === "false") {
+            $("#campo-sangue-wrapper").hide();
+            $("[name=data_sangue]").val("");
+        } else {
+            $("#campo-sangue-wrapper").show();
+        }
+    });
+
+    $(document).click(e => { if(!$(e.target).closest("#nome").length) $("#sugestoes").hide(); });
+
+    $("#nome").on("blur", function(){
+        let nome = $(this).val();
+        if(!nome) return;
+        $.getJSON("/verificar_agendamento_nome", {nome}, function(resp){
+            if(resp.existe){
+                $("#alerta-agendamento")
+                    .html(`⚠ Já possui agendamento em ${resp.data} às ${resp.hora}`).show();
+            } else {
+                $("#alerta-agendamento").hide();
+            }
+        });
+    });
+
+    // Flatpickr — idêntico ao Flask
+    const sanguePicker = flatpickr("[name=data_sangue]", {
+        dateFormat: "Y-m-d", altInput: true, altFormat: "d/m/Y",
+        disable: [date => date.getDay() === 0 || date.getDay() === 6],
+        onChange: function(selectedDates) {
+            if (!selectedDates.length) return;
+            const dataISO = selectedDates[0].toISOString().slice(0, 10);
+            // Verifica limite de sangue via AJAX
+            $.getJSON("/verificar_limite_sangue", {data: dataISO}, function(resp) {
+                if (resp.atingido) {
+                    $("#aviso-limite-sangue").show();
+                } else {
+                    $("#aviso-limite-sangue").hide();
+                }
+                const info = resp.atual + "/" + resp.limite + " agendamentos de sangue nesta data";
+                $("#info-sangue").text("(" + info + ")");
+            });
+        }
+    });
+
+    const clinicoPicker = flatpickr("[name=data_clinico]", {
+        dateFormat: "Y-m-d", altInput: true, altFormat: "d/m/Y",
+        disable: [date => date.getDay() === 0 || date.getDay() === 6],
+        monthSelectorType: "dropdown"
+    });
+
+    // Submit com modal de confirmação
+    $("#form-agendar").on("submit", function(e){
+        e.preventDefault();
+        let formData = $(this).serialize();
+
+        function formatarDataBR(iso){
+            if(!iso) return "";
+            const [a,m,d] = iso.split("-");
+            return `${d}/${m}/${a}`;
+        }
+
+        let nome   = $("#nome").val();
+        let exame  = $("#tipo_exame").val();
+        let sangue = $("[name=data_sangue]").val();
+        let clinico= $("[name=data_clinico]").val();
+        let hora   = $("[name=hora]").val();
+
+        $("#modal-text").html(`
+            <b>Funcionário:</b> ${nome}<br>
+            <b>Exame:</b> ${exame}<br>
+            <b>Exame de Sangue:</b> ${formatarDataBR(sangue)}<br>
+            <b>Exame Clínico:</b> ${formatarDataBR(clinico)}<br>
+            <b>Horário:</b> ${hora}
+        `);
+        $("#modal-confirm").fadeIn();
+
+        $(".btn-confirm").off("click").on("click", function(){
+            $("#modal-confirm").fadeOut();
+            $.post("/agendar", formData, function(resp){
+                if(resp.redirect){
+                    window.location.href = resp.redirect;
+                    return;
+                }
+                if(resp.erro){
+                    alert(resp.mensagem);
+                    return;
+                }
+                $("#toast-agendamento").addClass("show");
+                setTimeout(() => location.reload(), 1500);
+            });
+        });
+
+        $(".btn-cancel").off("click").on("click", function(){
+            $("#modal-confirm").fadeOut();
+        });
+    });
+});
+</script>
+</body>
+</html>

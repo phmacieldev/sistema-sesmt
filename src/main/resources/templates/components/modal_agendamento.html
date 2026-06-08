@@ -1,0 +1,29 @@
+<!--
+    Modal de detalhes do agendamento — aberto ao clicar no evento do FullCalendar.
+
+    Jinja2:   {% include "components/modal_agendamento.html" %}
+    Thymeleaf: <div th:replace="~{components/modal_agendamento :: modal}"></div>
+-->
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="modal" id="modal-agendamento" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="fecharModal()">✕</span>
+
+        <h3 style="margin-top:0;">Detalhes do Agendamento</h3>
+
+        <p><strong>Nome:</strong>   <span id="modal-nome">—</span></p>
+        <p><strong>Setor:</strong>  <span id="modal-setor">—</span></p>
+        <p><strong>Função:</strong> <span id="modal-funcao">—</span></p>
+        <p><strong>Exame:</strong>  <span id="modal-exame">—</span></p>
+        <p><strong>Data:</strong>   <span id="modal-data">—</span></p>
+        <p><strong>Hora:</strong>   <span id="modal-hora">—</span></p>
+
+        <div class="modal-acoes">
+            <a id="btn-editar-modal" href="#" class="btn-editar">✏️ Editar</a>
+            <button class="btn-cancelar" onclick="fecharModal()">Fechar</button>
+        </div>
+    </div>
+</div>
+</body>
+</html>
