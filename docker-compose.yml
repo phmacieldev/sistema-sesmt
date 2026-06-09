@@ -66,6 +66,19 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-pgeo_pass}
       SECRET_KEY:  ${SECRET_KEY:-troque-esta-chave-em-producao}
 
+      # ── E-mail (necessário para notificações de ASO) ─────────────────
+      # Para habilitar: defina as vars abaixo no .env e NOTIFICACAO_EMAIL_HABILITADO=true
+      SMTP_HOST:                      ${SMTP_HOST:-localhost}
+      SMTP_PORT:                      ${SMTP_PORT:-587}
+      SMTP_USER:                      ${SMTP_USER:-}
+      SMTP_PASSWORD:                  ${SMTP_PASSWORD:-}
+      SMTP_AUTH:                      ${SMTP_AUTH:-false}
+      SMTP_TLS:                       ${SMTP_TLS:-false}
+      NOTIFICACAO_EMAIL_HABILITADO:   ${NOTIFICACAO_EMAIL_HABILITADO:-false}
+      NOTIFICACAO_EMAIL_DESTINATARIO: ${NOTIFICACAO_EMAIL_DESTINATARIO:-sesmt@hospital.local}
+      NOTIFICACAO_EMAIL_REMETENTE:    ${NOTIFICACAO_EMAIL_REMETENTE:-pgeo@noreply.local}
+      NOTIFICACAO_EMAIL_DIAS_AVISO:   ${NOTIFICACAO_EMAIL_DIAS_AVISO:-30}
+
     # Sem ports: — o app só é acessível através do nginx (rede interna Docker)
     expose:
       - "8080"

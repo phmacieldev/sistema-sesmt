@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Alerta de Vencimento de ASO — PGEO</title>
+</head>
+<body style="margin:0;padding:20px;background:#f0f2f5;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#333;">
+
+<table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;">
+
+        <!-- Cabeçalho -->
+        <tr>
+          <td style="background:#1a5fa8;border-radius:8px 8px 0 0;padding:28px 24px;text-align:center;">
+            <div style="color:white;font-size:20px;font-weight:bold;margin-bottom:6px;">
+              PGEO — Alerta de Vencimento de ASO
+            </div>
+            <div style="color:rgba(255,255,255,0.85);font-size:13px;"
+                 th:text="${'Gerado em ' + #temporals.format(hoje, 'dd/MM/yyyy')}">
+              Gerado em —
+            </div>
+          </td>
+        </tr>
+
+        <!-- Resumo -->
+        <tr>
+          <td style="background:white;border-left:1px solid #ddd;border-right:1px solid #ddd;padding:0;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td width="50%" style="padding:22px 16px;text-align:center;border-right:1px solid #eee;">
+                  <div style="font-size:40px;font-weight:bold;color:#dc3545;"
+                       th:text="${#lists.size(vencidos)}">0</div>
+                  <div style="color:#777;font-size:12px;margin-top:4px;text-transform:uppercase;letter-spacing:.5px;">
+                    ASO Vencido
+                  </div>
+                </td>
+                <td width="50%" style="padding:22px 16px;text-align:center;">
+                  <div style="font-size:40px;font-weight:bold;color:#e67e00;"
+                       th:text="${#lists.size(aVencer)}">0</div>
+                  <div style="color:#777;font-size:12px;margin-top:4px;text-transform:uppercase;letter-spacing:.5px;"
+                       th:text="${'A Vencer em ' + diasAviso + ' Dias'}">
+                    A Vencer em 30 Dias
+                  </div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Seção: Vencidos -->
+        <th:block th:if="${!#lists.isEmpty(vencidos)}">
+          <tr>
+            <td style="background:white;border-left:1px solid #ddd;border-right:1px solid #ddd;
+                        border-top:16px solid #f0f2f5;padding:0;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="padding:14px 20px;background:#fff3f3;border-bottom:2px solid #dc3545;">
+                    <span style="font-weight:bold;color:#dc3545;font-size:15px;">ASOs Vencidos</span>
+                  </td>
+                </tr>
+                <tr th:each="f : ${vencidos}">
+                  <td style="padding:12px 20px;border-bottom:1px solid #f5f5f5;">
+                    <div style="font-weight:bold;" th:text="${f.nome}">Nome</div>
+                    <div style="color:#888;font-size:12px;margin-top:2px;">
+                      <span th:text="${(f.setor ?: '') + (f.funcao != null ? ' · ' + f.funcao : '')}">Setor · Função</span>
+                      <span style="color:#dc3545;margin-left:8px;"
+                            th:text="${'Venceu em ' + #temporals.format(f.aso, 'dd/MM/yyyy')}">Venceu em —</span>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </th:block>
+
+        <!-- Seção: A Vencer -->
+        <th:block th:if="${!#lists.isEmpty(aVencer)}">
+          <tr>
+            <td style="background:white;border-left:1px solid #ddd;border-right:1px solid #ddd;
+                        border-top:16px solid #f0f2f5;padding:0;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="padding:14px 20px;background:#fffbf0;border-bottom:2px solid #e67e00;">
+                    <span style="font-weight:bold;color:#e67e00;font-size:15px;">A Vencer</span>
+                  </td>
+                </tr>
+                <tr th:each="f : ${aVencer}">
+                  <td style="padding:12px 20px;border-bottom:1px solid #f5f5f5;">
+                    <div style="font-weight:bold;" th:text="${f.nome}">Nome</div>
+                    <div style="color:#888;font-size:12px;margin-top:2px;">
+                      <span th:text="${(f.setor ?: '') + (f.funcao != null ? ' · ' + f.funcao : '')}">Setor · Função</span>
+                      <span style="color:#e67e00;margin-left:8px;"
+                            th:text="${'Vence em ' + #temporals.format(f.aso, 'dd/MM/yyyy')}">Vence em —</span>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </th:block>
+
+        <!-- Rodapé -->
+        <tr>
+          <td style="background:#f8f9fa;border:1px solid #ddd;border-top:16px solid #f0f2f5;
+                      border-radius:0 0 8px 8px;padding:16px 20px;text-align:center;
+                      color:#aaa;font-size:12px;line-height:1.6;">
+            PGEO — Sistema de Gestão de Exames Ocupacionais<br>
+            Enviado automaticamente às 07h00 (dias úteis). Não responda este e-mail.
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>
