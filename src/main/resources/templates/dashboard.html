@@ -1,390 +1,271 @@
 <!DOCTYPE html>
-<!--
-    dashboard.html — Tela principal de agendamentos
-
-    Conversão Jinja2 → Thymeleaf:
-
-    Jinja2:   {% for a in agendamentos %}  {{ a.funcionario_nome }}  {% endfor %}
-    Thymeleaf: th:each="a : ${agendamentos}"  th:text="${a.funcionarioNome}"
-
-    Jinja2:   {% if a.aso_enviado %}checked{% endif %}
-    Thymeleaf: th:checked="${a.asoEnviado}"
-
-    Jinja2:   {{ a.data_clinico | format_date }}
-    Thymeleaf: th:text="${#temporals.format(a.dataClinico, 'dd/MM/yyyy')}"
-
-    Jinja2:   {{ request.args.get('busca', '') }}
-    Thymeleaf: th:value="${busca}"  (atributo passado pelo controller)
--->
 <html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
-    <meta charset="UTF-8">
-    <title>Dashboard — PGEO</title>
-    <style>
-        body { font-family: Arial; background: #f4f6f9; }
-        .container { width: 90%; margin: auto; }
-        h2 { text-align: center; }
-        .nav { text-align: center; margin-bottom: 20px; }
-        .nav a { margin: 5px; padding: 10px 15px; background: #3498db; color: white;
-                 text-decoration: none; border-radius: 5px; }
-        table { width: 100%; background: white; border-collapse: collapse; margin-bottom: 20px; }
-        th, td { padding: 10px; border: 1px solid #ddd; text-align: center; }
-        th { background: #2ecc71; color: white; }
-        .acoes-flex { display: flex; gap: 8px; justify-content: center; }
-        .btn-editar { background: #2f80ed; color: white; border: none; padding: 6px 8px;
-                      border-radius: 6px; cursor: pointer; text-decoration: none; font-size: 14px; }
-        .btn-excluir { background: #e74c3c; color: white; border: none; padding: 6px 8px;
-                       border-radius: 6px; cursor: pointer; font-size: 14px; }
-        .filtros-container { width: 100%; background: white; padding: 15px 20px; border-radius: 8px;
-                             box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 20px;
-                             display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
-        .filtros-container input[type="text"], .filtros-container input[type="date"],
-        .filtros-container select { padding: 6px 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; }
-        .filtros-container button { padding: 6px 12px; border: none; border-radius: 6px;
-                                    cursor: pointer; font-size: 14px; font-weight: bold; }
-        #btn-filtrar { background: #2ecc71; color: white; }
-        #btn-limpar  { background: #e74c3c; color: white; }
-        .btn-acao { margin: 5px; background: #3498db; color: white; padding: 10px 15px;
-                    border: none; border-radius: 5px; font-weight: bold; cursor: pointer;
-                    text-decoration: none; display: inline-block; font-size: 14px; font-family: Arial; }
-        .filtro-mes-ano { display: flex; justify-content: center; align-items: center; gap: 10px; }
-        .filtro-mes-ano button { padding: 6px 10px; border: none; border-radius: 6px;
-                                 background: #3498db; color: white; cursor: pointer; }
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0;
-                 width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
-        .modal-content { background-color: white; margin: 15% auto; padding: 20px;
-                         border-radius: 8px; width: 300px; text-align: center; }
-        .modal-buttons { margin-top: 20px; display: flex; justify-content: center; gap: 10px; }
-        .btn-confirmar { background: #2ecc71; color: white; border: none; padding: 8px 15px;
-                         border-radius: 5px; cursor: pointer; }
-        .btn-cancelar  { background: #e74c3c; color: white; border: none; padding: 8px 15px;
-                         border-radius: 5px; cursor: pointer; }
-        .alerta-flash { padding: 10px 15px; border-radius: 6px; margin-bottom: 15px; text-align: center; }
-        /* Indicadores de ASO */
-        .aso-ok     { color: #27ae60; font-weight: bold; font-size: 13px; }
-        .aso-aviso  { color: #f39c12; font-weight: bold; font-size: 13px; }
-        .aso-vencido{ color: #e74c3c; font-weight: bold; font-size: 13px; }
-        .aso-sem    { color: #bdc3c7; font-size: 12px; }
-        /* Link para perfil do funcionário */
-        a.link-funcionario { color: #2c3e50; text-decoration: none; font-weight: 500; }
-        a.link-funcionario:hover { color: #2980b9; text-decoration: underline; }
-        .alerta-sucesso { background: #eafaf1; color: #27ae60; border: 1px solid #a9dfbf; }
-        .alerta-erro    { background: #fde8e8; color: #c0392b; border: 1px solid #f5b7b1; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard — PGEO</title>
+  <link rel="stylesheet" th:href="@{/css/global.css}">
+  <script th:src="@{/js/theme.js}"></script>
 </head>
 <body>
-<div class="container">
+<div th:replace="~{components/navbar :: navbar}"></div>
 
-    <!-- Modal de confirmação ASO -->
-    <div id="modalConfirmacao" class="modal">
-        <div class="modal-content">
-            <h3>Confirmar Alteração</h3>
-            <p id="modalMensagem">Deseja realmente atualizar a data do ASO?</p>
-            <div class="modal-buttons">
-                <button id="btnConfirmarModal" class="btn-confirmar">Confirmar</button>
-                <button id="btnCancelarModal" class="btn-cancelar">Cancelar</button>
-            </div>
-        </div>
+<!-- Modal confirmação ASO -->
+<div id="modalConfirmacao" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title">Confirmar Alteração</div>
+    <p class="modal-body" id="modalMensagem">Deseja realmente atualizar a data do ASO?</p>
+    <div class="modal-footer">
+      <button id="btnConfirmarModal" class="btn btn-success">Confirmar</button>
+      <button id="btnCancelarModal" class="btn btn-secondary">Cancelar</button>
     </div>
-
-    <!-- Mensagens flash -->
-    <!--
-        Flask:     {% with messages = get_flashed_messages() %}
-        Thymeleaf: th:if + RedirectAttributes no controller
-    -->
-    <div th:if="${mensagem}" class="alerta-flash alerta-sucesso" th:text="${mensagem}"></div>
-    <div th:if="${erro}"     class="alerta-flash alerta-erro"    th:text="${erro}"></div>
-
-    <!-- Navegação -->
-    <div class="nav">
-        <a th:href="@{/agendar}" class="btn-acao">Novo Agendamento</a>
-        <a th:href="@{/agenda}"  class="btn-acao">Agenda</a>
-        <a th:href="@{/dashboard_sangue}" class="btn-acao">Exames de Sangue</a>
-        <a th:href="@{/dashboard_exames}" class="btn-acao">Vencimentos ASO</a>
-        <a th:href="@{/dashboard_estatisticas}" class="btn-acao">Estatísticas</a>
-        <a th:href="@{/minha-senha}" class="btn-acao" style="background:#95a5a6;">🔒 Minha Senha</a>
-        <a th:href="@{/admin/usuarios}" class="btn-acao" style="background:#8e44ad;"
-           sec:authorize="hasRole('ADMIN')">👥 Usuários</a>
-
-        <!-- Upload do Excel -->
-        <form th:action="@{/logout}" method="POST" style="display:inline;">
-            <button type="submit" class="btn-acao" style="background:#e74c3c;">Sair</button>
-        </form>
-    </div>
-
-    <h2>Agendamentos</h2>
-
-    <!-- Filtros -->
-    <form id="formFiltros" class="filtros-container">
-        <label>Buscar:</label>
-        <!--
-            Jinja2:   value="{{ request.args.get('busca', '') }}"
-            Thymeleaf: th:value="${busca}"  (passado pelo controller no Model)
-        -->
-        <input type="text" id="busca" name="busca"
-               placeholder="Funcionário" th:value="${busca}">
-
-        <label>De:</label>
-        <input type="date" id="data_inicio" name="data_inicio"
-               th:value="${dataInicio}">
-
-        <label>Até:</label>
-        <input type="date" id="data_fim" name="data_fim"
-               th:value="${dataFim}">
-
-        <button type="button" id="btn-filtrar">Filtrar</button>
-        <a th:href="@{/dashboard}"><button type="button" id="btn-limpar">Limpar</button></a>
-
-        <div class="filtro-mes-ano">
-            <button type="button" id="prevMes">◀</button>
-            <select id="mesSelect">
-                <option value="1">Jan</option>  <option value="2">Fev</option>
-                <option value="3">Mar</option>  <option value="4">Abr</option>
-                <option value="5">Mai</option>  <option value="6">Jun</option>
-                <option value="7">Jul</option>  <option value="8">Ago</option>
-                <option value="9">Set</option>  <option value="10">Out</option>
-                <option value="11">Nov</option> <option value="12">Dez</option>
-            </select>
-            <select id="anoSelect">
-                <!--
-                    Jinja2:   {% for ano in anos %} <option>{{ano}}</option> {% endfor %}
-                    Thymeleaf: th:each + th:value + th:text
-                -->
-                <option th:each="ano : ${anos}"
-                        th:value="${ano}"
-                        th:text="${ano}"></option>
-            </select>
-            <button type="button" id="nextMes">▶</button>
-        </div>
-
-        <label>Estabelecimento:</label>
-        <select id="estabelecimento" name="estabelecimento">
-            <option value="todos">Todos</option>
-            <!--
-                Jinja2:   {% if request.args.get('estabelecimento') == 'HEAA' %}selected{% endif %}
-                Thymeleaf: th:selected="${estabelecimento == 'HEAA'}"
-            -->
-            <option value="HEAA" th:selected="${estabelecimento == 'HEAA'}">HEAA</option>
-            <option value="FMC"  th:selected="${estabelecimento == 'FMC'}">FMC</option>
-            <option value="CSEC" th:selected="${estabelecimento == 'CSEC'}">CSEC</option>
-        </select>
-    </form>
-
-    <!-- Tabela de agendamentos -->
-    <table id="tabelaAgendamentos">
-        <thead>
-            <tr>
-                <th>Nome</th><th>Setor</th><th>Função</th><th>Exame</th>
-                <th>Proteus</th><th>Hora</th><th>Sangue</th>
-                <th>Envio</th><th>Receb.</th><th>Ações</th>
-            </tr>
-        </thead>
-        <tbody id="corpoTabela">
-            <!--
-                Jinja2:   {% for a in agendamentos %}
-                Thymeleaf: th:each="a : ${agendamentos}"
-            -->
-            <tr th:each="a : ${agendamentos}" th:attr="data-id=${a.id}">
-                <td>
-                    <!--
-                        Link para o perfil do funcionário.
-                        Só mostra se funcionario_id existir (FK preenchida).
-                    -->
-                    <a th:if="${a.funcionario != null}"
-                       th:href="@{/funcionario/{id}(id=${a.funcionario.id})}"
-                       class="link-funcionario"
-                       th:text="${a.funcionarioNome}">—</a>
-                    <span th:unless="${a.funcionario != null}"
-                          th:text="${a.funcionarioNome}">—</span>
-                    <!--
-                        Indicador de ASO:
-                        Verde  = vence em mais de 30 dias
-                        Âmbar  = vence em até 30 dias
-                        Vermelho = já venceu
-                        Cinza  = sem data de ASO
-                    -->
-                    <span th:if="${a.funcionario != null and a.funcionario.aso != null}"
-                          th:with="hoje=${T(java.time.LocalDate).now()},
-                                   aso=${a.funcionario.aso}"
-                          th:class="${aso.isBefore(hoje) ? 'aso-vencido' :
-                                     aso.isBefore(hoje.plusDays(30)) ? 'aso-aviso' : 'aso-ok'}"
-                          th:text="${aso.isBefore(hoje) ? '● Vencido' :
-                                     aso.isBefore(hoje.plusDays(30)) ? '● A vencer' : '● Em dia'}"
-                          style="margin-left:6px;font-size:11px;">
-                    </span>
-                    <span th:if="${a.funcionario != null and a.funcionario.aso == null}"
-                          class="aso-sem" style="margin-left:6px;">sem ASO</span>
-                </td>
-                <td th:text="${a.funcionarioSetor}">—</td>
-                <td th:text="${a.funcionarioFuncao}">—</td>
-                <td th:text="${a.tipoExameDescricao}">—</td>
-
-                <!--
-                    Jinja2:   {{ a.data_clinico | format_date }}
-                    Thymeleaf: #temporals.format() — equivalente ao filtro format_date
-                -->
-                <td th:text="${a.dataClinico != null ? #temporals.format(a.dataClinico, 'dd/MM/yyyy') : '—'}">—</td>
-                <td th:text="${a.horaClinico}">—</td>
-                <td th:text="${a.dataSangue != null ? #temporals.format(a.dataSangue, 'dd/MM/yyyy') : '—'}">—</td>
-
-                <td>
-                    <!--
-                        Jinja2:   {% if a.aso_enviado %}checked{% endif %}
-                        Thymeleaf: th:checked="${a.asoEnviado}"
-                    -->
-                    <input type="checkbox"
-                           th:checked="${a.asoEnviado}"
-                           th:attr="onchange=|toggleStatusAso(${a.id}, 'enviado', this.checked, this)|">
-                </td>
-                <td>
-                    <input type="checkbox"
-                           th:checked="${a.asoRecebido}"
-                           th:attr="onchange=|handleRecebimento(${a.id}, this.checked, this)|">
-                </td>
-
-                <td>
-                    <div class="acoes-flex">
-                        <a th:href="@{/editar_agendamento/{id}(id=${a.id})}" class="btn-editar" title="Editar">✏️</a>
-
-                        <!--
-                            Jinja2: <form action="/excluir_agendamento/{{a.id}}" method="POST">
-                            Thymeleaf: th:action="@{/excluir_agendamento/{id}(id=${a.id})}"
-                            O CSRF é injetado automaticamente pelo Thymeleaf
-                        -->
-                        <form th:action="@{/excluir_agendamento/{id}(id=${a.id})}" method="POST"
-                              onsubmit="return confirmarExclusao()">
-                            <button class="btn-excluir" title="Excluir">🗑</button>
-                        </form>
-                    </div>
-                </td>
-            </tr>
-            <!-- Linha vazia quando não há resultados -->
-            <tr th:if="${#lists.isEmpty(agendamentos)}">
-                <td colspan="10" style="color:#999;padding:20px;">Nenhum agendamento encontrado.</td>
-            </tr>
-        </tbody>
-    </table>
-    <div id="paginacao" style="text-align:center;margin-top:10px;"></div>
+  </div>
 </div>
 
+<div class="page-wrapper-wide">
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">📋 Agendamentos</div>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;">
+      <a th:href="@{/agendar}" class="btn btn-success">➕ Novo Agendamento</a>
+      <a th:href="@{/agenda}"  class="btn btn-secondary">📅 Agenda</a>
+    </div>
+  </div>
+
+  <div th:if="${mensagem}" class="alert alert-success" th:text="${mensagem}"></div>
+  <div th:if="${erro}"     class="alert alert-danger"  th:text="${erro}"></div>
+
+  <!-- Filtros -->
+  <div class="filters-bar">
+    <input type="text" id="busca" class="form-control"
+           placeholder="🔍 Funcionário" th:value="${busca}" style="min-width:180px;">
+    <input type="date" id="data_inicio" class="form-control" th:value="${dataInicio}" style="min-width:140px;">
+    <input type="date" id="data_fim"    class="form-control" th:value="${dataFim}"    style="min-width:140px;">
+
+    <select id="estabelecimento" class="form-control" style="min-width:120px;">
+      <option value="todos">Todos</option>
+      <option value="HEAA" th:selected="${estabelecimento == 'HEAA'}">HEAA</option>
+      <option value="FMC"  th:selected="${estabelecimento == 'FMC'}">FMC</option>
+      <option value="CSEC" th:selected="${estabelecimento == 'CSEC'}">CSEC</option>
+    </select>
+
+    <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+      <button type="button" id="prevMes" class="btn btn-secondary btn-sm">◀</button>
+      <select id="mesSelect" class="form-control" style="min-width:68px;">
+        <option value="1">Jan</option>  <option value="2">Fev</option>
+        <option value="3">Mar</option>  <option value="4">Abr</option>
+        <option value="5">Mai</option>  <option value="6">Jun</option>
+        <option value="7">Jul</option>  <option value="8">Ago</option>
+        <option value="9">Set</option>  <option value="10">Out</option>
+        <option value="11">Nov</option> <option value="12">Dez</option>
+      </select>
+      <select id="anoSelect" class="form-control" style="min-width:76px;">
+        <option th:each="ano : ${anos}" th:value="${ano}" th:text="${ano}"></option>
+      </select>
+      <button type="button" id="nextMes" class="btn btn-secondary btn-sm">▶</button>
+    </div>
+
+    <button type="button" id="btn-filtrar" class="btn btn-primary btn-sm">Filtrar</button>
+    <a th:href="@{/dashboard}" class="btn btn-ghost btn-sm">Limpar</a>
+  </div>
+
+  <!-- Tabela -->
+  <div class="card" style="padding:0;">
+    <div class="table-wrapper">
+      <table id="tabelaAgendamentos">
+        <thead>
+          <tr>
+            <th>Nome / ASO</th><th>Setor</th><th>Função</th><th>Exame</th>
+            <th>Proteus</th><th>Hora</th><th>Sangue</th>
+            <th>Envio</th><th>Receb.</th><th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="corpoTabela">
+          <tr th:each="a : ${agendamentos}" th:attr="data-id=${a.id}">
+            <td>
+              <a th:if="${a.funcionario != null}"
+                 th:href="@{/funcionario/{id}(id=${a.funcionario.id})}"
+                 class="link-func"
+                 th:text="${a.funcionarioNome}">—</a>
+              <span th:unless="${a.funcionario != null}"
+                    th:text="${a.funcionarioNome}">—</span>
+              <span th:if="${a.funcionario != null and a.funcionario.aso != null}"
+                    th:with="hoje=${T(java.time.LocalDate).now()}, aso=${a.funcionario.aso}"
+                    th:class="${aso.isBefore(hoje) ? 'aso-vencido' :
+                               aso.isBefore(hoje.plusDays(30)) ? 'aso-aviso' : 'aso-ok'}"
+                    th:text="${aso.isBefore(hoje) ? '● Vencido' :
+                               aso.isBefore(hoje.plusDays(30)) ? '● A vencer' : '● Em dia'}"
+                    style="display:block;font-size:11px;margin-top:2px;font-weight:600;">
+              </span>
+              <span th:if="${a.funcionario != null and a.funcionario.aso == null}"
+                    class="aso-sem"
+                    style="display:block;font-size:11px;margin-top:2px;">sem ASO</span>
+            </td>
+            <td th:text="${a.funcionarioSetor}">—</td>
+            <td th:text="${a.funcionarioFuncao}">—</td>
+            <td th:text="${a.tipoExameDescricao}">—</td>
+            <td th:text="${a.dataClinico != null ? #temporals.format(a.dataClinico, 'dd/MM/yyyy') : '—'}">—</td>
+            <td th:text="${a.horaClinico}">—</td>
+            <td th:text="${a.dataSangue != null ? #temporals.format(a.dataSangue, 'dd/MM/yyyy') : '—'}">—</td>
+            <td style="text-align:center;">
+              <input type="checkbox" class="check-toggle"
+                     th:checked="${a.asoEnviado}"
+                     th:attr="onchange=|toggleStatusAso(${a.id}, 'enviado', this.checked, this)|">
+            </td>
+            <td style="text-align:center;">
+              <input type="checkbox" class="check-toggle"
+                     th:checked="${a.asoRecebido}"
+                     th:attr="onchange=|handleRecebimento(${a.id}, this.checked, this)|">
+            </td>
+            <td>
+              <div style="display:flex;gap:6px;justify-content:center;">
+                <a th:href="@{/editar_agendamento/{id}(id=${a.id})}"
+                   class="btn btn-primary btn-icon btn-sm" title="Editar">✏️</a>
+                <form th:action="@{/excluir_agendamento/{id}(id=${a.id})}" method="POST"
+                      onsubmit="return confirmarExclusao()">
+                  <button class="btn btn-danger btn-icon btn-sm" title="Excluir">🗑</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          <tr th:if="${#lists.isEmpty(agendamentos)}">
+            <td colspan="10">
+              <div class="empty-state">
+                <div class="empty-state-icon">📭</div>
+                <div class="empty-state-title">Nenhum agendamento encontrado</div>
+                <div class="empty-state-text">Ajuste os filtros ou adicione um novo agendamento.</div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="paginacao"
+       style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:12px;"></div>
+
+</div>
+
+<style>
+  .link-func { color: var(--text); font-weight: 500; }
+  .link-func:hover { color: var(--primary); text-decoration: underline; }
+</style>
+
 <script>
-    // O JavaScript permanece idêntico ao Flask!
-    // Apenas as URLs são as mesmas — o backend Java expõe os mesmos endpoints.
-    const mesSelect = document.getElementById("mesSelect");
-    const anoSelect = document.getElementById("anoSelect");
+  const mesSelect = document.getElementById("mesSelect");
+  const anoSelect = document.getElementById("anoSelect");
+  const hoje = new Date();
+  if ([...anoSelect.options].some(o => o.value == hoje.getFullYear())) {
+    anoSelect.value = hoje.getFullYear();
+  }
+  mesSelect.value = hoje.getMonth() + 1;
 
-    const hoje = new Date();
-    if ([...anoSelect.options].some(o => o.value == hoje.getFullYear())) {
-        anoSelect.value = hoje.getFullYear();
-    }
-    mesSelect.value = hoje.getMonth() + 1;
-
-    function carregarDados() {
-        const params = new URLSearchParams({
-            mes: mesSelect.value, ano: anoSelect.value,
-            busca: document.getElementById("busca").value,
-            data_inicio: document.getElementById("data_inicio").value,
-            data_fim: document.getElementById("data_fim").value,
-            estabelecimento: document.getElementById("estabelecimento").value,
-            aplicar_filtro: "true"
-        });
-        fetch(`/dashboard_dados?${params}`)
-            .then(res => res.text())
-            .then(html => {
-                document.getElementById("corpoTabela").innerHTML = html;
-                reiniciarTabela();
-            });
-    }
-
-    mesSelect.addEventListener("change", carregarDados);
-    anoSelect.addEventListener("change", carregarDados);
-    document.getElementById("busca").addEventListener("input", carregarDados);
-    document.getElementById("data_inicio").addEventListener("change", carregarDados);
-    document.getElementById("data_fim").addEventListener("change", carregarDados);
-    document.getElementById("estabelecimento").addEventListener("change", carregarDados);
-    document.getElementById("btn-filtrar").addEventListener("click", carregarDados);
-
-    document.getElementById("prevMes").addEventListener("click", () => {
-        let mes = parseInt(mesSelect.value), ano = parseInt(anoSelect.value);
-        if (--mes < 1) { mes = 12; ano--; }
-        mesSelect.value = mes; anoSelect.value = ano; carregarDados();
+  function carregarDados() {
+    const params = new URLSearchParams({
+      mes: mesSelect.value, ano: anoSelect.value,
+      busca: document.getElementById("busca").value,
+      data_inicio: document.getElementById("data_inicio").value,
+      data_fim: document.getElementById("data_fim").value,
+      estabelecimento: document.getElementById("estabelecimento").value,
+      aplicar_filtro: "true"
     });
-    document.getElementById("nextMes").addEventListener("click", () => {
-        let mes = parseInt(mesSelect.value), ano = parseInt(anoSelect.value);
-        if (++mes > 12) { mes = 1; ano++; }
-        mesSelect.value = mes; anoSelect.value = ano; carregarDados();
+    fetch(`/dashboard_dados?${params}`)
+      .then(res => res.text())
+      .then(html => { document.getElementById("corpoTabela").innerHTML = html; reiniciarTabela(); });
+  }
+
+  mesSelect.addEventListener("change", carregarDados);
+  anoSelect.addEventListener("change", carregarDados);
+  document.getElementById("busca").addEventListener("input", carregarDados);
+  document.getElementById("data_inicio").addEventListener("change", carregarDados);
+  document.getElementById("data_fim").addEventListener("change", carregarDados);
+  document.getElementById("estabelecimento").addEventListener("change", carregarDados);
+  document.getElementById("btn-filtrar").addEventListener("click", carregarDados);
+
+  document.getElementById("prevMes").addEventListener("click", () => {
+    let mes = parseInt(mesSelect.value), ano = parseInt(anoSelect.value);
+    if (--mes < 1) { mes = 12; ano--; }
+    mesSelect.value = mes; anoSelect.value = ano; carregarDados();
+  });
+  document.getElementById("nextMes").addEventListener("click", () => {
+    let mes = parseInt(mesSelect.value), ano = parseInt(anoSelect.value);
+    if (++mes > 12) { mes = 1; ano++; }
+    mesSelect.value = mes; anoSelect.value = ano; carregarDados();
+  });
+
+  let linhasOriginais = [], linhasFiltradas = [], paginaAtual = 1;
+  const itensPorPagina = 20;
+
+  function renderizarTabela() {
+    linhasOriginais.forEach(r => r.style.display = "none");
+    const inicio = (paginaAtual - 1) * itensPorPagina;
+    linhasFiltradas.slice(inicio, inicio + itensPorPagina).forEach(r => r.style.display = "");
+    criarPaginacao(linhasFiltradas.length);
+  }
+
+  function criarPaginacao(total) {
+    const div = document.getElementById("paginacao"); div.innerHTML = "";
+    const totalPag = Math.ceil(total / itensPorPagina);
+    if (!totalPag) {
+      div.innerHTML = "<span style='color:var(--text-muted)'>Nenhum resultado</span>";
+      return;
+    }
+    for (let i = 1; i <= totalPag; i++) {
+      const btn = document.createElement("button");
+      btn.innerText = i;
+      btn.className = "btn btn-sm " + (i === paginaAtual ? "btn-primary" : "btn-secondary");
+      btn.addEventListener("click", () => { paginaAtual = i; renderizarTabela(); });
+      div.appendChild(btn);
+    }
+  }
+
+  function reiniciarTabela() {
+    linhasOriginais = Array.from(document.querySelectorAll("#corpoTabela tr"));
+    linhasFiltradas = [...linhasOriginais];
+    paginaAtual = 1;
+    renderizarTabela();
+  }
+
+  function confirmarExclusao() { return confirm("Deseja realmente excluir este agendamento?"); }
+
+  function toggleStatusAso(agendamentoId, campo, valor, checkbox) {
+    fetch('/atualizar_status_aso', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({agendamento_id: agendamentoId, campo, valor})
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.sucesso) {
+        window.showToast("Erro: " + data.erro, 'danger');
+        if (checkbox) checkbox.checked = !valor;
+      }
     });
+  }
 
-    let linhasOriginais = [], linhasFiltradas = [], paginaAtual = 1;
-    const itensPorPagina = 20;
+  function handleRecebimento(agendamentoId, valor, checkbox) {
+    const modal = document.getElementById("modalConfirmacao");
+    document.getElementById("modalMensagem").textContent = valor
+      ? "Deseja atualizar a data do ASO do funcionário para a data deste exame?"
+      : "Deseja restaurar a data anterior do ASO?";
+    modal.classList.add("show");
+    document.getElementById("btnConfirmarModal").onclick = () => {
+      toggleStatusAso(agendamentoId, 'recebido', valor, checkbox);
+      modal.classList.remove("show");
+    };
+    document.getElementById("btnCancelarModal").onclick = () => {
+      checkbox.checked = !valor; modal.classList.remove("show");
+    };
+  }
 
-    function renderizarTabela() {
-        linhasOriginais.forEach(r => r.style.display = "none");
-        const inicio = (paginaAtual - 1) * itensPorPagina;
-        linhasFiltradas.slice(inicio, inicio + itensPorPagina).forEach(r => r.style.display = "");
-        criarPaginacao(linhasFiltradas.length);
-    }
-
-    function criarPaginacao(total) {
-        const div = document.getElementById("paginacao"); div.innerHTML = "";
-        const totalPag = Math.ceil(total / itensPorPagina);
-        if (!totalPag) { div.innerHTML = "<span style='color:#999'>Nenhum resultado</span>"; return; }
-        for (let i = 1; i <= totalPag; i++) {
-            const btn = document.createElement("button");
-            btn.innerText = i;
-            btn.style.cssText = "margin:2px;padding:5px 10px;border-radius:5px;border:1px solid #ccc;cursor:pointer;";
-            if (i === paginaAtual) { btn.style.background = "#2ecc71"; btn.style.color = "white"; }
-            btn.addEventListener("click", () => { paginaAtual = i; renderizarTabela(); });
-            div.appendChild(btn);
-        }
-    }
-
-    function reiniciarTabela() {
-        linhasOriginais = Array.from(document.querySelectorAll("#corpoTabela tr"));
-        linhasFiltradas = [...linhasOriginais];
-        paginaAtual = 1;
-        renderizarTabela();
-    }
-
-    function confirmarExclusao() { return confirm("Deseja realmente excluir este agendamento?"); }
-
-    function toggleStatusAso(agendamentoId, campo, valor, checkbox) {
-        fetch('/atualizar_status_aso', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({agendamento_id: agendamentoId, campo, valor})
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (!data.sucesso) { alert("Erro: " + data.erro); if (checkbox) checkbox.checked = !valor; return; }
-            if (campo === 'recebido' && checkbox) {
-                checkbox.closest("tr").style.background = valor ? "#e8f8f5" : "";
-            }
-        });
-    }
-
-    function handleRecebimento(agendamentoId, valor, checkbox) {
-        const modal = document.getElementById("modalConfirmacao");
-        document.getElementById("modalMensagem").innerText = valor
-            ? "Deseja atualizar a data do ASO do funcionário para a data deste exame?"
-            : "Deseja restaurar a data anterior do ASO?";
-        modal.style.display = "block";
-        document.getElementById("btnConfirmarModal").onclick = () => {
-            toggleStatusAso(agendamentoId, 'recebido', valor, checkbox);
-            modal.style.display = "none";
-        };
-        document.getElementById("btnCancelarModal").onclick = () => {
-            checkbox.checked = !valor; modal.style.display = "none";
-        };
-    }
-
-    // Carregamento inicial
-    carregarDados();
+  carregarDados();
 </script>
 
-<!-- WebSocket: notificações em tempo real sem interromper o usuário -->
 <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
-<script th:src="@{/static/js/websocket.js}"></script>
+<script th:src="@{/js/websocket.js}"></script>
 </body>
 </html>
