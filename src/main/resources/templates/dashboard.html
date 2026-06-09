@@ -68,6 +68,7 @@
     </div>
 
     <button type="button" id="btn-filtrar" class="btn btn-primary btn-sm">Filtrar</button>
+    <button type="button" id="btn-exportar" class="btn btn-secondary btn-sm" title="Exportar para Excel">⬇ Excel</button>
     <a th:href="@{/dashboard}" class="btn btn-ghost btn-sm">Limpar</a>
   </div>
 
@@ -184,6 +185,18 @@
   document.getElementById("data_fim").addEventListener("change", () => carregarDados());
   document.getElementById("estabelecimento").addEventListener("change", () => carregarDados());
   document.getElementById("btn-filtrar").addEventListener("click", () => carregarDados());
+
+  document.getElementById("btn-exportar").addEventListener("click", () => {
+    const params = new URLSearchParams({
+      mes: mesSelect.value, ano: anoSelect.value,
+      busca: document.getElementById("busca").value,
+      data_inicio: document.getElementById("data_inicio").value,
+      data_fim: document.getElementById("data_fim").value,
+      estabelecimento: document.getElementById("estabelecimento").value,
+      aplicar_filtro: "true"
+    });
+    window.location.href = `/exportar?${params}`;
+  });
 
   document.getElementById("prevMes").addEventListener("click", () => {
     let mes = parseInt(mesSelect.value), ano = parseInt(anoSelect.value);
