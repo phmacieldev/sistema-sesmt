@@ -6,7 +6,7 @@
   <title>Estatísticas — PGEO</title>
   <link rel="stylesheet" th:href="@{/css/global.css}">
   <script th:src="@{/js/theme.js}"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script th:src="@{/webjars/chart.js/dist/chart.umd.js}"></script>
 </head>
 <body>
 <div th:replace="~{components/navbar :: navbar}"></div>
@@ -17,9 +17,8 @@
     <div>
       <div class="page-title">📈 Estatísticas de Exames</div>
     </div>
-    <form th:action="@{/dashboard_estatisticas}" method="GET"
-          style="display:flex;gap:8px;align-items:center;margin-left:auto;">
-      <select name="ano" class="form-control" style="min-width:90px;">
+    <form th:action="@{/dashboard_estatisticas}" method="GET" class="header-actions">
+      <select name="ano" class="form-control min-w-90">
         <option value="">Todos</option>
         <option th:each="a : ${anosDisponiveis}"
                 th:value="${a}" th:text="${a}"
@@ -30,7 +29,7 @@
   </div>
 
   <!-- Cards de totais por tipo -->
-  <div class="grid-3" style="margin-bottom:24px;">
+  <div class="grid-3 mb-24">
     <div th:each="entry : ${contadorTipoExame.entrySet()}" class="stat-card">
       <span class="stat-icon">📋</span>
       <div>
@@ -58,7 +57,7 @@
 
 </div>
 
-<script th:inline="javascript">
+<script th:inline="javascript" th:attr="nonce=${cspNonce}">
 var meses        = /*[[${meses}]]*/ [];
 var examesPorMes = /*[[${contadorExamesMes}]]*/ [];
 var tiposExame   = /*[[${tiposExame}]]*/ [];

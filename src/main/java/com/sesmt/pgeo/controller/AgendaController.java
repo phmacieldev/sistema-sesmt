@@ -287,6 +287,16 @@ public class AgendaController {
         return r;
     }
 
+    // ── Detalhe do agendamento ────────────────────────────────────────
+
+    @GetMapping("/agendamento/{id}")
+    public String detalhe(@PathVariable Long id, Model model) {
+        Agendamento ag = agendamentoRepo.findById(id)
+            .orElseThrow(() -> new RecursoNaoEncontradoException("Agendamento", id));
+        model.addAttribute("agendamento", ag);
+        return "agendamento/detalhe";
+    }
+
     @GetMapping("/guia/{id}")
     public ResponseEntity<byte[]> guia(@PathVariable Long id) {
         Agendamento ag = agendamentoRepo.findById(id)

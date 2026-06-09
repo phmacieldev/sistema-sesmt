@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Agendar Exame — PGEO</title>
   <link rel="stylesheet" th:href="@{/css/global.css}">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link rel="stylesheet" th:href="@{/webjars/flatpickr/dist/flatpickr.min.css}">
   <script th:src="@{/js/theme.js}"></script>
 </head>
 <body>
 <div th:replace="~{components/navbar :: navbar}"></div>
 
-<div class="page-wrapper" style="max-width:600px;">
+<div class="page-wrapper pw-600">
 
   <div class="page-header">
     <div>
@@ -35,13 +35,13 @@
       <div class="form-group">
         <label class="form-label" for="matricula">
           Matrícula
-          <span id="label-adm" class="form-label small" style="display:none;">
+          <span id="label-adm" class="form-label small d-none">
             — Deixar em branco para pré-admissional
           </span>
         </label>
         <input type="text" id="matricula" name="matricula" class="form-control"
                placeholder="Matrícula (opcional para admissional)">
-        <div id="aviso-pre-adm" class="alert alert-warning" style="display:none;margin-top:8px;">
+        <div id="aviso-pre-adm" class="alert alert-warning d-none mt-8">
           ⚠ Admissional sem matrícula: o funcionário será cadastrado como
           <strong>Pré-admissional</strong>. Após a contratação, acesse o perfil
           dele para vincular a matrícula real.
@@ -55,7 +55,7 @@
                  required placeholder="Nome do funcionário">
           <div id="sugestoes" class="suggestions"></div>
         </div>
-        <div id="alerta-agendamento" class="alert alert-warning" style="display:none;margin-top:8px;"></div>
+        <div id="alerta-agendamento" class="alert alert-warning d-none mt-8"></div>
       </div>
 
       <div class="form-group">
@@ -75,7 +75,7 @@
         </label>
         <input type="text" name="data_sangue" id="data_sangue" class="form-control"
                placeholder="Selecione a data">
-        <div id="aviso-limite-sangue" class="alert alert-warning" style="display:none;margin-top:6px;">
+        <div id="aviso-limite-sangue" class="alert alert-warning d-none mt-6">
           ⚠ Limite de 5 exames de sangue atingido nesta data. Escolha outra data.
         </div>
       </div>
@@ -113,7 +113,7 @@
 <div id="modal-confirm" class="modal-overlay">
   <div class="modal-box">
     <div class="modal-title">Confirma o agendamento?</div>
-    <div class="modal-body" id="modal-text" style="line-height:1.7;white-space:pre-line;"></div>
+    <div class="modal-body pre-line line-h-17" id="modal-text"></div>
     <div class="modal-footer">
       <button class="btn btn-success btn-confirm">Confirmar</button>
       <button class="btn btn-secondary btn-cancel">Cancelar</button>
@@ -133,11 +133,11 @@
   </div>
 </div>
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script src="https://npmcdn.com/flatpickr/dist/l10n/pt.js"></script>
+<script th:src="@{/webjars/jquery/jquery.min.js}"></script>
+<script th:src="@{/webjars/flatpickr/dist/flatpickr.min.js}"></script>
+<script th:src="@{/webjars/flatpickr/dist/l10n/pt.js}"></script>
 
-<script>
+<script th:attr="nonce=${cspNonce}">
 $(document).ready(function(){
 
   $("#nome").on("keyup", function(){

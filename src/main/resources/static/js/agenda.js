@@ -105,7 +105,8 @@ function abrirModal(ag) {
     document.getElementById("modal-exame").innerText = ag.exame;
     document.getElementById("modal-data").innerText  = ag.data;
     document.getElementById("modal-hora").innerText  = ag.hora;
-    document.getElementById("btn-editar-modal").href = "/editar_agendamento/" + ag.id;
+    document.getElementById("btn-editar-modal").href  = "/editar_agendamento/" + ag.id;
+    document.getElementById("btn-detalhe-modal").href = "/agendamento/" + ag.id;
     document.getElementById("modal-agendamento").classList.add("show");
 }
 

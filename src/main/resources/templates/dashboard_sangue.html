@@ -6,19 +6,6 @@
   <title>Exames de Sangue — PGEO</title>
   <link rel="stylesheet" th:href="@{/css/global.css}">
   <script th:src="@{/js/theme.js}"></script>
-  <style>
-    .dia-card { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
-                background: var(--bg-card); margin-bottom: 16px; }
-    .dia-header { display: flex; align-items: center; justify-content: space-between;
-                  padding: 12px 18px; border-bottom: 1px solid var(--border); }
-    .dia-titulo { font-size: 15px; font-weight: 600; color: var(--text); }
-    .barra-bg { background: var(--border); border-radius: 4px; height: 5px;
-                margin: 0 18px 4px; }
-    .barra-fill { height: 5px; border-radius: 4px; transition: width 0.3s; }
-    .barra-ok    { background: var(--success); }
-    .barra-aviso { background: var(--warning); }
-    .barra-cheio { background: var(--danger); }
-  </style>
 </head>
 <body>
 <div th:replace="~{components/navbar :: navbar}"></div>
@@ -30,15 +17,14 @@
       <div class="page-title">🩸 Exames de Sangue</div>
       <div class="page-subtitle">Agendamentos por dia com controle de limite (5 por dia)</div>
     </div>
-    <form th:action="@{/dashboard_sangue}" method="GET"
-          style="display:flex;gap:8px;align-items:center;margin-left:auto;">
-      <select name="mes" class="form-control" style="min-width:80px;">
+    <form th:action="@{/dashboard_sangue}" method="GET" class="header-actions">
+      <select name="mes" class="form-control min-w-80">
         <option th:each="m,s : ${ {1,2,3,4,5,6,7,8,9,10,11,12} }"
                 th:value="${m}"
                 th:text="${{'Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'}[s.index]}"
                 th:selected="${m == mesFiltro}"></option>
       </select>
-      <select name="ano" class="form-control" style="min-width:76px;">
+      <select name="ano" class="form-control min-w-76">
         <option th:each="a : ${anos}" th:value="${a}" th:text="${a}"
                 th:selected="${a == anoFiltro}"></option>
       </select>
@@ -47,7 +33,7 @@
   </div>
 
   <!-- Resumo -->
-  <div class="grid-3" style="margin-bottom:24px;">
+  <div class="grid-3 mb-24">
     <div class="stat-card">
       <span class="stat-icon">🩸</span>
       <div>
@@ -89,13 +75,13 @@
             th:text="${dia.total + '/5'}">0/5</span>
     </div>
 
-    <div class="barra-bg" style="margin:8px 18px 0;">
+    <div class="barra-bg">
       <div class="barra-fill"
            th:class="${dia.total >= 5 ? 'barra-cheio' : dia.total >= 4 ? 'barra-aviso' : 'barra-ok'}"
-           th:style="'width:' + (${dia.total} * 20) + '%'"></div>
+           th:attr="data-v=${dia.total > 5 ? 5 : dia.total}"></div>
     </div>
 
-    <div class="table-wrapper" style="border:none;border-radius:0;margin-top:4px;">
+    <div class="table-wrapper table-sangue">
       <table>
         <thead>
           <tr>

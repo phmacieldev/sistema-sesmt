@@ -15,15 +15,13 @@
             th:text="${a.funcionarioNome}">—</span>
       <span th:if="${a.funcionario != null and a.funcionario.aso != null}"
             th:with="hoje=${T(java.time.LocalDate).now()}, aso=${a.funcionario.aso}"
-            th:class="${aso.isBefore(hoje) ? 'aso-vencido' :
-                       aso.isBefore(hoje.plusDays(30)) ? 'aso-aviso' : 'aso-ok'}"
+            th:class="${aso.isBefore(hoje) ? 'aso-vencido aso-status' :
+                       aso.isBefore(hoje.plusDays(30)) ? 'aso-aviso aso-status' : 'aso-ok aso-status'}"
             th:text="${aso.isBefore(hoje) ? '● Vencido' :
-                       aso.isBefore(hoje.plusDays(30)) ? '● A vencer' : '● Em dia'}"
-            style="display:block;font-size:11px;margin-top:2px;font-weight:600;">
+                       aso.isBefore(hoje.plusDays(30)) ? '● A vencer' : '● Em dia'}">
       </span>
       <span th:if="${a.funcionario != null and a.funcionario.aso == null}"
-            class="aso-sem"
-            style="display:block;font-size:11px;margin-top:2px;">sem ASO</span>
+            class="aso-sem">sem ASO</span>
     </td>
     <td th:text="${a.funcionarioSetor}">—</td>
     <td th:text="${a.funcionarioFuncao}">—</td>
@@ -31,18 +29,18 @@
     <td th:text="${a.dataClinico != null ? #temporals.format(a.dataClinico, 'dd/MM/yyyy') : '—'}">—</td>
     <td th:text="${a.horaClinico}">—</td>
     <td th:text="${a.dataSangue != null ? #temporals.format(a.dataSangue, 'dd/MM/yyyy') : '—'}">—</td>
-    <td style="text-align:center;">
+    <td class="text-center">
       <input type="checkbox" class="check-toggle"
              th:checked="${a.asoEnviado}"
              th:attr="onchange=|toggleStatusAso(${a.id}, 'enviado', this.checked, this)|">
     </td>
-    <td style="text-align:center;">
+    <td class="text-center">
       <input type="checkbox" class="check-toggle"
              th:checked="${a.asoRecebido}"
              th:attr="onchange=|handleRecebimento(${a.id}, this.checked, this)|">
     </td>
     <td>
-      <div style="display:flex;gap:6px;justify-content:center;">
+      <div class="actions-cell">
         <a th:href="@{/editar_agendamento/{id}(id=${a.id})}"
            class="btn btn-primary btn-icon btn-sm" title="Editar">✏️</a>
         <form th:action="@{/excluir_agendamento/{id}(id=${a.id})}"

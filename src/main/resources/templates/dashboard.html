@@ -28,7 +28,7 @@
     <div>
       <div class="page-title">📋 Agendamentos</div>
     </div>
-    <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;">
+    <div class="header-actions">
       <a th:href="@{/agendar}" class="btn btn-success">➕ Novo Agendamento</a>
       <a th:href="@{/agenda}"  class="btn btn-secondary">📅 Agenda</a>
     </div>
@@ -39,21 +39,21 @@
 
   <!-- Filtros -->
   <div class="filters-bar">
-    <input type="text" id="busca" class="form-control"
-           placeholder="🔍 Funcionário" th:value="${busca}" style="min-width:180px;">
-    <input type="date" id="data_inicio" class="form-control" th:value="${dataInicio}" style="min-width:140px;">
-    <input type="date" id="data_fim"    class="form-control" th:value="${dataFim}"    style="min-width:140px;">
+    <input type="text" id="busca" class="form-control min-w-180"
+           placeholder="🔍 Funcionário" th:value="${busca}">
+    <input type="date" id="data_inicio" class="form-control min-w-140" th:value="${dataInicio}">
+    <input type="date" id="data_fim"    class="form-control min-w-140" th:value="${dataFim}">
 
-    <select id="estabelecimento" class="form-control" style="min-width:120px;">
+    <select id="estabelecimento" class="form-control min-w-120">
       <option value="todos">Todos</option>
       <option value="HEAA" th:selected="${estabelecimento == 'HEAA'}">HEAA</option>
       <option value="FMC"  th:selected="${estabelecimento == 'FMC'}">FMC</option>
       <option value="CSEC" th:selected="${estabelecimento == 'CSEC'}">CSEC</option>
     </select>
 
-    <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+    <div class="filter-row">
       <button type="button" id="prevMes" class="btn btn-secondary btn-sm">◀</button>
-      <select id="mesSelect" class="form-control" style="min-width:68px;">
+      <select id="mesSelect" class="form-control min-w-68">
         <option value="1">Jan</option>  <option value="2">Fev</option>
         <option value="3">Mar</option>  <option value="4">Abr</option>
         <option value="5">Mai</option>  <option value="6">Jun</option>
@@ -61,7 +61,7 @@
         <option value="9">Set</option>  <option value="10">Out</option>
         <option value="11">Nov</option> <option value="12">Dez</option>
       </select>
-      <select id="anoSelect" class="form-control" style="min-width:76px;">
+      <select id="anoSelect" class="form-control min-w-76">
         <option th:each="ano : ${anos}" th:value="${ano}" th:text="${ano}"></option>
       </select>
       <button type="button" id="nextMes" class="btn btn-secondary btn-sm">▶</button>
@@ -72,7 +72,7 @@
   </div>
 
   <!-- Tabela -->
-  <div class="card" style="padding:0;">
+  <div class="card p-0">
     <div class="table-wrapper">
       <table id="tabelaAgendamentos">
         <thead>
@@ -93,15 +93,13 @@
                     th:text="${a.funcionarioNome}">—</span>
               <span th:if="${a.funcionario != null and a.funcionario.aso != null}"
                     th:with="hoje=${T(java.time.LocalDate).now()}, aso=${a.funcionario.aso}"
-                    th:class="${aso.isBefore(hoje) ? 'aso-vencido' :
-                               aso.isBefore(hoje.plusDays(30)) ? 'aso-aviso' : 'aso-ok'}"
+                    th:class="${aso.isBefore(hoje) ? 'aso-vencido aso-status' :
+                               aso.isBefore(hoje.plusDays(30)) ? 'aso-aviso aso-status' : 'aso-ok aso-status'}"
                     th:text="${aso.isBefore(hoje) ? '● Vencido' :
-                               aso.isBefore(hoje.plusDays(30)) ? '● A vencer' : '● Em dia'}"
-                    style="display:block;font-size:11px;margin-top:2px;font-weight:600;">
+                               aso.isBefore(hoje.plusDays(30)) ? '● A vencer' : '● Em dia'}">
               </span>
               <span th:if="${a.funcionario != null and a.funcionario.aso == null}"
-                    class="aso-sem"
-                    style="display:block;font-size:11px;margin-top:2px;">sem ASO</span>
+                    class="aso-sem">sem ASO</span>
             </td>
             <td th:text="${a.funcionarioSetor}">—</td>
             <td th:text="${a.funcionarioFuncao}">—</td>
@@ -109,18 +107,18 @@
             <td th:text="${a.dataClinico != null ? #temporals.format(a.dataClinico, 'dd/MM/yyyy') : '—'}">—</td>
             <td th:text="${a.horaClinico}">—</td>
             <td th:text="${a.dataSangue != null ? #temporals.format(a.dataSangue, 'dd/MM/yyyy') : '—'}">—</td>
-            <td style="text-align:center;">
+            <td class="text-center">
               <input type="checkbox" class="check-toggle"
                      th:checked="${a.asoEnviado}"
                      th:attr="onchange=|toggleStatusAso(${a.id}, 'enviado', this.checked, this)|">
             </td>
-            <td style="text-align:center;">
+            <td class="text-center">
               <input type="checkbox" class="check-toggle"
                      th:checked="${a.asoRecebido}"
                      th:attr="onchange=|handleRecebimento(${a.id}, this.checked, this)|">
             </td>
             <td>
-              <div style="display:flex;gap:6px;justify-content:center;">
+              <div class="actions-cell">
                 <a th:href="@{/editar_agendamento/{id}(id=${a.id})}"
                    class="btn btn-primary btn-icon btn-sm" title="Editar">✏️</a>
                 <form th:action="@{/excluir_agendamento/{id}(id=${a.id})}" method="POST"
@@ -144,17 +142,11 @@
     </div>
   </div>
 
-  <div id="paginacao"
-       style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:12px;"></div>
+  <div id="paginacao" class="pagination-bar"></div>
 
 </div>
 
-<style>
-  .link-func { color: var(--text); font-weight: 500; }
-  .link-func:hover { color: var(--primary); text-decoration: underline; }
-</style>
-
-<script>
+<script th:attr="nonce=${cspNonce}">
   const mesSelect = document.getElementById("mesSelect");
   const anoSelect = document.getElementById("anoSelect");
   const hoje = new Date();
@@ -210,7 +202,7 @@
     const div = document.getElementById("paginacao"); div.innerHTML = "";
     const totalPag = Math.ceil(total / itensPorPagina);
     if (!totalPag) {
-      div.innerHTML = "<span style='color:var(--text-muted)'>Nenhum resultado</span>";
+      div.innerHTML = "<span class='text-muted'>Nenhum resultado</span>";
       return;
     }
     for (let i = 1; i <= totalPag; i++) {
@@ -264,8 +256,8 @@
   carregarDados();
 </script>
 
-<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+<script th:src="@{/webjars/sockjs-client/dist/sockjs.min.js}"></script>
+<script th:src="@{/webjars/stomp-websocket/lib/stomp.min.js}"></script>
 <script th:src="@{/js/websocket.js}"></script>
 </body>
 </html>

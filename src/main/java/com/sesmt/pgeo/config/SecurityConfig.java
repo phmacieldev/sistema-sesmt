@@ -2,7 +2,9 @@ package com.sesmt.pgeo.config;
 
 import com.sesmt.pgeo.model.Usuario;
 import com.sesmt.pgeo.repository.UsuarioRepository;
+import com.sesmt.pgeo.security.CspNonceFilter;
 import com.sesmt.pgeo.security.LoginRateLimitFilter;
+import com.sesmt.pgeo.security.NonceCspHeaderWriter;
 import com.sesmt.pgeo.service.LoginAttemptService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +20,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.frameoptions.XFrameOptionsHeaderWriter;
+import org.springframework.security.web.header.HeaderWriterFilter;
 
 import java.time.LocalDateTime;
 
@@ -32,10 +36,11 @@ public class SecurityConfig {
                                            UsuarioRepository usuarioRepo,
                                            LoginAttemptService loginAttemptService) throws Exception {
         http
+            .addFilterBefore(new CspNonceFilter(), HeaderWriterFilter.class)
             .addFilterBefore(new LoginRateLimitFilter(loginAttemptService),
                              UsernamePasswordAuthenticationFilter.class)
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/static/**", "/css/**", "/js/**", "/error").permitAll()
+                .requestMatchers("/static/**", "/css/**", "/js/**", "/webjars/**", "/error").permitAll()
                 .requestMatchers("/login", "/login/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                 .requestMatchers("/ws/**").authenticated()
@@ -68,26 +73,15 @@ public class SecurityConfig {
             )
             // ── Headers de segurança HTTP ─────────────────────────────────
             .headers(headers -> headers
-                // Permite SockJS usar iframes do mesmo domínio
                 .frameOptions(frame -> frame.sameOrigin())
-                // Impede MIME sniffing do browser
                 .contentTypeOptions(ct -> {})
-                // HSTS: força HTTPS por 1 ano (ativar só se tiver HTTPS)
-                // .httpStrictTransportSecurity(hsts -> hsts.maxAgeInSeconds(31536000))
-                // Política de referrer: não vaza URL para outros domínios
+                .httpStrictTransportSecurity(hsts -> hsts
+                    .maxAgeInSeconds(31536000)
+                    .includeSubDomains(true))
                 .referrerPolicy(ref ->
                     ref.policy(org.springframework.security.web.header.writers
                         .ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
-                // Impede que o browser execute scripts inline (Content-Security-Policy)
-                // Configurado de forma permissiva para funcionar com CDNs existentes
-                .contentSecurityPolicy(csp -> csp.policyDirectives(
-                    "default-src 'self'; " +
-                    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://code.jquery.com; " +
-                    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
-                    "img-src 'self' data:; " +
-                    "connect-src 'self' ws: wss:; " +
-                    "frame-ancestors 'self';"
-                ))
+                .addHeaderWriter(new NonceCspHeaderWriter())
             )
             // ── Sessão ───────────────────────────────────────────────────
             .sessionManagement(session -> session

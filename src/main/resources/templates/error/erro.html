@@ -6,36 +6,6 @@
   <title th:text="${titulo + ' — PGEO'}">Erro — PGEO</title>
   <link rel="stylesheet" th:href="@{/css/global.css}">
   <script th:src="@{/js/theme.js}"></script>
-  <style>
-    body.no-navbar {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      padding: 16px;
-    }
-    .error-card {
-      width: 100%;
-      max-width: 480px;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 48px 40px;
-      box-shadow: var(--shadow-lg);
-      text-align: center;
-    }
-    .error-code {
-      font-size: 72px;
-      font-weight: 800;
-      line-height: 1;
-      margin-bottom: 12px;
-    }
-    .error-403 { color: var(--warning); }
-    .error-404 { color: var(--text-muted); }
-    .error-500 { color: var(--danger); }
-    .error-title { font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
-    .error-msg   { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
-  </style>
 </head>
 <body class="no-navbar">
 
@@ -46,7 +16,7 @@
        th:text="${status}">500</div>
   <div class="error-title" th:text="${titulo}">Erro</div>
   <p class="error-msg" th:text="${mensagem}">Ocorreu um erro inesperado.</p>
-  <a th:href="@{/dashboard}" class="btn btn-primary" style="margin-top:24px;">← Voltar ao Dashboard</a>
+  <a th:href="@{/dashboard}" class="btn btn-primary mt-24">← Voltar ao Dashboard</a>
 </div>
 
 </body>
