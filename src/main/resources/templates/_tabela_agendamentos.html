@@ -5,6 +5,11 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 <th:block th:fragment="tbody">
+  <!-- Metadados de paginação lidos pelo JavaScript do dashboard -->
+  <tr th:if="${totalPaginas != null}" class="pg-meta d-none"
+      th:attr="data-total-paginas=${totalPaginas},data-pagina-atual=${paginaAtual},data-total-itens=${totalItens}">
+    <td></td>
+  </tr>
   <tr th:each="a : ${agendamentos}" th:attr="data-id=${a.id}">
     <td>
       <a th:if="${a.funcionario != null}"

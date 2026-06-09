@@ -1,6 +1,7 @@
 package com.sesmt.pgeo.repository;
 
 import com.sesmt.pgeo.model.Agendamento;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -62,6 +63,34 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
 
     @Query("SELECT a FROM Agendamento a WHERE month(a.dataClinico) = :mes AND year(a.dataClinico) = :ano ORDER BY a.dataClinico ASC, a.horaClinico ASC")
     List<Agendamento> findByMesEAno(@Param("mes") int mes, @Param("ano") int ano);
+
+    // ── Paginação server-side (dashboard principal) ───────────────────
+    @Query("""
+        SELECT a FROM Agendamento a LEFT JOIN a.funcionario f
+        WHERE month(a.dataClinico) = :mes AND year(a.dataClinico) = :ano
+          AND (:busca IS NULL OR LOWER(a.funcionarioNome) LIKE LOWER(CONCAT('%', :busca, '%')))
+          AND (:est IS NULL OR UPPER(f.estabelecimento) = :est)
+        ORDER BY a.dataClinico ASC, a.horaClinico ASC
+        """)
+    Page<Agendamento> findByMesEAnoPaginado(
+        @Param("mes") int mes, @Param("ano") int ano,
+        @Param("busca") String busca, @Param("est") String est,
+        Pageable pageable);
+
+    @Query("""
+        SELECT a FROM Agendamento a LEFT JOIN a.funcionario f
+        WHERE (:busca IS NULL OR LOWER(a.funcionarioNome) LIKE LOWER(CONCAT('%', :busca, '%')))
+          AND (:dataInicio IS NULL OR a.dataClinico >= :dataInicio)
+          AND (:dataFim IS NULL OR a.dataClinico <= :dataFim)
+          AND (:est IS NULL OR UPPER(f.estabelecimento) = :est)
+        ORDER BY a.dataClinico ASC, a.horaClinico ASC
+        """)
+    Page<Agendamento> buscarPaginado(
+        @Param("busca") String busca,
+        @Param("dataInicio") LocalDate dataInicio,
+        @Param("dataFim") LocalDate dataFim,
+        @Param("est") String est,
+        Pageable pageable);
 
     @Query(value = "SELECT DISTINCT EXTRACT(YEAR FROM data_clinico)::INTEGER FROM agendamento WHERE data_clinico IS NOT NULL ORDER BY 1 DESC", nativeQuery = true)
     List<Integer> findAnosDisponiveis();

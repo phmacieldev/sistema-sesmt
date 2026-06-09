@@ -155,27 +155,35 @@
   }
   mesSelect.value = hoje.getMonth() + 1;
 
-  function carregarDados() {
+  function carregarDados(pagina = 0) {
     const params = new URLSearchParams({
       mes: mesSelect.value, ano: anoSelect.value,
       busca: document.getElementById("busca").value,
       data_inicio: document.getElementById("data_inicio").value,
       data_fim: document.getElementById("data_fim").value,
       estabelecimento: document.getElementById("estabelecimento").value,
-      aplicar_filtro: "true"
+      aplicar_filtro: "true",
+      pagina
     });
     fetch(`/dashboard_dados?${params}`)
       .then(res => res.text())
-      .then(html => { document.getElementById("corpoTabela").innerHTML = html; reiniciarTabela(); });
+      .then(html => {
+        document.getElementById("corpoTabela").innerHTML = html;
+        const meta = document.querySelector("#corpoTabela .pg-meta");
+        criarPaginacao(
+          meta ? +meta.dataset.totalPaginas : 1,
+          meta ? +meta.dataset.paginaAtual  : 0
+        );
+      });
   }
 
-  mesSelect.addEventListener("change", carregarDados);
-  anoSelect.addEventListener("change", carregarDados);
-  document.getElementById("busca").addEventListener("input", carregarDados);
-  document.getElementById("data_inicio").addEventListener("change", carregarDados);
-  document.getElementById("data_fim").addEventListener("change", carregarDados);
-  document.getElementById("estabelecimento").addEventListener("change", carregarDados);
-  document.getElementById("btn-filtrar").addEventListener("click", carregarDados);
+  mesSelect.addEventListener("change", () => carregarDados());
+  anoSelect.addEventListener("change", () => carregarDados());
+  document.getElementById("busca").addEventListener("input", () => carregarDados());
+  document.getElementById("data_inicio").addEventListener("change", () => carregarDados());
+  document.getElementById("data_fim").addEventListener("change", () => carregarDados());
+  document.getElementById("estabelecimento").addEventListener("change", () => carregarDados());
+  document.getElementById("btn-filtrar").addEventListener("click", () => carregarDados());
 
   document.getElementById("prevMes").addEventListener("click", () => {
     let mes = parseInt(mesSelect.value), ano = parseInt(anoSelect.value);
@@ -188,37 +196,48 @@
     mesSelect.value = mes; anoSelect.value = ano; carregarDados();
   });
 
-  let linhasOriginais = [], linhasFiltradas = [], paginaAtual = 1;
-  const itensPorPagina = 20;
+  function criarPaginacao(totalPaginas, paginaAtual) {
+    const div = document.getElementById("paginacao");
+    div.innerHTML = "";
+    if (totalPaginas <= 1) return;
 
-  function renderizarTabela() {
-    linhasOriginais.forEach(r => r.style.display = "none");
-    const inicio = (paginaAtual - 1) * itensPorPagina;
-    linhasFiltradas.slice(inicio, inicio + itensPorPagina).forEach(r => r.style.display = "");
-    criarPaginacao(linhasFiltradas.length);
-  }
-
-  function criarPaginacao(total) {
-    const div = document.getElementById("paginacao"); div.innerHTML = "";
-    const totalPag = Math.ceil(total / itensPorPagina);
-    if (!totalPag) {
-      div.innerHTML = "<span class='text-muted'>Nenhum resultado</span>";
-      return;
+    function mkBtn(label, page, active, disabled) {
+      const b = document.createElement("button");
+      b.textContent = label;
+      b.className = "btn btn-sm " + (active ? "btn-primary" : "btn-secondary");
+      b.disabled = disabled;
+      if (!disabled) b.addEventListener("click", () => carregarDados(page));
+      return b;
     }
-    for (let i = 1; i <= totalPag; i++) {
-      const btn = document.createElement("button");
-      btn.innerText = i;
-      btn.className = "btn btn-sm " + (i === paginaAtual ? "btn-primary" : "btn-secondary");
-      btn.addEventListener("click", () => { paginaAtual = i; renderizarTabela(); });
-      div.appendChild(btn);
+    function mkEllipsis() {
+      const s = document.createElement("span");
+      s.className = "text-muted"; s.textContent = "…";
+      return s;
     }
-  }
 
-  function reiniciarTabela() {
-    linhasOriginais = Array.from(document.querySelectorAll("#corpoTabela tr"));
-    linhasFiltradas = [...linhasOriginais];
-    paginaAtual = 1;
-    renderizarTabela();
+    div.appendChild(mkBtn("◀", paginaAtual - 1, false, paginaAtual === 0));
+
+    const start = Math.max(0, paginaAtual - 2);
+    const end   = Math.min(totalPaginas - 1, paginaAtual + 2);
+
+    if (start > 0) {
+      div.appendChild(mkBtn("1", 0, false, false));
+      if (start > 1) div.appendChild(mkEllipsis());
+    }
+    for (let p = start; p <= end; p++) {
+      div.appendChild(mkBtn(String(p + 1), p, p === paginaAtual, false));
+    }
+    if (end < totalPaginas - 1) {
+      if (end < totalPaginas - 2) div.appendChild(mkEllipsis());
+      div.appendChild(mkBtn(String(totalPaginas), totalPaginas - 1, false, false));
+    }
+
+    div.appendChild(mkBtn("▶", paginaAtual + 1, false, paginaAtual === totalPaginas - 1));
+
+    const info = document.createElement("span");
+    info.className = "text-muted font-sm";
+    info.textContent = `Pág. ${paginaAtual + 1} / ${totalPaginas}`;
+    div.appendChild(info);
   }
 
   function confirmarExclusao() { return confirm("Deseja realmente excluir este agendamento?"); }
