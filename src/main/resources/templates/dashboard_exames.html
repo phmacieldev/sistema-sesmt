@@ -19,7 +19,7 @@
     </div>
   </div>
 
-  <div class="card" style="padding:0;">
+  <div class="card p-0">
     <div class="table-wrapper">
       <table>
         <thead>
@@ -37,7 +37,7 @@
           <tr th:each="f : ${exames}">
             <td th:text="${f.matricula ?: '—'}">—</td>
             <td>
-              <a th:href="@{/funcionario/{id}(id=${f.id})}" class="fw-link"
+              <a th:href="@{/funcionario/{id}(id=${f.id})}" class="link-func"
                  th:text="${f.nome ?: '—'}">—</a>
             </td>
             <td th:text="${f.setor ?: '—'}">—</td>
@@ -45,7 +45,7 @@
             <td th:text="${f.email ?: '—'}">—</td>
 
             <td th:text="${f.aso != null ? #temporals.format(f.aso, 'dd/MM/yyyy') : '—'}"
-                th:class="${f.aso == null ? 'muted' : ''}">—</td>
+                th:class="${f.aso == null ? 'text-muted' : ''}">—</td>
 
             <td th:with="hoje=${T(java.time.LocalDate).now()},
                          limite=${hoje.plusDays(30)}">
@@ -72,12 +72,5 @@
   </div>
 
 </div>
-
-<style>
-  .muted { color: var(--text-muted); }
-  .fw-link { color: var(--text); font-weight: 500; }
-  .fw-link:hover { color: var(--primary); text-decoration: underline; }
-</style>
-
 </body>
 </html>

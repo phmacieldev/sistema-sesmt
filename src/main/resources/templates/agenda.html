@@ -6,30 +6,9 @@
   <title>Agenda de Exames — PGEO</title>
   <link rel="stylesheet" th:href="@{/css/global.css}">
   <link rel="stylesheet" th:href="@{/css/agenda.css}">
-  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
+  <link rel="stylesheet" th:href="@{/webjars/fullcalendar/index.global.min.css}">
   <script th:src="@{/js/theme.js}"></script>
-  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
-  <style>
-    #calendar {
-      background: var(--bg-card);
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      padding: 16px;
-    }
-    .fc .fc-button-primary {
-      background: var(--primary);
-      border-color: var(--primary-dark);
-    }
-    .fc .fc-button-primary:hover {
-      background: var(--primary-dark);
-    }
-    .fc .fc-toolbar-title { font-size: 17px; font-weight: 700; color: var(--text); }
-    .fc .fc-col-header-cell-cushion { color: var(--text-secondary); }
-    .fc .fc-daygrid-day-number { color: var(--text); }
-    .fc-theme-standard td, .fc-theme-standard th,
-    .fc-theme-standard .fc-scrollgrid { border-color: var(--border); }
-    .fc .fc-event { border-radius: 4px; font-size: 12px; }
-  </style>
+  <script th:src="@{/webjars/fullcalendar/index.global.min.js}"></script>
 </head>
 <body>
 <div th:replace="~{components/navbar :: navbar}"></div>
@@ -37,7 +16,7 @@
 <div class="page-wrapper-wide">
   <div class="page-header">
     <div class="page-title">📅 Agenda de Exames Ocupacionais</div>
-    <div style="margin-left:auto;">
+    <div class="ml-auto">
       <a th:href="@{/agendar}" class="btn btn-success btn-sm">➕ Novo Agendamento</a>
     </div>
   </div>

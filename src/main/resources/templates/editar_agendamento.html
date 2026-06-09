@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Editar Agendamento — PGEO</title>
   <link rel="stylesheet" th:href="@{/css/global.css}">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link rel="stylesheet" th:href="@{/webjars/flatpickr/dist/flatpickr.min.css}">
   <script th:src="@{/js/theme.js}"></script>
 </head>
 <body>
 <div th:replace="~{components/navbar :: navbar}"></div>
 
-<div class="page-wrapper" style="max-width:580px;">
+<div class="page-wrapper pw-580">
 
   <div class="page-header">
     <a th:href="${origem == 'dashboard' ? '/dashboard' : '/agenda'}"
@@ -96,8 +96,8 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script>
+<script th:src="@{/webjars/flatpickr/dist/flatpickr.min.js}"></script>
+<script th:attr="nonce=${cspNonce}">
   flatpickr("#data_sangue", {
     dateFormat: "Y-m-d", altInput: true, altFormat: "d/m/Y",
     disable: [d => d.getDay() === 0 || d.getDay() === 6]

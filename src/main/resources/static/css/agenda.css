@@ -1,5 +1,23 @@
 /* agenda.css — styles specific to the calendar page (global.css handles base/theme) */
 
+#calendar {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  padding: 16px;
+}
+.fc .fc-button-primary {
+  background: var(--primary);
+  border-color: var(--primary-dark);
+}
+.fc .fc-button-primary:hover { background: var(--primary-dark); }
+.fc .fc-toolbar-title { font-size: 17px; font-weight: 700; color: var(--text); }
+.fc .fc-col-header-cell-cushion { color: var(--text-secondary); }
+.fc .fc-daygrid-day-number { color: var(--text); }
+.fc-theme-standard td, .fc-theme-standard th,
+.fc-theme-standard .fc-scrollgrid { border-color: var(--border); }
+.fc .fc-event { border-radius: 4px; font-size: 12px; }
+
 .fc-timegrid-slot { height: 80px !important; }
 .fc .fc-event { width: 100% !important; margin-bottom: 4px; }
 

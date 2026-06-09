@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title th:text="${agendamento.funcionarioNome + ' — Agendamento — PGEO'}">Agendamento</title>
+  <link rel="stylesheet" th:href="@{/css/global.css}">
+  <script th:src="@{/js/theme.js}"></script>
+</head>
+<body>
+<div th:replace="~{components/navbar :: navbar}"></div>
+
+<div class="page-wrapper pw-800">
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">📋 Detalhes do Agendamento</div>
+      <div class="page-subtitle"
+           th:text="${agendamento.funcionarioNome}">Funcionário</div>
+    </div>
+    <div class="header-actions">
+      <a th:href="@{/editar_agendamento/{id}(id=${agendamento.id})}"
+         class="btn btn-primary">✏️ Editar</a>
+      <a th:if="${agendamento.funcionario != null}"
+         th:href="@{/funcionario/{id}(id=${agendamento.funcionario.id})}"
+         class="btn btn-secondary">👤 Perfil</a>
+      <a th:href="@{/guia/{id}(id=${agendamento.id})}"
+         class="btn btn-ghost">📄 Guia PDF</a>
+      <a th:href="@{/dashboard}" class="btn btn-ghost">← Voltar</a>
+    </div>
+  </div>
+
+  <div class="grid-2 mb-16">
+
+    <!-- Dados do funcionário -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">👤 Funcionário</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Nome</span>
+        <span class="info-val" th:text="${agendamento.funcionarioNome ?: '—'}">—</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Matrícula</span>
+        <span class="info-val"
+              th:text="${agendamento.funcionarioMatricula ?: 'Pré-admissional'}">—</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Setor</span>
+        <span class="info-val" th:text="${agendamento.funcionarioSetor ?: '—'}">—</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Função</span>
+        <span class="info-val" th:text="${agendamento.funcionarioFuncao ?: '—'}">—</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Estabelecimento</span>
+        <span class="info-val" th:text="${agendamento.estabelecimento}">—</span>
+      </div>
+    </div>
+
+    <!-- Dados do exame -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🔬 Exame</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Tipo</span>
+        <span class="info-val" th:text="${agendamento.tipoExameDescricao}">—</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Data clínico</span>
+        <span class="info-val"
+              th:text="${agendamento.dataClinico != null ?
+                  #temporals.format(agendamento.dataClinico, 'dd/MM/yyyy') : '—'}">—</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Horário</span>
+        <span class="info-val" th:text="${agendamento.horaClinico ?: '—'}">—</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Exame de sangue</span>
+        <span class="info-val"
+              th:text="${agendamento.dataSangue != null ?
+                  #temporals.format(agendamento.dataSangue, 'dd/MM/yyyy') : '—'}">—</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Status ASO + Observações -->
+  <div class="card mb-16">
+    <div class="card-header">
+      <span class="card-title">📄 Status ASO</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">ASO enviado</span>
+      <span th:class="${agendamento.asoEnviado ? 'badge badge-success' : 'badge badge-gray'}"
+            th:text="${agendamento.asoEnviado ? 'Sim' : 'Não'}">—</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">ASO recebido</span>
+      <span th:class="${agendamento.asoRecebido ? 'badge badge-success' : 'badge badge-gray'}"
+            th:text="${agendamento.asoRecebido ? 'Sim' : 'Não'}">—</span>
+    </div>
+    <div class="info-row" th:if="${agendamento.observacoes}">
+      <span class="info-label">Observações</span>
+      <span class="info-val" th:text="${agendamento.observacoes}">—</span>
+    </div>
+  </div>
+
+  <!-- Auditoria -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">🕒 Auditoria</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Criado em</span>
+      <span class="info-val"
+            th:text="${agendamento.criadoEm != null ?
+                #temporals.format(agendamento.criadoEm, 'dd/MM/yyyy HH:mm') : '—'}">—</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Criado por</span>
+      <span class="info-val" th:text="${agendamento.criadoPor ?: '—'}">—</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Atualizado em</span>
+      <span class="info-val"
+            th:text="${agendamento.atualizadoEm != null ?
+                #temporals.format(agendamento.atualizadoEm, 'dd/MM/yyyy HH:mm') : '—'}">—</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Atualizado por</span>
+      <span class="info-val" th:text="${agendamento.atualizadoPor ?: '—'}">—</span>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

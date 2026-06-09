@@ -6,32 +6,14 @@
   <title>Alterar Senha — PGEO</title>
   <link rel="stylesheet" th:href="@{/css/global.css}">
   <script th:src="@{/js/theme.js}"></script>
-  <style>
-    body.no-navbar {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      padding: 16px;
-    }
-    .senha-card {
-      width: 100%;
-      max-width: 400px;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 32px;
-      box-shadow: var(--shadow-lg);
-    }
-  </style>
 </head>
 <body class="no-navbar">
 
 <div class="senha-card">
-  <div style="text-align:center;margin-bottom:24px;">
-    <div style="font-size:32px;margin-bottom:8px;">🔑</div>
-    <h1 style="font-size:20px;font-weight:700;color:var(--text);margin:0;">Alterar Senha</h1>
-    <p style="font-size:13px;color:var(--text-muted);margin-top:4px;">
+  <div class="senha-header">
+    <div class="senha-icon">🔑</div>
+    <h1 class="senha-title">Alterar Senha</h1>
+    <p class="senha-subtitle">
       <a th:href="@{/dashboard}">← Voltar ao Dashboard</a>
     </p>
   </div>
@@ -56,7 +38,7 @@
       <input type="password" id="confirmarSenha" name="confirmarSenha"
              class="form-control" required>
     </div>
-    <button type="submit" class="btn btn-success btn-block btn-lg" style="margin-top:8px;">
+    <button type="submit" class="btn btn-success btn-block btn-lg mt-8">
       Alterar Senha
     </button>
   </form>

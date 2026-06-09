@@ -6,10 +6,9 @@
 <body>
 <div th:fragment="modal" id="modal-agendamento" class="modal-overlay">
   <div class="modal-box">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-      <div class="modal-title" style="margin-bottom:0;">Detalhes do Agendamento</div>
-      <button onclick="fecharModal()" class="btn btn-ghost btn-icon btn-sm"
-              style="padding:4px 8px;font-size:16px;">✕</button>
+    <div class="modal-header-row">
+      <div class="modal-title mb-0">Detalhes do Agendamento</div>
+      <button onclick="fecharModal()" class="btn btn-ghost btn-icon btn-sm btn-close">✕</button>
     </div>
 
     <div class="info-row">
@@ -37,8 +36,9 @@
       <span class="info-val" id="modal-hora">—</span>
     </div>
 
-    <div class="modal-footer" style="margin-top:20px;">
+    <div class="modal-footer mt-20">
       <a id="btn-editar-modal" href="#" class="btn btn-primary btn-sm">✏️ Editar</a>
+      <a id="btn-detalhe-modal" href="#" class="btn btn-secondary btn-sm">📋 Detalhes</a>
       <button class="btn btn-secondary btn-sm" onclick="fecharModal()">Fechar</button>
     </div>
   </div>

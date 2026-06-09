@@ -4,11 +4,15 @@ version: '3.9'
 # PGEO — Stack completa para produção
 #
 # Serviços:
-#   db   → PostgreSQL 16 (banco de dados)
-#   app  → Spring Boot (aplicação)
+#   db    → PostgreSQL 16 (banco de dados)
+#   app   → Spring Boot (aplicação)
+#   nginx → Proxy reverso SSL (porta 80/443)
 #
-# Uso:
-#   Primeira vez:  docker compose up -d --build
+# Primeira vez:
+#   1. cd nginx && ./gen-self-signed.sh  (ou copie certs de CA real)
+#   2. docker compose up -d --build
+#
+# Uso cotidiano:
 #   Parar:         docker compose down
 #   Ver logs:      docker compose logs -f app
 #   Reiniciar app: docker compose restart app
@@ -62,8 +66,9 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-pgeo_pass}
       SECRET_KEY:  ${SECRET_KEY:-troque-esta-chave-em-producao}
 
-    ports:
-      - "8080:8080"
+    # Sem ports: — o app só é acessível através do nginx (rede interna Docker)
+    expose:
+      - "8080"
 
     volumes:
       # Logs persistem entre restarts
@@ -79,6 +84,27 @@ services:
       timeout: 10s
       retries: 3
       start_period: 90s             # Spring Boot precisa de tempo para subir
+
+  # ── nginx — Proxy Reverso SSL ───────────────
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: pgeo-nginx
+    restart: unless-stopped
+
+    ports:
+      - "80:80"
+      - "443:443"
+
+    volumes:
+      # Certificados TLS — gerados via nginx/gen-self-signed.sh
+      # (ou substitua por certs de CA real antes do deploy)
+      - ./nginx/certs:/etc/nginx/certs:ro
+
+    depends_on:
+      app:
+        condition: service_healthy
 
 # ── Volumes persistentes ────────────────────
 volumes:

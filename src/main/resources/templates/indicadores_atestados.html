@@ -19,8 +19,8 @@
     </div>
   </div>
 
-  <div class="card" style="padding:0;">
-    <div class="table-wrapper" style="border:none;">
+  <div class="card p-0">
+    <div class="table-wrapper card-inner">
       <table>
         <thead>
           <tr>
@@ -31,8 +31,7 @@
         </thead>
         <tbody>
           <tr th:each="entry, stat : ${resultados}">
-            <td style="color:var(--text-muted);font-weight:600;"
-                th:text="${stat.index + 1}">1</td>
+            <td class="rank-cell" th:text="${stat.index + 1}">1</td>
             <td th:text="${entry.key}">Nome</td>
             <td>
               <span class="badge"

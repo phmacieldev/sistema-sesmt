@@ -6,25 +6,6 @@
   <title>Login — PGEO</title>
   <link rel="stylesheet" th:href="@{/css/global.css}">
   <script th:src="@{/js/theme.js}"></script>
-  <style>
-    body.no-navbar {
-      display: flex; align-items: center; justify-content: center;
-      min-height: 100vh; padding: 16px;
-    }
-    .login-card {
-      width: 100%; max-width: 380px;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 36px 32px;
-      box-shadow: var(--shadow-lg);
-    }
-    .login-logo { text-align: center; margin-bottom: 24px; }
-    .login-logo .brand-icon { font-size: 40px; display: block; margin-bottom: 8px; }
-    .login-logo h1 { font-size: 24px; font-weight: 700; color: var(--text); margin: 0; }
-    .login-logo p  { font-size: 13px; color: var(--text-muted); margin: 4px 0 0; }
-    .theme-row { display: flex; justify-content: flex-end; margin-bottom: 8px; }
-  </style>
 </head>
 <body class="no-navbar">
 
@@ -53,7 +34,7 @@
       <input class="form-control" type="password" id="password" name="password"
              placeholder="Sua senha" required>
     </div>
-    <button type="submit" class="btn btn-success btn-block btn-lg" style="margin-top:8px">
+    <button type="submit" class="btn btn-success btn-block btn-lg mt-8">
       Entrar
     </button>
   </form>

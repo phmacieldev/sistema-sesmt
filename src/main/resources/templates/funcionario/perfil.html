@@ -6,17 +6,6 @@
   <title th:text="${funcionario.nome + ' — PGEO'}">Funcionário</title>
   <link rel="stylesheet" th:href="@{/css/global.css}">
   <script th:src="@{/js/theme.js}"></script>
-  <style>
-    .motivo-tag { font-size: 11px; padding: 2px 9px; border-radius: 20px; font-weight: 600; }
-    .MUDANCA_DE_RISCO { background: var(--danger-light); color: #991b1b; }
-    .REVERSAO         { background: var(--success-light); color: #065f46; }
-    .TRANSFERENCIA    { background: #dbeafe; color: #1e40af; }
-    .CORRECAO         { background: var(--bg-badge); color: var(--text-secondary); }
-    [data-theme="dark"] .MUDANCA_DE_RISCO { background: #450a0a; color: #fca5a5; }
-    [data-theme="dark"] .REVERSAO         { background: #064e3b; color: #6ee7b7; }
-    [data-theme="dark"] .TRANSFERENCIA    { background: #1e3a5f; color: #93c5fd; }
-    [data-theme="dark"] .CORRECAO         { background: #334155; color: #94a3b8; }
-  </style>
 </head>
 <body>
 <div th:replace="~{components/navbar :: navbar}"></div>
@@ -28,13 +17,12 @@
       <div class="page-title" th:text="${funcionario.nome}">Funcionário</div>
       <div class="page-subtitle">Perfil e histórico de exames</div>
     </div>
-    <div style="margin-left:auto;">
-      <span class="badge"
-            th:class="${funcionario.status.name() == 'ATIVO' ? 'badge badge-success' :
-                       funcionario.status.name() == 'PRE_ADMISSIONAL' ? 'badge badge-warning' :
-                       'badge badge-danger'}"
-            th:text="${funcionario.status.descricao}"
-            style="font-size:13px;padding:5px 14px;">—</span>
+    <div class="ml-auto">
+      <span class="badge badge-lg"
+            th:class="${funcionario.status.name() == 'ATIVO' ? 'badge badge-lg badge-success' :
+                       funcionario.status.name() == 'PRE_ADMISSIONAL' ? 'badge badge-lg badge-warning' :
+                       'badge badge-lg badge-danger'}"
+            th:text="${funcionario.status.descricao}">—</span>
     </div>
   </div>
 
@@ -42,7 +30,7 @@
   <div th:if="${aviso}"    class="alert alert-warning" th:text="${aviso}"></div>
   <div th:if="${erro}"     class="alert alert-danger"  th:text="${erro}"></div>
 
-  <div class="grid-2" style="margin-bottom:16px;">
+  <div class="grid-2 mb-16">
 
     <!-- Dados do funcionário -->
     <div class="card">
@@ -104,7 +92,7 @@
       <div class="card-header">
         <span class="card-title">🔄 Alterar Cargo / Setor</span>
       </div>
-      <p class="form-hint" style="margin-bottom:14px;">
+      <p class="form-hint mb-14">
         Use <strong>Mudança de Risco</strong> quando o novo cargo exige novo exame.
         O histórico fica registrado automaticamente.
       </p>
@@ -142,16 +130,13 @@
       </form>
 
       <!-- Efetivar admissional -->
-      <div th:if="${funcionario.preAdmissional}"
-           style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
-        <div style="font-weight:600;color:var(--warning);margin-bottom:6px;">
-          ⚡ Efetivar Admissional
-        </div>
-        <p class="form-hint" style="margin-bottom:10px;">
+      <div th:if="${funcionario.preAdmissional}" class="section-divider">
+        <div class="warning-title">⚡ Efetivar Admissional</div>
+        <p class="form-hint mb-10">
           Vincule a matrícula real após a contratação.
         </p>
         <form th:action="@{/funcionario/{id}/efetivar(id=${funcionario.id})}" method="POST"
-              style="display:flex;gap:8px;">
+              class="d-flex gap-8">
           <input type="text" name="matriculaReal" class="form-control"
                  placeholder="Matrícula real">
           <button type="submit" class="btn btn-success"
@@ -163,15 +148,14 @@
   </div>
 
   <!-- Histórico de cargos -->
-  <div class="card" style="margin-bottom:16px;padding:0;">
-    <div class="card-header" style="padding:16px 20px;">
+  <div class="card mb-16 p-0">
+    <div class="card-header">
       <span class="card-title">📜 Histórico de Cargo / Função</span>
     </div>
     <div th:if="${#lists.isEmpty(historicoCargo)}" class="empty-state">
       <div class="empty-state-title">Nenhuma alteração registrada</div>
     </div>
-    <div th:if="${!#lists.isEmpty(historicoCargo)}" class="table-wrapper"
-         style="border:none;border-radius:0;">
+    <div th:if="${!#lists.isEmpty(historicoCargo)}" class="table-wrapper card-inner">
       <table>
         <thead>
           <tr>
@@ -199,15 +183,14 @@
   </div>
 
   <!-- Agendamentos do funcionário -->
-  <div class="card" style="padding:0;">
-    <div class="card-header" style="padding:16px 20px;">
+  <div class="card p-0">
+    <div class="card-header">
       <span class="card-title">📋 Agendamentos</span>
     </div>
     <div th:if="${#lists.isEmpty(agendamentos)}" class="empty-state">
       <div class="empty-state-title">Nenhum agendamento encontrado</div>
     </div>
-    <div th:if="${!#lists.isEmpty(agendamentos)}" class="table-wrapper"
-         style="border:none;border-radius:0;">
+    <div th:if="${!#lists.isEmpty(agendamentos)}" class="table-wrapper card-inner">
       <table>
         <thead>
           <tr>
@@ -231,8 +214,7 @@
               <span th:class="${a.asoRecebido ? 'badge badge-success' : 'badge badge-gray'}"
                     th:text="${a.asoRecebido ? 'Sim' : 'Não'}">—</span>
             </td>
-            <td style="color:var(--text-secondary);font-size:13px;max-width:200px;"
-                th:text="${a.observacoes ?: '—'}">—</td>
+            <td class="obs-cell" th:text="${a.observacoes ?: '—'}">—</td>
           </tr>
         </tbody>
       </table>

@@ -47,7 +47,7 @@
   <div th:if="${erro}"     class="alert alert-danger"  th:text="${erro}"></div>
 
   <!-- Criar novo usuário -->
-  <div class="card" style="margin-bottom:16px;">
+  <div class="card mb-16">
     <div class="card-header">
       <span class="card-title">➕ Novo Usuário</span>
     </div>
@@ -80,11 +80,11 @@
   </div>
 
   <!-- Lista de usuários -->
-  <div class="card" style="padding:0;">
-    <div class="card-header" style="padding:16px 20px;">
+  <div class="card p-0">
+    <div class="card-header">
       <span class="card-title">👥 Usuários cadastrados</span>
     </div>
-    <div class="table-wrapper" style="border:none;border-radius:0;">
+    <div class="table-wrapper card-inner">
       <table>
         <thead>
           <tr>
@@ -114,12 +114,11 @@
             <td th:text="${u.ultimoLogin != null ?
                 #temporals.format(u.ultimoLogin, 'dd/MM/yyyy HH:mm') : 'Nunca'}">—</td>
             <td>
-              <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+              <div class="d-flex gap-6 flex-wrap items-center">
                 <!-- Alterar role -->
                 <form th:action="@{/admin/usuarios/{id}/role(id=${u.id})}" method="POST"
-                      style="display:flex;gap:4px;align-items:center;">
-                  <select name="role" class="form-control"
-                          style="padding:4px 8px;font-size:12px;width:auto;min-width:90px;">
+                      class="d-flex gap-4 items-center">
+                  <select name="role" class="form-control select-sm">
                     <option th:each="r : ${roles}"
                             th:value="${r}"
                             th:text="${r.name()}"
@@ -153,7 +152,7 @@
 
 </div>
 
-<script>
+<script th:attr="nonce=${cspNonce}">
 function abrirReset(id, username) {
   document.getElementById('modalResetInfo').textContent = 'Redefinindo senha de: ' + username;
   document.getElementById('formReset').action = '/admin/usuarios/' + id + '/reset-senha';
