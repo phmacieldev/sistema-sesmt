@@ -92,6 +92,32 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
         @Param("est") String est,
         Pageable pageable);
 
+    // ── Export sem paginação (mesmo filtro do dashboard, sem Pageable) ──
+    @Query("""
+        SELECT a FROM Agendamento a LEFT JOIN a.funcionario f
+        WHERE month(a.dataClinico) = :mes AND year(a.dataClinico) = :ano
+          AND (:busca IS NULL OR LOWER(a.funcionarioNome) LIKE LOWER(CONCAT('%', :busca, '%')))
+          AND (:est IS NULL OR UPPER(f.estabelecimento) = :est)
+        ORDER BY a.dataClinico ASC, a.horaClinico ASC
+        """)
+    List<Agendamento> findByMesEAnoExport(
+        @Param("mes") int mes, @Param("ano") int ano,
+        @Param("busca") String busca, @Param("est") String est);
+
+    @Query("""
+        SELECT a FROM Agendamento a LEFT JOIN a.funcionario f
+        WHERE (:busca IS NULL OR LOWER(a.funcionarioNome) LIKE LOWER(CONCAT('%', :busca, '%')))
+          AND (:dataInicio IS NULL OR a.dataClinico >= :dataInicio)
+          AND (:dataFim IS NULL OR a.dataClinico <= :dataFim)
+          AND (:est IS NULL OR UPPER(f.estabelecimento) = :est)
+        ORDER BY a.dataClinico ASC, a.horaClinico ASC
+        """)
+    List<Agendamento> buscarTodosExport(
+        @Param("busca") String busca,
+        @Param("dataInicio") LocalDate dataInicio,
+        @Param("dataFim") LocalDate dataFim,
+        @Param("est") String est);
+
     @Query(value = "SELECT DISTINCT EXTRACT(YEAR FROM data_clinico)::INTEGER FROM agendamento WHERE data_clinico IS NOT NULL ORDER BY 1 DESC", nativeQuery = true)
     List<Integer> findAnosDisponiveis();
 

@@ -6,11 +6,15 @@ import com.sesmt.pgeo.model.MedicalLeave;
 import com.sesmt.pgeo.repository.AgendamentoRepository;
 import com.sesmt.pgeo.repository.FuncionarioRepository;
 import com.sesmt.pgeo.repository.MedicalLeaveRepository;
+import com.sesmt.pgeo.service.ExcelService;
 import com.sesmt.pgeo.util.AppConstants;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -27,6 +31,7 @@ public class DashboardController {
     private final AgendamentoRepository agendamentoRepo;
     private final FuncionarioRepository funcionarioRepo;
     private final MedicalLeaveRepository medicalLeaveRepo;
+    private final ExcelService excelService;
 
     @GetMapping("/")
     public String home() { return "redirect:/dashboard"; }
@@ -95,6 +100,40 @@ public class DashboardController {
         model.addAttribute("paginaAtual",  page.getNumber());
         model.addAttribute("totalItens",   page.getTotalElements());
         return "_tabela_agendamentos :: tbody";
+    }
+
+    @GetMapping("/exportar")
+    public ResponseEntity<byte[]> exportar(
+            @RequestParam(required = false) Integer mes,
+            @RequestParam(required = false) Integer ano,
+            @RequestParam(required = false) String busca,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data_inicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data_fim,
+            @RequestParam(required = false) String estabelecimento,
+            @RequestParam(required = false) String aplicar_filtro) {
+
+        String est = (estabelecimento != null && !estabelecimento.isBlank()
+                      && !"todos".equalsIgnoreCase(estabelecimento))
+                     ? estabelecimento.strip().toUpperCase() : null;
+        String b = (busca != null && !busca.isBlank()) ? busca.strip() : null;
+
+        List<Agendamento> lista;
+        if ("true".equals(aplicar_filtro) && mes != null && ano != null
+                && data_inicio == null && data_fim == null) {
+            lista = agendamentoRepo.findByMesEAnoExport(mes, ano, b, est);
+        } else {
+            lista = agendamentoRepo.buscarTodosExport(b, data_inicio, data_fim, est);
+        }
+
+        byte[] bytes = excelService.gerarPlanilha(lista);
+        String filename = "agendamentos_" + (mes != null ? mes + "_" : "") +
+                          (ano != null ? ano : LocalDate.now().getYear()) + ".xlsx";
+
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+            .contentType(MediaType.parseMediaType(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+            .body(bytes);
     }
 
     @GetMapping("/dashboard_sangue")
