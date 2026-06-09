@@ -82,8 +82,9 @@ public class SecurityConfig {
                 // Configurado de forma permissiva para funcionar com CDNs existentes
                 .contentSecurityPolicy(csp -> csp.policyDirectives(
                     "default-src 'self'; " +
-                    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://code.jquery.com; " +
-                    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
+                    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://code.jquery.com https://npmcdn.com; " +
+                    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; " +
+                    "font-src 'self' https://fonts.gstatic.com; " +
                     "img-src 'self' data:; " +
                     "connect-src 'self' ws: wss:; " +
                     "frame-ancestors 'self';"
