@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,4 +34,8 @@ public interface FuncionarioRepository extends JpaRepository<Funcionario, Long> 
 
     /** Retorna apenas funcionários ativos, evitando carregar inativos desnecessariamente */
     List<Funcionario> findByAtivoTrue();
+
+    /** Ativos com ASO definido e data ≤ limite — usado pelo scheduler de alerta de vencimento */
+    @Query("SELECT f FROM Funcionario f WHERE f.ativo = true AND f.aso IS NOT NULL AND f.aso <= :limite ORDER BY f.aso ASC")
+    List<Funcionario> findByAsoVencendoAte(@Param("limite") LocalDate limite);
 }
