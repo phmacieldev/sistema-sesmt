@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -188,16 +189,115 @@ public class DashboardController {
     }
 
     @GetMapping("/dashboard_exames")
-    public String dashboardExames(Model model) {
-        List<Funcionario> funcionarios = funcionarioRepo.findByAtivoTrue()
-            .stream()
-            .sorted(Comparator.comparing(
-                f -> f.getAso() != null ? f.getAso() : LocalDate.MIN))
+    public String dashboardExames(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String busca,
+            @RequestParam(required = false) String estabelecimento,
+            @RequestParam(defaultValue = "30") int diasAviso,
+            Model model) {
+
+        LocalDate hoje   = LocalDate.now();
+        LocalDate limite = hoje.plusDays(diasAviso);
+
+        List<Funcionario> todos = funcionarioRepo.findByAtivoTrue();
+
+        if (busca != null && !busca.isBlank()) {
+            String b = busca.strip().toLowerCase();
+            todos = todos.stream()
+                .filter(f -> f.getNome() != null && f.getNome().toLowerCase().contains(b))
+                .toList();
+        }
+        if (estabelecimento != null && !estabelecimento.isBlank()
+                && !"todos".equalsIgnoreCase(estabelecimento)) {
+            String est = estabelecimento.strip().toUpperCase();
+            todos = todos.stream()
+                .filter(f -> est.equals(f.getEstabelecimentoEfetivo()))
+                .toList();
+        }
+
+        long qtdVencidos = todos.stream().filter(f -> f.getAso() != null && f.getAso().isBefore(hoje)).count();
+        long qtdAVencer  = todos.stream().filter(f -> f.getAso() != null && !f.getAso().isBefore(hoje) && f.getAso().isBefore(limite)).count();
+        long qtdEmDia    = todos.stream().filter(f -> f.getAso() != null && !f.getAso().isBefore(limite)).count();
+        long qtdSemAso   = todos.stream().filter(f -> f.getAso() == null).count();
+
+        String statusFiltro = status != null ? status : "todos";
+        List<Funcionario> exames = switch (statusFiltro) {
+            case "vencidos"  -> todos.stream().filter(f -> f.getAso() != null && f.getAso().isBefore(hoje)).toList();
+            case "a_vencer"  -> todos.stream().filter(f -> f.getAso() != null && !f.getAso().isBefore(hoje) && f.getAso().isBefore(limite)).toList();
+            case "em_dia"    -> todos.stream().filter(f -> f.getAso() != null && !f.getAso().isBefore(limite)).toList();
+            case "sem_aso"   -> todos.stream().filter(f -> f.getAso() == null).toList();
+            default          -> todos;
+        };
+
+        exames = exames.stream()
+            .sorted(Comparator.comparing(f -> f.getAso() != null ? f.getAso() : LocalDate.MAX))
             .toList();
-        model.addAttribute("exames", funcionarios);
-        model.addAttribute("hoje", LocalDate.now());
-        model.addAttribute("limite30", LocalDate.now().plusDays(30));
+
+        Map<Long, Long> diasAso = exames.stream()
+            .filter(f -> f.getAso() != null)
+            .collect(Collectors.toMap(
+                Funcionario::getId,
+                f -> ChronoUnit.DAYS.between(hoje, f.getAso())));
+
+        model.addAttribute("exames",        exames);
+        model.addAttribute("hoje",          hoje);
+        model.addAttribute("diasAviso",     diasAviso);
+        model.addAttribute("statusFiltro",  statusFiltro);
+        model.addAttribute("busca",         busca);
+        model.addAttribute("estabelecimento", estabelecimento);
+        model.addAttribute("qtdTotal",      todos.size());
+        model.addAttribute("qtdVencidos",   qtdVencidos);
+        model.addAttribute("qtdAVencer",    qtdAVencer);
+        model.addAttribute("qtdEmDia",      qtdEmDia);
+        model.addAttribute("qtdSemAso",     qtdSemAso);
+        model.addAttribute("diasAso",       diasAso);
         return "dashboard_exames";
+    }
+
+    @GetMapping("/exportar_aso")
+    public ResponseEntity<byte[]> exportarAso(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String busca,
+            @RequestParam(required = false) String estabelecimento,
+            @RequestParam(defaultValue = "30") int diasAviso) {
+
+        LocalDate hoje   = LocalDate.now();
+        LocalDate limite = hoje.plusDays(diasAviso);
+
+        List<Funcionario> todos = funcionarioRepo.findByAtivoTrue();
+
+        if (busca != null && !busca.isBlank()) {
+            String b = busca.strip().toLowerCase();
+            todos = todos.stream()
+                .filter(f -> f.getNome() != null && f.getNome().toLowerCase().contains(b))
+                .toList();
+        }
+        if (estabelecimento != null && !estabelecimento.isBlank()
+                && !"todos".equalsIgnoreCase(estabelecimento)) {
+            String est = estabelecimento.strip().toUpperCase();
+            todos = todos.stream()
+                .filter(f -> est.equals(f.getEstabelecimentoEfetivo()))
+                .toList();
+        }
+
+        List<Funcionario> lista = switch (status != null ? status : "todos") {
+            case "vencidos" -> todos.stream().filter(f -> f.getAso() != null && f.getAso().isBefore(hoje)).toList();
+            case "a_vencer" -> todos.stream().filter(f -> f.getAso() != null && !f.getAso().isBefore(hoje) && f.getAso().isBefore(limite)).toList();
+            case "em_dia"   -> todos.stream().filter(f -> f.getAso() != null && !f.getAso().isBefore(limite)).toList();
+            case "sem_aso"  -> todos.stream().filter(f -> f.getAso() == null).toList();
+            default         -> todos;
+        };
+
+        lista = lista.stream()
+            .sorted(Comparator.comparing(f -> f.getAso() != null ? f.getAso() : LocalDate.MAX))
+            .toList();
+
+        byte[] bytes = excelService.gerarPlanilhaAso(lista, hoje, diasAviso);
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"aso_vencimentos.xlsx\"")
+            .contentType(MediaType.parseMediaType(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+            .body(bytes);
     }
 
     @GetMapping("/dashboard_estatisticas")

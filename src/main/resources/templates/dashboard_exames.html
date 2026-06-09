@@ -3,9 +3,32 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Vencimentos de ASO — PGEO</title>
+  <title>Relatório de ASO — PGEO</title>
   <link rel="stylesheet" th:href="@{/css/global.css}">
   <script th:src="@{/js/theme.js}"></script>
+  <style th:attr="nonce=${cspNonce}">
+    .status-tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px; }
+    .status-tab  {
+      display:inline-flex; align-items:center; gap:6px;
+      padding:5px 14px; border-radius:20px; font-size:13px; font-weight:500;
+      cursor:pointer; border:1px solid var(--border); background:var(--bg-card);
+      color:var(--text-secondary); text-decoration:none; transition:all .15s;
+    }
+    .status-tab:hover { background:var(--bg-table-hover); }
+    .status-tab.tab-active-all     { background:var(--primary); color:#fff; border-color:var(--primary); }
+    .status-tab.tab-active-danger  { background:#dc3545; color:#fff; border-color:#dc3545; }
+    .status-tab.tab-active-warning { background:#e67e00; color:#fff; border-color:#e67e00; }
+    .status-tab.tab-active-success { background:#198754; color:#fff; border-color:#198754; }
+    .status-tab.tab-active-gray    { background:var(--text-secondary); color:#fff; border-color:var(--text-secondary); }
+    .tab-count { font-size:11px; opacity:.85; }
+    .dias-vencido  { color:#dc3545; font-weight:600; font-size:12px; }
+    .dias-avencer  { color:#e67e00; font-weight:600; font-size:12px; }
+    .dias-emdia    { color:var(--text-muted); font-size:12px; }
+    .dias-semaso   { color:var(--text-muted); font-size:12px; }
+    .stat-value-danger  { color:#dc3545 !important; }
+    .stat-value-warning { color:#e67e00 !important; }
+    .stat-value-success { color:#198754 !important; }
+  </style>
 </head>
 <body>
 <div th:replace="~{components/navbar :: navbar}"></div>
@@ -14,11 +37,96 @@
 
   <div class="page-header">
     <div>
-      <div class="page-title">💊 Vencimentos de ASO</div>
-      <div class="page-subtitle">Situação atual dos exames ocupacionais de todos os funcionários</div>
+      <div class="page-title">💊 Relatório de ASO</div>
+      <div class="page-subtitle">Situação dos exames ocupacionais de todos os funcionários ativos</div>
+    </div>
+    <div class="header-actions">
+      <a id="btn-exportar-aso" href="#" class="btn btn-secondary btn-sm">⬇ Excel</a>
     </div>
   </div>
 
+  <!-- Stat cards -->
+  <div class="grid-4" style="margin-bottom:16px;">
+    <div class="stat-card">
+      <div class="stat-icon">👥</div>
+      <div>
+        <div class="stat-label">Total</div>
+        <div class="stat-value" th:text="${qtdTotal}">0</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🔴</div>
+      <div>
+        <div class="stat-label">Vencidos</div>
+        <div class="stat-value stat-value-danger" th:text="${qtdVencidos}">0</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🟡</div>
+      <div>
+        <div class="stat-label" th:text="${'A Vencer (' + diasAviso + ' dias)'}">A Vencer</div>
+        <div class="stat-value stat-value-warning" th:text="${qtdAVencer}">0</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🟢</div>
+      <div>
+        <div class="stat-label">Em Dia</div>
+        <div class="stat-value stat-value-success" th:text="${qtdEmDia}">0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filters-bar" style="margin-bottom:12px;">
+    <input type="text" id="busca" class="form-control min-w-180"
+           placeholder="🔍 Funcionário" th:value="${busca}">
+    <select id="estabelecimento" class="form-control min-w-120">
+      <option value="todos" th:selected="${estabelecimento == null or estabelecimento == 'todos'}">Todos</option>
+      <option value="HEAA" th:selected="${estabelecimento == 'HEAA'}">HEAA</option>
+      <option value="FMC"  th:selected="${estabelecimento == 'FMC'}">FMC</option>
+      <option value="CSEC" th:selected="${estabelecimento == 'CSEC'}">CSEC</option>
+    </select>
+    <label style="font-size:13px;color:var(--text-secondary);display:flex;align-items:center;gap:6px;">
+      Aviso:
+      <input type="number" id="diasAviso" class="form-control" style="width:70px;"
+             min="1" max="365" th:value="${diasAviso}">
+      dias
+    </label>
+    <button type="button" id="btn-filtrar" class="btn btn-primary btn-sm">Filtrar</button>
+    <a href="/dashboard_exames" class="btn btn-ghost btn-sm">Limpar</a>
+  </div>
+
+  <!-- Tabs de status -->
+  <div class="status-tabs">
+    <a th:href="@{/dashboard_exames(busca=${busca},estabelecimento=${estabelecimento},diasAviso=${diasAviso},status='todos')}"
+       th:classappend="${statusFiltro == 'todos'} ? 'tab-active-all' : ''"
+       class="status-tab">
+      Todos <span class="tab-count" th:text="${'(' + qtdTotal + ')'}"></span>
+    </a>
+    <a th:href="@{/dashboard_exames(busca=${busca},estabelecimento=${estabelecimento},diasAviso=${diasAviso},status='vencidos')}"
+       th:classappend="${statusFiltro == 'vencidos'} ? 'tab-active-danger' : ''"
+       class="status-tab">
+      🔴 Vencidos <span class="tab-count" th:text="${'(' + qtdVencidos + ')'}"></span>
+    </a>
+    <a th:href="@{/dashboard_exames(busca=${busca},estabelecimento=${estabelecimento},diasAviso=${diasAviso},status='a_vencer')}"
+       th:classappend="${statusFiltro == 'a_vencer'} ? 'tab-active-warning' : ''"
+       class="status-tab">
+      🟡 A Vencer <span class="tab-count" th:text="${'(' + qtdAVencer + ')'}"></span>
+    </a>
+    <a th:href="@{/dashboard_exames(busca=${busca},estabelecimento=${estabelecimento},diasAviso=${diasAviso},status='em_dia')}"
+       th:classappend="${statusFiltro == 'em_dia'} ? 'tab-active-success' : ''"
+       class="status-tab">
+      🟢 Em Dia <span class="tab-count" th:text="${'(' + qtdEmDia + ')'}"></span>
+    </a>
+    <a th:href="@{/dashboard_exames(busca=${busca},estabelecimento=${estabelecimento},diasAviso=${diasAviso},status='sem_aso')}"
+       th:classappend="${statusFiltro == 'sem_aso'} ? 'tab-active-gray' : ''"
+       class="status-tab">
+      ⚫ Sem ASO <span class="tab-count" th:text="${'(' + qtdSemAso + ')'}"></span>
+    </a>
+  </div>
+
+  <!-- Tabela -->
   <div class="card p-0">
     <div class="table-wrapper">
       <table>
@@ -26,43 +134,57 @@
           <tr>
             <th>Matrícula</th>
             <th>Nome</th>
-            <th>Setor</th>
-            <th>Função</th>
-            <th>E-mail</th>
+            <th>Setor / Função</th>
+            <th>Estabelecimento</th>
             <th>Último ASO</th>
-            <th>Status</th>
+            <th>Situação</th>
           </tr>
         </thead>
         <tbody>
-          <tr th:each="f : ${exames}">
-            <td th:text="${f.matricula ?: '—'}">—</td>
+          <tr th:each="f : ${exames}"
+              th:with="dias=${diasAso[f.id]}">
+            <td th:text="${f.matricula ?: '—'}" style="color:var(--text-muted);font-size:12px;">—</td>
             <td>
               <a th:href="@{/funcionario/{id}(id=${f.id})}" class="link-func"
                  th:text="${f.nome ?: '—'}">—</a>
             </td>
-            <td th:text="${f.setor ?: '—'}">—</td>
-            <td th:text="${f.funcao ?: '—'}">—</td>
-            <td th:text="${f.email ?: '—'}">—</td>
-
+            <td>
+              <div th:text="${f.setor ?: '—'}">—</div>
+              <div style="font-size:12px;color:var(--text-muted);" th:text="${f.funcao ?: ''}"></div>
+            </td>
+            <td th:text="${f.estabelecimentoEfetivo ?: '—'}" style="font-size:13px;">—</td>
             <td th:text="${f.aso != null ? #temporals.format(f.aso, 'dd/MM/yyyy') : '—'}"
                 th:class="${f.aso == null ? 'text-muted' : ''}">—</td>
 
-            <td th:with="hoje=${T(java.time.LocalDate).now()},
-                         limite=${hoje.plusDays(30)}">
-              <span th:if="${f.aso == null}" class="badge badge-gray">Sem ASO</span>
-              <span th:if="${f.aso != null and f.aso.isBefore(hoje)}"
-                    class="badge badge-danger">Vencido</span>
-              <span th:if="${f.aso != null and !f.aso.isBefore(hoje) and f.aso.isBefore(limite)}"
-                    class="badge badge-warning">A vencer</span>
-              <span th:if="${f.aso != null and !f.aso.isBefore(limite)}"
-                    class="badge badge-success">Em dia</span>
+            <td>
+              <!-- Sem ASO -->
+              <th:block th:if="${f.aso == null}">
+                <span class="badge badge-gray">Sem ASO</span>
+              </th:block>
+              <!-- Vencido -->
+              <th:block th:if="${f.aso != null and f.aso.isBefore(hoje)}">
+                <span class="badge badge-danger">Vencido</span>
+                <div class="dias-vencido" th:if="${dias != null}"
+                     th:text="${'Venceu há ' + (-dias) + ' dias'}"></div>
+              </th:block>
+              <!-- A vencer -->
+              <th:block th:if="${f.aso != null and !f.aso.isBefore(hoje) and dias != null and dias <= diasAviso}">
+                <span class="badge badge-warning">A vencer</span>
+                <div class="dias-avencer" th:text="${'Vence em ' + dias + ' dias'}"></div>
+              </th:block>
+              <!-- Em dia -->
+              <th:block th:if="${f.aso != null and !f.aso.isBefore(hoje) and dias != null and dias > diasAviso}">
+                <span class="badge badge-success">Em dia</span>
+                <div class="dias-emdia" th:text="${'Vence em ' + dias + ' dias'}"></div>
+              </th:block>
             </td>
           </tr>
           <tr th:if="${#lists.isEmpty(exames)}">
-            <td colspan="7">
+            <td colspan="6">
               <div class="empty-state">
-                <div class="empty-state-icon">👤</div>
-                <div class="empty-state-title">Nenhum funcionário cadastrado</div>
+                <div class="empty-state-icon">💊</div>
+                <div class="empty-state-title">Nenhum funcionário nesta categoria</div>
+                <div class="empty-state-text">Tente outro filtro ou limpe a busca</div>
               </div>
             </td>
           </tr>
@@ -72,5 +194,30 @@
   </div>
 
 </div>
+
+<script th:attr="nonce=${cspNonce}">
+  function buildParams() {
+    return new URLSearchParams({
+      busca:           document.getElementById("busca").value,
+      estabelecimento: document.getElementById("estabelecimento").value,
+      diasAviso:       document.getElementById("diasAviso").value,
+      status:          new URLSearchParams(window.location.search).get("status") || "todos"
+    });
+  }
+
+  document.getElementById("btn-filtrar").addEventListener("click", () => {
+    window.location.href = "/dashboard_exames?" + buildParams();
+  });
+
+  document.getElementById("btn-exportar-aso").addEventListener("click", (e) => {
+    e.preventDefault();
+    window.location.href = "/exportar_aso?" + buildParams();
+  });
+
+  // Filtrar ao pressionar Enter no campo de busca
+  document.getElementById("busca").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") document.getElementById("btn-filtrar").click();
+  });
+</script>
 </body>
 </html>
