@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Auditoria — PGEO</title>
+  <link rel="stylesheet" th:href="@{/css/global.css}">
+  <script th:src="@{/js/theme.js}"></script>
+  <style th:attr="nonce=${cspNonce}">
+    .acao-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: .4px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .acao-CRIAR        { background:#d1fae5; color:#065f46; }
+    .acao-EDITAR       { background:#dbeafe; color:#1d4ed8; }
+    .acao-EXCLUIR      { background:#fee2e2; color:#991b1b; }
+    .acao-MOVER        { background:#fef3c7; color:#92400e; }
+    .acao-ASO_ENVIADO  { background:#ede9fe; color:#5b21b6; }
+    .acao-ASO_RECEBIDO { background:#e0e7ff; color:#3730a3; }
+    .acao-default      { background:var(--bg-badge); color:var(--text-secondary); }
+    [data-theme="dark"] .acao-CRIAR        { background:#064e3b; color:#6ee7b7; }
+    [data-theme="dark"] .acao-EDITAR       { background:#1e3a5f; color:#93c5fd; }
+    [data-theme="dark"] .acao-EXCLUIR      { background:#450a0a; color:#fca5a5; }
+    [data-theme="dark"] .acao-MOVER        { background:#451a03; color:#fcd34d; }
+    [data-theme="dark"] .acao-ASO_ENVIADO  { background:#3b0764; color:#c4b5fd; }
+    [data-theme="dark"] .acao-ASO_RECEBIDO { background:#1e1b4b; color:#a5b4fc; }
+    .diff-toggle { cursor:pointer; color:var(--primary); font-size:12px; text-decoration:underline; user-select:none; }
+    .diff-block  {
+      display:none; margin-top:6px; padding:8px 10px; border-radius:6px;
+      background:var(--bg-table-hover); font-size:11px; font-family:monospace;
+      white-space:pre-wrap; word-break:break-all; max-height:200px; overflow-y:auto;
+    }
+    .diff-block.visible { display:block; }
+    .pg-bar { display:flex; gap:4px; flex-wrap:wrap; align-items:center; margin-top:16px; }
+    .pg-btn {
+      padding:4px 10px; border-radius:6px; font-size:13px; border:1px solid var(--border);
+      background:var(--bg-card); color:var(--text-secondary); text-decoration:none;
+    }
+    .pg-btn:hover { background:var(--bg-table-hover); }
+    .pg-btn.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+    .pg-btn.disabled { pointer-events:none; opacity:.4; }
+    td.ip { font-size:11px; color:var(--text-muted); font-family:monospace; }
+    td.entidade-cell { font-size:12px; }
+  </style>
+</head>
+<body>
+<div th:replace="~{components/navbar :: navbar}"></div>
+
+<div class="page-wrapper-wide">
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">🔍 Log de Auditoria</div>
+      <div class="page-subtitle"
+           th:text="${totalItens + ' registro(s) encontrado(s)'}">0 registro(s)</div>
+    </div>
+    <div class="header-actions">
+      <a th:href="@{/admin/usuarios}" class="btn btn-secondary btn-sm">⚙️ Usuários</a>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <form method="get" th:action="@{/admin/auditoria}" class="filters-bar" style="flex-wrap:wrap;margin-bottom:20px;">
+    <input type="text" name="usuario" class="form-control min-w-140"
+           placeholder="🔍 Usuário" th:value="${usuario}">
+
+    <select name="entidade" class="form-control min-w-140">
+      <option value="">Entidade (todas)</option>
+      <option th:each="ent : ${entidades}"
+              th:value="${ent}" th:text="${ent}"
+              th:selected="${ent == entidade}"></option>
+    </select>
+
+    <select name="acao" class="form-control min-w-140">
+      <option value="">Ação (todas)</option>
+      <option th:each="ac : ${acoes}"
+              th:value="${ac}" th:text="${ac}"
+              th:selected="${ac == acao}"></option>
+    </select>
+
+    <input type="date" name="data_inicio" class="form-control min-w-140" th:value="${dataInicio}">
+    <input type="date" name="data_fim"    class="form-control min-w-140" th:value="${dataFim}">
+
+    <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
+    <a th:href="@{/admin/auditoria}" class="btn btn-ghost btn-sm">Limpar</a>
+  </form>
+
+  <!-- Tabela -->
+  <div class="card p-0">
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:150px;">Data / Hora</th>
+            <th style="width:110px;">Usuário</th>
+            <th style="width:120px;">Ação</th>
+            <th style="width:160px;">Entidade</th>
+            <th>Descrição</th>
+            <th style="width:120px;">IP</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr th:each="log : ${logs}">
+            <td style="font-size:12px;white-space:nowrap;"
+                th:text="${#temporals.format(log.criadoEm, 'dd/MM/yyyy HH:mm:ss')}">—</td>
+
+            <td style="font-weight:500;" th:text="${log.usuario ?: '—'}">—</td>
+
+            <td>
+              <span class="acao-badge"
+                    th:classappend="${'acao-' + (log.acao ?: 'default')}"
+                    th:text="${log.acao ?: '—'}">—</span>
+            </td>
+
+            <td class="entidade-cell">
+              <span th:text="${log.entidade ?: '—'}">—</span>
+              <span th:if="${log.entidadeId != null}"
+                    style="color:var(--text-muted);" th:text="${' #' + log.entidadeId}"></span>
+            </td>
+
+            <td>
+              <div th:text="${log.descricao ?: '—'}" style="font-size:13px;">—</div>
+              <!-- Toggle dados antes/depois se existirem -->
+              <th:block th:if="${log.dadosAntes != null or log.dadosDepois != null}">
+                <span class="diff-toggle" th:attr="onclick='toggleDiff(this)'">
+                  ver diff ▾
+                </span>
+                <pre class="diff-block"
+                     th:text="${(log.dadosAntes != null ? '— Antes:\n' + log.dadosAntes : '') +
+                                (log.dadosAntes != null and log.dadosDepois != null ? '\n\n' : '') +
+                                (log.dadosDepois != null ? '+ Depois:\n' + log.dadosDepois : '')}"></pre>
+              </th:block>
+            </td>
+
+            <td class="ip" th:text="${log.ipOrigem ?: '—'}">—</td>
+          </tr>
+          <tr th:if="${#lists.isEmpty(logs)}">
+            <td colspan="6">
+              <div class="empty-state">
+                <div class="empty-state-icon">🔍</div>
+                <div class="empty-state-title">Nenhum registro encontrado</div>
+                <div class="empty-state-text">Tente outros filtros ou aguarde ações no sistema</div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Paginação -->
+  <div class="pg-bar" th:if="${totalPaginas > 1}">
+    <a th:href="@{/admin/auditoria(usuario=${usuario},entidade=${entidade},acao=${acao},data_inicio=${dataInicio},data_fim=${dataFim},pagina=${paginaAtual - 1})}"
+       class="pg-btn"
+       th:classappend="${paginaAtual == 0} ? 'disabled' : ''">‹</a>
+
+    <th:block th:each="p : ${#numbers.sequence(0, totalPaginas - 1)}">
+      <a th:if="${p >= paginaAtual - 2 and p <= paginaAtual + 2}"
+         th:href="@{/admin/auditoria(usuario=${usuario},entidade=${entidade},acao=${acao},data_inicio=${dataInicio},data_fim=${dataFim},pagina=${p})}"
+         class="pg-btn"
+         th:classappend="${p == paginaAtual} ? 'active' : ''"
+         th:text="${p + 1}"></a>
+    </th:block>
+
+    <a th:href="@{/admin/auditoria(usuario=${usuario},entidade=${entidade},acao=${acao},data_inicio=${dataInicio},data_fim=${dataFim},pagina=${paginaAtual + 1})}"
+       class="pg-btn"
+       th:classappend="${paginaAtual >= totalPaginas - 1} ? 'disabled' : ''">›</a>
+
+    <span style="font-size:12px;color:var(--text-muted);margin-left:8px;"
+          th:text="${'Página ' + (paginaAtual + 1) + ' de ' + totalPaginas}"></span>
+  </div>
+
+</div>
+
+<script th:attr="nonce=${cspNonce}">
+  function toggleDiff(el) {
+    const block = el.nextElementSibling;
+    const open  = block.classList.toggle("visible");
+    el.textContent = open ? "fechar ▴" : "ver diff ▾";
+  }
+</script>
+</body>
+</html>
