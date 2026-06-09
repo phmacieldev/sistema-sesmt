@@ -1,68 +1,65 @@
 <!--
-    _tabela_agendamentos.html — Fragmento da tabela (retornado via AJAX)
-
-    Jinja2:   return render_template("_tabela_agendamentos.html", agendamentos=agendamentos)
-    Thymeleaf: o controller retorna "  _tabela_agendamentos :: tbody"
-               que é o fragmento nomeado com th:fragment="tbody"
-
-    O JS do dashboard faz:
-      fetch('/dashboard_dados?...')
-        .then(html => document.getElementById("corpoTabela").innerHTML = html)
-
-    Este arquivo retorna só as <tr> — sem <table> ou <thead>.
+    _tabela_agendamentos.html — Fragmento de <tr> retornado via AJAX pelo dashboard.
+    O controller retorna "_tabela_agendamentos :: tbody".
 -->
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 <th:block th:fragment="tbody">
-    <tr th:each="a : ${agendamentos}" th:attr="data-id=${a.id}">
-        <td>
-            <a th:if="${a.funcionario != null}"
-               th:href="@{/funcionario/{id}(id=${a.funcionario.id})}"
-               style="color:#2c3e50;text-decoration:none;font-weight:500;"
-               th:text="${a.funcionarioNome}">—</a>
-            <span th:unless="${a.funcionario != null}"
-                  th:text="${a.funcionarioNome}">—</span>
-            <span th:if="${a.funcionario != null and a.funcionario.aso != null}"
-                  th:with="hoje=${T(java.time.LocalDate).now()}, aso=${a.funcionario.aso}"
-                  th:style="${aso.isBefore(hoje) ? 'color:#e74c3c' :
-                              aso.isBefore(hoje.plusDays(30)) ? 'color:#f39c12' : 'color:#27ae60'}"
-                  th:text="${aso.isBefore(hoje) ? '● Vencido' :
-                              aso.isBefore(hoje.plusDays(30)) ? '● A vencer' : '● Em dia'}"
-                  style="margin-left:6px;font-size:11px;font-weight:bold;">
-            </span>
-            <span th:if="${a.funcionario != null and a.funcionario.aso == null}"
-                  style="margin-left:6px;font-size:11px;color:#bdc3c7;">sem ASO</span>
-        </td>
-        <td th:text="${a.funcionarioSetor}">—</td>
-        <td th:text="${a.funcionarioFuncao}">—</td>
-        <td th:text="${a.tipoExameDescricao}">—</td>
-        <td th:text="${a.dataClinico != null ? #temporals.format(a.dataClinico, 'dd/MM/yyyy') : '—'}">—</td>
-        <td th:text="${a.horaClinico}">—</td>
-        <td th:text="${a.dataSangue != null ? #temporals.format(a.dataSangue, 'dd/MM/yyyy') : '—'}">—</td>
-        <td>
-            <input type="checkbox"
-                   th:checked="${a.asoEnviado}"
-                   th:attr="onchange=|toggleStatusAso(${a.id}, 'enviado', this.checked, this)|">
-        </td>
-        <td>
-            <input type="checkbox"
-                   th:checked="${a.asoRecebido}"
-                   th:attr="onchange=|handleRecebimento(${a.id}, this.checked, this)|">
-        </td>
-        <td>
-            <div class="acoes-flex">
-                <a th:href="@{/editar_agendamento/{id}(id=${a.id})}"
-                   class="btn-editar">✏️</a>
-                <form th:action="@{/excluir_agendamento/{id}(id=${a.id})}"
-                      method="POST" onsubmit="return confirmarExclusao()">
-                    <button class="btn-excluir">🗑</button>
-                </form>
-            </div>
-        </td>
-    </tr>
-    <tr th:if="${#lists.isEmpty(agendamentos)}">
-        <td colspan="10" style="color:#999;padding:20px;">Nenhum agendamento encontrado.</td>
-    </tr>
+  <tr th:each="a : ${agendamentos}" th:attr="data-id=${a.id}">
+    <td>
+      <a th:if="${a.funcionario != null}"
+         th:href="@{/funcionario/{id}(id=${a.funcionario.id})}"
+         class="link-func"
+         th:text="${a.funcionarioNome}">—</a>
+      <span th:unless="${a.funcionario != null}"
+            th:text="${a.funcionarioNome}">—</span>
+      <span th:if="${a.funcionario != null and a.funcionario.aso != null}"
+            th:with="hoje=${T(java.time.LocalDate).now()}, aso=${a.funcionario.aso}"
+            th:class="${aso.isBefore(hoje) ? 'aso-vencido' :
+                       aso.isBefore(hoje.plusDays(30)) ? 'aso-aviso' : 'aso-ok'}"
+            th:text="${aso.isBefore(hoje) ? '● Vencido' :
+                       aso.isBefore(hoje.plusDays(30)) ? '● A vencer' : '● Em dia'}"
+            style="display:block;font-size:11px;margin-top:2px;font-weight:600;">
+      </span>
+      <span th:if="${a.funcionario != null and a.funcionario.aso == null}"
+            class="aso-sem"
+            style="display:block;font-size:11px;margin-top:2px;">sem ASO</span>
+    </td>
+    <td th:text="${a.funcionarioSetor}">—</td>
+    <td th:text="${a.funcionarioFuncao}">—</td>
+    <td th:text="${a.tipoExameDescricao}">—</td>
+    <td th:text="${a.dataClinico != null ? #temporals.format(a.dataClinico, 'dd/MM/yyyy') : '—'}">—</td>
+    <td th:text="${a.horaClinico}">—</td>
+    <td th:text="${a.dataSangue != null ? #temporals.format(a.dataSangue, 'dd/MM/yyyy') : '—'}">—</td>
+    <td style="text-align:center;">
+      <input type="checkbox" class="check-toggle"
+             th:checked="${a.asoEnviado}"
+             th:attr="onchange=|toggleStatusAso(${a.id}, 'enviado', this.checked, this)|">
+    </td>
+    <td style="text-align:center;">
+      <input type="checkbox" class="check-toggle"
+             th:checked="${a.asoRecebido}"
+             th:attr="onchange=|handleRecebimento(${a.id}, this.checked, this)|">
+    </td>
+    <td>
+      <div style="display:flex;gap:6px;justify-content:center;">
+        <a th:href="@{/editar_agendamento/{id}(id=${a.id})}"
+           class="btn btn-primary btn-icon btn-sm" title="Editar">✏️</a>
+        <form th:action="@{/excluir_agendamento/{id}(id=${a.id})}"
+              method="POST" onsubmit="return confirmarExclusao()">
+          <button class="btn btn-danger btn-icon btn-sm" title="Excluir">🗑</button>
+        </form>
+      </div>
+    </td>
+  </tr>
+  <tr th:if="${#lists.isEmpty(agendamentos)}">
+    <td colspan="10">
+      <div class="empty-state">
+        <div class="empty-state-icon">📭</div>
+        <div class="empty-state-title">Nenhum agendamento encontrado</div>
+      </div>
+    </td>
+  </tr>
 </th:block>
 </body>
 </html>

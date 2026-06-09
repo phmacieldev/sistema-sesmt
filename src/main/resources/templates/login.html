@@ -1,124 +1,63 @@
 <!DOCTYPE html>
-<!--
-    login.html — Página de login
-    Equivalente ao login.html do Flask, mas com Spring Security.
-
-    O Spring Security processa o POST em /login automaticamente.
-    O CSRF token é inserido pelo Thymeleaf automaticamente via th:action.
--->
 <html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
-    <title>Login — PGEO</title>
-    <style>
-        * { box-sizing: border-box; }
-        body {
-            font-family: Arial, sans-serif;
-            background: #f4f6f9;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .card {
-            background: white;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            width: 360px;
-        }
-        h2 {
-            text-align: center;
-            color: #2c3e50;
-            margin-bottom: 8px;
-        }
-        .sub {
-            text-align: center;
-            color: #7f8c8d;
-            font-size: 13px;
-            margin-bottom: 25px;
-        }
-        label {
-            display: block;
-            font-size: 13px;
-            font-weight: bold;
-            color: #555;
-            margin-bottom: 4px;
-        }
-        input {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 14px;
-            margin-bottom: 16px;
-            transition: border-color 0.2s;
-        }
-        input:focus {
-            outline: none;
-            border-color: #2ecc71;
-        }
-        button {
-            width: 100%;
-            padding: 12px;
-            background: #2ecc71;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 15px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        button:hover { background: #27ae60; }
-        .alerta-erro {
-            background: #fde8e8;
-            color: #c0392b;
-            padding: 10px;
-            border-radius: 6px;
-            font-size: 13px;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-        .alerta-info {
-            background: #eafaf1;
-            color: #27ae60;
-            padding: 10px;
-            border-radius: 6px;
-            font-size: 13px;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login — PGEO</title>
+  <link rel="stylesheet" th:href="@{/css/global.css}">
+  <script th:src="@{/js/theme.js}"></script>
+  <style>
+    body.no-navbar {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; padding: 16px;
+    }
+    .login-card {
+      width: 100%; max-width: 380px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 36px 32px;
+      box-shadow: var(--shadow-lg);
+    }
+    .login-logo { text-align: center; margin-bottom: 24px; }
+    .login-logo .brand-icon { font-size: 40px; display: block; margin-bottom: 8px; }
+    .login-logo h1 { font-size: 24px; font-weight: 700; color: var(--text); margin: 0; }
+    .login-logo p  { font-size: 13px; color: var(--text-muted); margin: 4px 0 0; }
+    .theme-row { display: flex; justify-content: flex-end; margin-bottom: 8px; }
+  </style>
 </head>
-<body>
-    <div class="card">
-        <h2>PGEO</h2>
-        <p class="sub">Sistema de Exames Ocupacionais — SESMT</p>
+<body class="no-navbar">
 
-        <!--
-            Jinja2: <form action="/dashboard">
-            Thymeleaf: th:action="@{/login}" — insere o CSRF token automaticamente!
-            method="post" é obrigatório para o Spring Security processar o login.
-        -->
-        <div th:if="${erro}" class="alerta-erro">
-            <span th:text="${erro}"></span>
-        </div>
-        <div th:if="${info}" class="alerta-info">
-            <span th:text="${info}"></span>
-        </div>
+<div class="login-card">
+  <div class="theme-row">
+    <button class="btn-theme">🌙</button>
+  </div>
 
-        <form th:action="@{/login}" method="post">
-            <label for="username">Usuário</label>
-            <input type="text" id="username" name="username"
-                   placeholder="Seu usuário" required autofocus>
+  <div class="login-logo">
+    <span class="brand-icon">🏥</span>
+    <h1>PGEO</h1>
+    <p>Sistema de Exames Ocupacionais — SESMT</p>
+  </div>
 
-            <label for="password">Senha</label>
-            <input type="password" id="password" name="password"
-                   placeholder="Sua senha" required>
+  <div th:if="${erro}" class="alert alert-danger" th:text="${erro}"></div>
+  <div th:if="${info}" class="alert alert-success" th:text="${info}"></div>
 
-            <button type="submit">Entrar</button>
-        </form>
+  <form th:action="@{/login}" method="post">
+    <div class="form-group">
+      <label class="form-label" for="username">Usuário</label>
+      <input class="form-control" type="text" id="username" name="username"
+             placeholder="Seu usuário" required autofocus>
     </div>
+    <div class="form-group">
+      <label class="form-label" for="password">Senha</label>
+      <input class="form-control" type="password" id="password" name="password"
+             placeholder="Sua senha" required>
+    </div>
+    <button type="submit" class="btn btn-success btn-block btn-lg" style="margin-top:8px">
+      Entrar
+    </button>
+  </form>
+</div>
+
 </body>
 </html>

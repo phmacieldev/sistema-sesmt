@@ -106,14 +106,14 @@ function abrirModal(ag) {
     document.getElementById("modal-data").innerText  = ag.data;
     document.getElementById("modal-hora").innerText  = ag.hora;
     document.getElementById("btn-editar-modal").href = "/editar_agendamento/" + ag.id;
-    document.getElementById("modal-agendamento").style.display = "block";
+    document.getElementById("modal-agendamento").classList.add("show");
 }
 
 function fecharModal() {
-    document.getElementById("modal-agendamento").style.display = "none";
+    document.getElementById("modal-agendamento").classList.remove("show");
 }
 
-window.onclick = function(e) {
+window.addEventListener('click', function(e) {
     let modal = document.getElementById("modal-agendamento");
-    if (modal && e.target === modal) modal.style.display = "none";
-};
+    if (modal && e.target === modal) modal.classList.remove("show");
+});

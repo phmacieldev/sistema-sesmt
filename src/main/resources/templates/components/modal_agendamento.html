@@ -1,29 +1,47 @@
 <!--
-    Modal de detalhes do agendamento — aberto ao clicar no evento do FullCalendar.
-
-    Jinja2:   {% include "components/modal_agendamento.html" %}
+    Modal de detalhes do agendamento — aberto ao clicar num evento do FullCalendar.
     Thymeleaf: <div th:replace="~{components/modal_agendamento :: modal}"></div>
 -->
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
-<div th:fragment="modal" id="modal-agendamento" class="modal">
-    <div class="modal-content">
-        <span class="close" onclick="fecharModal()">✕</span>
-
-        <h3 style="margin-top:0;">Detalhes do Agendamento</h3>
-
-        <p><strong>Nome:</strong>   <span id="modal-nome">—</span></p>
-        <p><strong>Setor:</strong>  <span id="modal-setor">—</span></p>
-        <p><strong>Função:</strong> <span id="modal-funcao">—</span></p>
-        <p><strong>Exame:</strong>  <span id="modal-exame">—</span></p>
-        <p><strong>Data:</strong>   <span id="modal-data">—</span></p>
-        <p><strong>Hora:</strong>   <span id="modal-hora">—</span></p>
-
-        <div class="modal-acoes">
-            <a id="btn-editar-modal" href="#" class="btn-editar">✏️ Editar</a>
-            <button class="btn-cancelar" onclick="fecharModal()">Fechar</button>
-        </div>
+<div th:fragment="modal" id="modal-agendamento" class="modal-overlay">
+  <div class="modal-box">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div class="modal-title" style="margin-bottom:0;">Detalhes do Agendamento</div>
+      <button onclick="fecharModal()" class="btn btn-ghost btn-icon btn-sm"
+              style="padding:4px 8px;font-size:16px;">✕</button>
     </div>
+
+    <div class="info-row">
+      <span class="info-label">Nome</span>
+      <span class="info-val" id="modal-nome">—</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Setor</span>
+      <span class="info-val" id="modal-setor">—</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Função</span>
+      <span class="info-val" id="modal-funcao">—</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Exame</span>
+      <span class="info-val" id="modal-exame">—</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Data</span>
+      <span class="info-val" id="modal-data">—</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Hora</span>
+      <span class="info-val" id="modal-hora">—</span>
+    </div>
+
+    <div class="modal-footer" style="margin-top:20px;">
+      <a id="btn-editar-modal" href="#" class="btn btn-primary btn-sm">✏️ Editar</a>
+      <button class="btn btn-secondary btn-sm" onclick="fecharModal()">Fechar</button>
+    </div>
+  </div>
 </div>
 </body>
 </html>

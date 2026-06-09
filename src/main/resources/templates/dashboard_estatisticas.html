@@ -1,116 +1,126 @@
 <!DOCTYPE html>
 <html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
-    <title>Estatísticas — PGEO</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body { font-family: Arial; background: #f4f6f9; margin: 20px; }
-        .nav { text-align: center; margin-bottom: 20px; }
-        .nav a { margin: 5px; padding: 10px 15px; background: #3498db; color: white;
-                 text-decoration: none; border-radius: 5px; }
-        h2 { text-align: center; }
-        .filtro { text-align: center; margin-bottom: 20px; }
-        .filtro select, .filtro button { padding: 8px 12px; border-radius: 6px; border: 1px solid #ccc; }
-        .filtro button { background: #2ecc71; color: white; border: none; cursor: pointer; }
-        .cards { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; margin-bottom: 30px; }
-        .card { background: white; padding: 20px 30px; border-radius: 10px;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center; min-width: 130px; }
-        .card h3 { margin: 0; font-size: 28px; color: #2c3e50; }
-        .card p { margin: 5px 0 0; font-size: 13px; color: #7f8c8d; }
-        .graficos { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
-        .grafico-box { background: white; padding: 20px; border-radius: 10px;
-                       box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Estatísticas — PGEO</title>
+  <link rel="stylesheet" th:href="@{/css/global.css}">
+  <script th:src="@{/js/theme.js}"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
+<div th:replace="~{components/navbar :: navbar}"></div>
 
-<div class="nav">
-    <a th:href="@{/dashboard}">Dashboard</a>
-    <a th:href="@{/agenda}">Agenda</a>
-</div>
+<div class="page-wrapper">
 
-<h2>Estatísticas de Exames</h2>
-
-<!-- Filtro de ano -->
-<div class="filtro">
-    <form th:action="@{/dashboard_estatisticas}" method="GET">
-        <label>Ano:</label>
-        <select name="ano">
-            <option value="">Todos</option>
-            <option th:each="a : ${anosDisponiveis}"
-                    th:value="${a}" th:text="${a}"
-                    th:selected="${anoFiltro != null and anoFiltro == a}"></option>
-        </select>
-        <button type="submit">Filtrar</button>
+  <div class="page-header">
+    <div>
+      <div class="page-title">📈 Estatísticas de Exames</div>
+    </div>
+    <form th:action="@{/dashboard_estatisticas}" method="GET"
+          style="display:flex;gap:8px;align-items:center;margin-left:auto;">
+      <select name="ano" class="form-control" style="min-width:90px;">
+        <option value="">Todos</option>
+        <option th:each="a : ${anosDisponiveis}"
+                th:value="${a}" th:text="${a}"
+                th:selected="${anoFiltro != null and anoFiltro == a}"></option>
+      </select>
+      <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
     </form>
-</div>
+  </div>
 
-<!-- Cards de totais por tipo -->
-<div class="cards">
-    <!--
-        Jinja2:   {% for tipo, qtd in contador_tipo_exame.items() %}
-        Thymeleaf: th:each="entry : ${contadorTipoExame.entrySet()}"
-    -->
-    <div class="card" th:each="entry : ${contadorTipoExame.entrySet()}">
-        <h3 th:text="${entry.value}">0</h3>
-        <p th:text="${entry.key}">Tipo</p>
+  <!-- Cards de totais por tipo -->
+  <div class="grid-3" style="margin-bottom:24px;">
+    <div th:each="entry : ${contadorTipoExame.entrySet()}" class="stat-card">
+      <span class="stat-icon">📋</span>
+      <div>
+        <div class="stat-label" th:text="${entry.key}">Tipo</div>
+        <div class="stat-value" th:text="${entry.value}">0</div>
+      </div>
     </div>
-</div>
+  </div>
 
-<!-- Gráficos -->
-<div class="graficos">
-    <div class="grafico-box">
-        <h3 style="text-align:center">Exames por Mês</h3>
-        <canvas id="graficoMes" width="500" height="250"></canvas>
+  <!-- Gráficos -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📊 Exames por Mês</span>
+      </div>
+      <canvas id="graficoMes"></canvas>
     </div>
-    <div class="grafico-box">
-        <h3 style="text-align:center">Distribuição por Tipo</h3>
-        <canvas id="graficoPizza" width="300" height="300"></canvas>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🍩 Distribuição por Tipo</span>
+      </div>
+      <canvas id="graficoPizza"></canvas>
     </div>
+  </div>
+
 </div>
 
 <script th:inline="javascript">
-/*
-    th:inline="javascript" permite injetar variáveis do Thymeleaf
-    diretamente no JavaScript.
+var meses        = /*[[${meses}]]*/ [];
+var examesPorMes = /*[[${contadorExamesMes}]]*/ [];
+var tiposExame   = /*[[${tiposExame}]]*/ [];
+var tiposTotais  = /*[[${contadorTipoExame.values()}]]*/ [];
 
-    Jinja2:   var dados = {{ contador_exames_mes | tojson }};
-    Thymeleaf: var dados = /*[[${contadorExamesMes}]]*/ null;
+function isDark() {
+  return document.documentElement.getAttribute('data-theme') === 'dark';
+}
 
-    O Thymeleaf substitui o comentário pelo valor serializado automaticamente.
-*/
-var meses         = /*[[${meses}]]*/ [];
-var examesPorMes  = /*[[${contadorExamesMes}]]*/ [];
-var tiposExame    = /*[[${tiposExame}]]*/ [];
-var tiposTotais   = /*[[${contadorTipoExame.values()}]]*/ [];
+function textColor() { return isDark() ? '#94a3b8' : '#64748b'; }
+function gridColor()  { return isDark() ? '#334155' : '#e2e8f0'; }
 
-// Gráfico de barras — exames por mês
-new Chart(document.getElementById("graficoMes"), {
+var barChart, pieChart;
+
+function buildCharts() {
+  const dark = isDark();
+  const tc = textColor(), gc = gridColor();
+
+  if (barChart) barChart.destroy();
+  if (pieChart) pieChart.destroy();
+
+  barChart = new Chart(document.getElementById("graficoMes"), {
     type: "bar",
     data: {
-        labels: meses,
-        datasets: [{
-            label: "Exames realizados",
-            data: examesPorMes,
-            backgroundColor: "#2ecc71"
-        }]
+      labels: meses,
+      datasets: [{
+        label: "Exames",
+        data: examesPorMes,
+        backgroundColor: "#3b82f6",
+        borderRadius: 6
+      }]
     },
-    options: { responsive: false, plugins: { legend: { display: false } } }
-});
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: gc }, ticks: { color: tc } },
+        y: { grid: { color: gc }, ticks: { color: tc } }
+      }
+    }
+  });
 
-// Gráfico de pizza — por tipo
-new Chart(document.getElementById("graficoPizza"), {
+  pieChart = new Chart(document.getElementById("graficoPizza"), {
     type: "doughnut",
     data: {
-        labels: Object.keys(/*[[${contadorTipoExame}]]*/ {}),
-        datasets: [{
-            data: Object.values(/*[[${contadorTipoExame}]]*/ {}),
-            backgroundColor: ["#27ae60","#2980b9","#e74c3c","#f1c40f","#ff8800"]
-        }]
+      labels: Object.keys(/*[[${contadorTipoExame}]]*/ {}),
+      datasets: [{
+        data: Object.values(/*[[${contadorTipoExame}]]*/ {}),
+        backgroundColor: ["#3b82f6","#10b981","#f59e0b","#ef4444","#8b5cf6","#06b6d4"]
+      }]
     },
-    options: { responsive: false }
-});
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { color: tc } } }
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', buildCharts);
+
+const observer = new MutationObserver(() => buildCharts());
+observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 </script>
 </body>
 </html>
