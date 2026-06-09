@@ -8,6 +8,8 @@ import com.sesmt.pgeo.repository.FuncionarioRepository;
 import com.sesmt.pgeo.repository.MedicalLeaveRepository;
 import com.sesmt.pgeo.util.AppConstants;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -59,6 +61,8 @@ public class DashboardController {
         return "dashboard";
     }
 
+    private static final int ITENS_POR_PAGINA = 20;
+
     @GetMapping("/dashboard_dados")
     public String dashboardDados(
             @RequestParam(required = false) Integer mes,
@@ -68,33 +72,28 @@ public class DashboardController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data_fim,
             @RequestParam(required = false) String estabelecimento,
             @RequestParam(required = false) String aplicar_filtro,
+            @RequestParam(defaultValue = "0") int pagina,
             Model model) {
 
-        List<Agendamento> agendamentos;
+        String est = (estabelecimento != null && !estabelecimento.isBlank()
+                      && !"todos".equalsIgnoreCase(estabelecimento))
+                     ? estabelecimento.strip().toUpperCase() : null;
+        String b = (busca != null && !busca.isBlank()) ? busca.strip() : null;
+
+        PageRequest pageable = PageRequest.of(Math.max(0, pagina), ITENS_POR_PAGINA);
+        Page<Agendamento> page;
 
         if ("true".equals(aplicar_filtro) && mes != null && ano != null
                 && data_inicio == null && data_fim == null) {
-            agendamentos = agendamentoRepo.findByMesEAno(mes, ano);
-            if (busca != null && !busca.isBlank()) {
-                String b = busca.strip().toLowerCase();
-                agendamentos = agendamentos.stream()
-                    .filter(a -> a.getFuncionarioNome() != null &&
-                                 a.getFuncionarioNome().toLowerCase().contains(b))
-                    .toList();
-            }
+            page = agendamentoRepo.findByMesEAnoPaginado(mes, ano, b, est, pageable);
         } else {
-            String buscaFiltro = (busca != null && !busca.isBlank()) ? busca.strip() : null;
-            agendamentos = agendamentoRepo.buscarComFiltros(buscaFiltro, data_inicio, data_fim);
+            page = agendamentoRepo.buscarPaginado(b, data_inicio, data_fim, est, pageable);
         }
 
-        if (estabelecimento != null && !estabelecimento.isBlank() && !"todos".equalsIgnoreCase(estabelecimento)) {
-            String est = estabelecimento.strip().toUpperCase();
-            agendamentos = agendamentos.stream()
-                .filter(a -> est.equals(a.getEstabelecimento()))
-                .toList();
-        }
-
-        model.addAttribute("agendamentos", agendamentos);
+        model.addAttribute("agendamentos", page.getContent());
+        model.addAttribute("totalPaginas", page.getTotalPages());
+        model.addAttribute("paginaAtual",  page.getNumber());
+        model.addAttribute("totalItens",   page.getTotalElements());
         return "_tabela_agendamentos :: tbody";
     }
 
