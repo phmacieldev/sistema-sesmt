@@ -91,6 +91,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     calendar.render();
+    window.pgeoCalendar = calendar;
 });
 
 // Desaparece alertas após 3s

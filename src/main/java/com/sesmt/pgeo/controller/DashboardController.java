@@ -331,17 +331,61 @@ public class DashboardController {
 
     @GetMapping("/indicadores")
     public String indicadores(Model model) {
-        LocalDate limite = LocalDate.now().minusDays(60);
-        List<MedicalLeave> recentes = medicalLeaveRepo.findRecentes(limite);
+        LocalDate hoje    = LocalDate.now();
+        LocalDate limite30 = hoje.plusDays(30);
 
-        Map<String, Integer> totais = recentes.stream()
+        // ── Status dos ASOs ─────────────────────────────────────────────
+        List<Funcionario> ativos = funcionarioRepo.findByAtivoTrue();
+        long qtdVencidos = ativos.stream().filter(f -> f.getAso() != null && f.getAso().isBefore(hoje)).count();
+        long qtdAVencer  = ativos.stream().filter(f -> f.getAso() != null && !f.getAso().isBefore(hoje) && f.getAso().isBefore(limite30)).count();
+        long qtdEmDia    = ativos.stream().filter(f -> f.getAso() != null && !f.getAso().isBefore(limite30)).count();
+        long qtdSemAso   = ativos.stream().filter(f -> f.getAso() == null).count();
+
+        // ── Exames por mês (últimos 12 meses) ───────────────────────────
+        LocalDate inicioPeriodo = hoje.minusMonths(11).withDayOfMonth(1);
+        List<Agendamento> agRecentes = agendamentoRepo.findAll().stream()
+            .filter(a -> a.getDataClinico() != null && !a.getDataClinico().isBefore(inicioPeriodo))
+            .toList();
+
+        List<String>  labelesMeses  = new ArrayList<>();
+        List<Integer> examesPorMes  = new ArrayList<>();
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MMM/yy", new java.util.Locale("pt", "BR"));
+        for (int i = 11; i >= 0; i--) {
+            LocalDate m = hoje.minusMonths(i).withDayOfMonth(1);
+            labelesMeses.add(m.format(fmt));
+            int anoM = m.getYear(), mesM = m.getMonthValue();
+            examesPorMes.add((int) agRecentes.stream()
+                .filter(a -> a.getDataClinico().getYear() == anoM && a.getDataClinico().getMonthValue() == mesM)
+                .count());
+        }
+
+        // ── Distribuição por tipo ────────────────────────────────────────
+        Map<String, Long> tiposDist = agRecentes.stream()
+            .collect(Collectors.groupingBy(Agendamento::getTipoExameDescricao, Collectors.counting()));
+        Map<String, Long> tiposOrdenados = tiposDist.entrySet().stream()
+            .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
+                                      (a, b) -> a, LinkedHashMap::new));
+
+        // ── Ranking de atestados (últimos 60 dias) ───────────────────────
+        LocalDate limite60 = hoje.minusDays(60);
+        Map<String, Integer> rankingAtestados = medicalLeaveRepo.findRecentes(limite60).stream()
             .collect(Collectors.groupingBy(
                 ml -> ml.getFuncionario().getNome(),
                 Collectors.summingInt(MedicalLeave::getDiasAfastamento)));
 
-        model.addAttribute("resultados", totais.entrySet().stream()
+        model.addAttribute("qtdVencidos",   qtdVencidos);
+        model.addAttribute("qtdAVencer",    qtdAVencer);
+        model.addAttribute("qtdEmDia",      qtdEmDia);
+        model.addAttribute("qtdSemAso",     qtdSemAso);
+        model.addAttribute("totalAtivos",   ativos.size());
+        model.addAttribute("labelesMeses",  labelesMeses);
+        model.addAttribute("examesPorMes",  examesPorMes);
+        model.addAttribute("tiposLabels",   new ArrayList<>(tiposOrdenados.keySet()));
+        model.addAttribute("tiposTotal",    new ArrayList<>(tiposOrdenados.values()));
+        model.addAttribute("resultados",    rankingAtestados.entrySet().stream()
             .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
-            .toList());
-        return "indicadores_atestados";
+            .limit(10).toList());
+        return "indicadores";
     }
 }
