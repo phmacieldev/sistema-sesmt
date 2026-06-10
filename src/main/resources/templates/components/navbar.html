@@ -19,9 +19,11 @@
     <a th:href="@{/dashboard_sangue}"       class="nav-link">🩸 Sangue</a>
     <a th:href="@{/indicadores}"            class="nav-link">📋 Indicadores</a>
     <a sec:authorize="hasRole('ADMIN')"
-       th:href="@{/admin/usuarios}"         class="nav-link">⚙️ Admin</a>
+       th:href="@{/admin/usuarios}"              class="nav-link">⚙️ Admin</a>
     <a sec:authorize="hasRole('ADMIN')"
-       th:href="@{/admin/auditoria}"        class="nav-link">🔍 Auditoria</a>
+       th:href="@{/admin/auditoria}"             class="nav-link">🔍 Auditoria</a>
+    <a sec:authorize="hasRole('ADMIN')"
+       th:href="@{/admin/funcionarios/importar}" class="nav-link">📥 Importar</a>
   </div>
 
   <!-- Toggle mobile -->

@@ -1,5 +1,6 @@
 package com.sesmt.pgeo.scheduler;
 
+import com.sesmt.pgeo.audit.AuditService;
 import com.sesmt.pgeo.config.NotificacaoProperties;
 import com.sesmt.pgeo.model.Funcionario;
 import com.sesmt.pgeo.repository.FuncionarioRepository;
@@ -18,35 +19,38 @@ import java.util.List;
 public class AsoNotificacaoScheduler {
 
     private final FuncionarioRepository funcionarioRepo;
-    private final EmailService emailService;
+    private final EmailService          emailService;
     private final NotificacaoProperties props;
+    private final AuditService          auditService;
 
     /**
      * Roda às 07:00 em dias úteis (seg–sex), fuso de Brasília.
-     * Busca ativos com ASO vencido ou a vencer nos próximos N dias e envia resumo por e-mail.
+     * Registra no log de auditoria e envia e-mail se habilitado.
      */
     @Scheduled(cron = "0 0 7 * * MON-FRI", zone = "America/Sao_Paulo")
     public void verificarVencimentosAso() {
-        if (!props.isHabilitado()) return;
-
-        LocalDate hoje  = LocalDate.now();
+        LocalDate hoje   = LocalDate.now();
         LocalDate limite = hoje.plusDays(props.getDiasAviso());
 
         List<Funcionario> todos = funcionarioRepo.findByAsoVencendoAte(limite);
-        if (todos.isEmpty()) {
-            log.info("AsoNotificacao: nenhum vencimento encontrado.");
-            return;
-        }
 
         List<Funcionario> vencidos = todos.stream()
-            .filter(f -> f.getAso().isBefore(hoje))
-            .toList();
-        List<Funcionario> aVencer = todos.stream()
-            .filter(f -> !f.getAso().isBefore(hoje))
-            .toList();
+            .filter(f -> f.getAso().isBefore(hoje)).toList();
+        List<Funcionario> aVencer  = todos.stream()
+            .filter(f -> !f.getAso().isBefore(hoje)).toList();
 
-        log.info("AsoNotificacao: {} vencidos, {} a vencer — enviando e-mail.",
-            vencidos.size(), aVencer.size());
-        emailService.enviarAlertaAso(vencidos, aVencer);
+        String descricao = String.format(
+            "Verificação automática: %d vencido(s), %d a vencer em %d dias.",
+            vencidos.size(), aVencer.size(), props.getDiasAviso());
+
+        log.info("AsoNotificacao: {}", descricao);
+
+        // Sempre registra no log de auditoria (visível em /admin/auditoria)
+        auditService.registrar("ASO_VERIFICACAO", "Agendamento", null, descricao);
+
+        if (props.isHabilitado() && !todos.isEmpty()) {
+            log.info("AsoNotificacao: enviando e-mail para {}.", props.getDestinatario());
+            emailService.enviarAlertaAso(vencidos, aVencer);
+        }
     }
 }

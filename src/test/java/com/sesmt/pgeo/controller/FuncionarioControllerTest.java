@@ -7,6 +7,7 @@ import com.sesmt.pgeo.repository.AgendamentoRepository;
 import com.sesmt.pgeo.repository.FuncionarioRepository;
 import com.sesmt.pgeo.repository.HistoricoCargoRepository;
 import com.sesmt.pgeo.repository.UsuarioRepository;
+import com.sesmt.pgeo.service.FuncionarioImportService;
 import com.sesmt.pgeo.service.FuncionarioService;
 import com.sesmt.pgeo.service.LoginAttemptService;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,6 +40,7 @@ class FuncionarioControllerTest {
     @MockBean HistoricoCargoRepository historicoRepo;
     @MockBean AgendamentoRepository    agendamentoRepo;
     @MockBean FuncionarioService       funcionarioService;
+    @MockBean FuncionarioImportService importService;
 
     // Deps do SecurityConfig
     @MockBean UsuarioRepository   usuarioRepo;

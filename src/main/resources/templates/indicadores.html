@@ -76,10 +76,17 @@
     </div>
   </div>
 
-  <!-- Ranking de atestados -->
+  <!-- Ranking de atestados com período e paginação -->
   <div class="card p-0">
-    <div class="card-header">
-      <span class="card-title">🏥 Top 10 Afastamentos (últimos 60 dias)</span>
+    <div class="card-header" style="flex-wrap:wrap;gap:8px;">
+      <span class="card-title">🏥 Ranking de Afastamentos</span>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;">
+        <a th:each="d : ${#arrays.toIntegerArray({30, 60, 90, 180})}"
+           th:href="@{/indicadores(dias=${d},pagina=0)}"
+           class="btn btn-sm"
+           th:classappend="${d == dias} ? ' btn-primary' : ' btn-ghost'"
+           th:text="${d + ' dias'}">60 dias</a>
+      </div>
     </div>
     <div class="table-wrapper card-inner">
       <table>
@@ -87,12 +94,13 @@
           <tr>
             <th style="width:50px;">#</th>
             <th>Funcionário</th>
-            <th style="width:150px;">Dias de Afastamento</th>
+            <th style="width:160px;">Dias de Afastamento</th>
           </tr>
         </thead>
         <tbody>
           <tr th:each="entry, stat : ${resultados}">
-            <td style="color:var(--text-muted);font-weight:600;" th:text="${stat.index + 1}">1</td>
+            <td style="color:var(--text-muted);font-weight:600;"
+                th:text="${paginaAtual * 15 + stat.index + 1}">1</td>
             <td th:text="${entry.key}">Nome</td>
             <td>
               <span class="badge"
@@ -105,12 +113,34 @@
             <td colspan="3">
               <div class="empty-state">
                 <div class="empty-state-icon">✅</div>
-                <div class="empty-state-title">Nenhum atestado nos últimos 60 dias</div>
+                <div class="empty-state-title"
+                     th:text="${'Nenhum atestado nos últimos ' + dias + ' dias'}">Nenhum atestado</div>
               </div>
             </td>
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- Paginação -->
+    <div th:if="${totalPaginas > 1}"
+         style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;padding:12px 16px;border-top:1px solid var(--border);">
+      <a th:href="@{/indicadores(dias=${dias},pagina=${paginaAtual - 1})}"
+         class="pg-btn" th:classappend="${paginaAtual == 0} ? ' disabled' : ''">‹</a>
+
+      <th:block th:each="p : ${#numbers.sequence(0, totalPaginas - 1)}">
+        <a th:if="${p >= paginaAtual - 2 and p <= paginaAtual + 2}"
+           th:href="@{/indicadores(dias=${dias},pagina=${p})}"
+           class="pg-btn"
+           th:classappend="${p == paginaAtual} ? ' active' : ''"
+           th:text="${p + 1}"></a>
+      </th:block>
+
+      <a th:href="@{/indicadores(dias=${dias},pagina=${paginaAtual + 1})}"
+         class="pg-btn" th:classappend="${paginaAtual >= totalPaginas - 1} ? ' disabled' : ''">›</a>
+
+      <span style="font-size:12px;color:var(--text-muted);margin-left:8px;"
+            th:text="${totalItens + ' funcionário(s) — Página ' + (paginaAtual + 1) + ' de ' + totalPaginas}"></span>
     </div>
   </div>
 

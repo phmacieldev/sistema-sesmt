@@ -2,6 +2,7 @@ package com.sesmt.pgeo.controller;
 
 import com.sesmt.pgeo.exception.RegraDeNegocioException;
 import com.sesmt.pgeo.model.Funcionario;
+import com.sesmt.pgeo.service.FuncionarioImportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import com.sesmt.pgeo.model.HistoricoCargo;
@@ -14,6 +15,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
@@ -28,6 +30,7 @@ public class FuncionarioController {
     private final HistoricoCargoRepository historicoRepo;
     private final AgendamentoRepository    agendamentoRepo;
     private final FuncionarioService       funcionarioService;
+    private final FuncionarioImportService importService;
 
     // ── Perfil do funcionário (histórico + agendamentos) ─────────────
 
@@ -112,5 +115,31 @@ public class FuncionarioController {
                 "estabelecimento",  f.getEstabelecimentoEfetivo()
             ))
             .orElse(Map.of("encontrado", false));
+    }
+
+    // ── Importação CSV / Excel (admin) ────────────────────────────────
+
+    @GetMapping("/admin/funcionarios/importar")
+    @PreAuthorize("hasRole('ADMIN')")
+    public String importarForm() {
+        return "admin/importar_funcionarios";
+    }
+
+    @PostMapping("/admin/funcionarios/importar")
+    @PreAuthorize("hasRole('ADMIN')")
+    public String importarPost(
+            @RequestParam("arquivo") MultipartFile arquivo,
+            RedirectAttributes redirect) {
+        if (arquivo.isEmpty()) {
+            redirect.addFlashAttribute("erro", "Nenhum arquivo selecionado.");
+            return "redirect:/admin/funcionarios/importar";
+        }
+        try {
+            var resultado = importService.importar(arquivo);
+            redirect.addFlashAttribute("resultado", resultado);
+        } catch (Exception e) {
+            redirect.addFlashAttribute("erro", "Erro ao processar arquivo: " + e.getMessage());
+        }
+        return "redirect:/admin/funcionarios/importar";
     }
 }
