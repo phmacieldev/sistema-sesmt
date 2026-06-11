@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 Pedro Henrique Maciel da Silva Faria. Todos os direitos reservados.
+ * Desenvolvido de forma independente como projeto de portfólio.
+ * Autorizado apenas para uso interno homologado.
+ */
 package com.sesmt.pgeo.security;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -16,7 +21,7 @@ public class NonceCspHeaderWriter implements HeaderWriter {
     private String buildPolicy(String nonce) {
         return "default-src 'self'; " +
                "script-src 'self' 'nonce-" + nonce + "'; " +
-               "style-src 'self' 'nonce-" + nonce + "' https://fonts.googleapis.com; " +
+               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
                "font-src 'self' https://fonts.gstatic.com; " +
                "img-src 'self' data:; " +
                "connect-src 'self' ws: wss:; " +

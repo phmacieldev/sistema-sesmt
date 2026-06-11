@@ -1,7 +1,13 @@
+/*
+ * Copyright (c) 2026 Pedro Henrique Maciel da Silva Faria. Todos os direitos reservados.
+ * Desenvolvido de forma independente como projeto de portfólio.
+ * Autorizado apenas para uso interno homologado.
+ */
 package com.sesmt.pgeo.controller;
 
 import com.sesmt.pgeo.exception.RegraDeNegocioException;
 import com.sesmt.pgeo.model.Funcionario;
+import com.sesmt.pgeo.model.enums.StatusFuncionario;
 import com.sesmt.pgeo.service.FuncionarioImportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -55,11 +61,20 @@ public class FuncionarioController {
         int ini      = pag * POR_PAGINA;
         List<Funcionario> pagina_ = todos.subList(ini, Math.min(ini + POR_PAGINA, total));
 
-        model.addAttribute("funcionarios",  pagina_);
-        model.addAttribute("nomeFiltro",    nome);
-        model.addAttribute("totalItens",    total);
-        model.addAttribute("totalPaginas",  totalPag);
-        model.addAttribute("paginaAtual",   pag);
+        List<Funcionario> todosSemFiltro = funcionarioRepo.findAll(org.springframework.data.domain.Sort.by("nome"));
+        long qtdAtivos        = todosSemFiltro.stream().filter(f -> f.getStatus() == StatusFuncionario.ATIVO).count();
+        long qtdPreAdmissional = todosSemFiltro.stream().filter(f -> f.getStatus() == StatusFuncionario.PRE_ADMISSIONAL).count();
+        long qtdDesligados    = todosSemFiltro.stream().filter(f -> f.getStatus() == StatusFuncionario.DESLIGADO).count();
+
+        model.addAttribute("funcionarios",      pagina_);
+        model.addAttribute("nomeFiltro",        nome);
+        model.addAttribute("totalItens",        total);
+        model.addAttribute("totalPaginas",      totalPag);
+        model.addAttribute("paginaAtual",       pag);
+        model.addAttribute("qtdAtivos",         qtdAtivos);
+        model.addAttribute("qtdPreAdmissional", qtdPreAdmissional);
+        model.addAttribute("qtdDesligados",     qtdDesligados);
+        model.addAttribute("qtdTotal",          todosSemFiltro.size());
         return "funcionario/lista";
     }
 

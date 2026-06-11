@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 Pedro Henrique Maciel da Silva Faria. Todos os direitos reservados.
+ * Desenvolvido de forma independente como projeto de portfólio.
+ * Autorizado apenas para uso interno homologado.
+ */
 package com.sesmt.pgeo.controller;
 
 import com.sesmt.pgeo.config.SecurityConfig;
@@ -190,5 +195,30 @@ class DashboardControllerTest {
             .andExpect(status().isOk())
             .andExpect(model().attribute("paginaAtual", 0))
             .andExpect(model().attribute("totalPaginas", 1));
+    }
+
+    // ── Vencimentos ASO ───────────────────────────────────────────────
+
+    @Test
+    void vencimentos_semAutenticacao_redirecionaParaLogin() throws Exception {
+        mvc.perform(get("/vencimentos"))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(redirectedUrlPattern("**/login"));
+    }
+
+    @Test
+    @WithMockUser
+    void vencimentos_autenticado_redirecionaParaDashboardExames() throws Exception {
+        mvc.perform(get("/vencimentos"))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(redirectedUrl("/dashboard_exames"));
+    }
+
+    @Test
+    @WithMockUser
+    void vencimentos_comFiltroStatus_redirecionaParaDashboardExames() throws Exception {
+        mvc.perform(get("/vencimentos").param("status", "vencidos"))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(redirectedUrl("/dashboard_exames"));
     }
 }

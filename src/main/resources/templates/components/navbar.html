@@ -1,3 +1,4 @@
+﻿<!-- Copyright (c) 2026 Pedro Henrique Maciel da Silva Faria. Sistema autoral protegido. -->
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <body>
@@ -9,24 +10,116 @@
     <span class="brand-name">PGEO <small>SESMT</small></span>
   </div>
 
-  <!-- Links principais -->
+  <!-- Links -->
   <div class="navbar-links" id="navLinks">
-    <a th:href="@{/home}"                    class="nav-link" th:classappend="${currentUri == '/home'} ? ' active' : ''">🏠 Início</a>
-    <a th:href="@{/agendar}"                 class="nav-link" th:classappend="${currentUri == '/agendar'} ? ' active' : ''">➕ Agendar</a>
-    <a th:href="@{/dashboard}"               class="nav-link" th:classappend="${currentUri == '/dashboard'} ? ' active' : ''">📊 Agendamentos</a>
-    <a th:href="@{/agenda}"                  class="nav-link" th:classappend="${currentUri == '/agenda'} ? ' active' : ''">📅 Agenda</a>
-    <a th:href="@{/dashboard_sangue}"        class="nav-link" th:classappend="${currentUri == '/dashboard_sangue'} ? ' active' : ''">🩸 Sangue</a>
-    <a th:href="@{/atestados}"               class="nav-link" th:classappend="${#strings.startsWith(currentUri, '/atestados')} ? ' active' : ''">📄 Atestados</a>
-    <a th:href="@{/indicadores}"             class="nav-link" th:classappend="${currentUri == '/indicadores'} ? ' active' : ''">📋 Indicadores de Atestados</a>
-    <a th:href="@{/funcionarios}"             class="nav-link" th:classappend="${#strings.startsWith(currentUri, '/funcionario')} ? ' active' : ''">👤 Funcionários</a>
-    <a th:href="@{/dashboard_exames}"        class="nav-link" th:classappend="${currentUri == '/dashboard_exames'} ? ' active' : ''">💊 Exames</a>
-    <a th:href="@{/dashboard_estatisticas}"  class="nav-link" th:classappend="${currentUri == '/dashboard_estatisticas'} ? ' active' : ''">📈 Estatísticas de Exames</a>
-    <a sec:authorize="hasRole('ADMIN')"
-       th:href="@{/admin/usuarios}"              class="nav-link" th:classappend="${#strings.startsWith(currentUri, '/admin') and !#strings.startsWith(currentUri, '/admin/auditoria') and !#strings.startsWith(currentUri, '/admin/funcionarios/importar')} ? ' active' : ''">⚙️ Admin</a>
-    <a sec:authorize="hasRole('ADMIN')"
-       th:href="@{/admin/auditoria}"             class="nav-link" th:classappend="${#strings.startsWith(currentUri, '/admin/auditoria')} ? ' active' : ''">🔍 Auditoria</a>
-    <a sec:authorize="hasRole('ADMIN')"
-       th:href="@{/admin/funcionarios/importar}" class="nav-link" th:classappend="${#strings.startsWith(currentUri, '/admin/funcionarios/importar')} ? ' active' : ''">📥 Importar</a>
+
+    <!-- Início -->
+    <a th:href="@{/home}" class="nav-link"
+       th:classappend="${currentUri == '/home'} ? ' active' : ''">🏠 Início</a>
+
+    <!-- Agendar -->
+    <a th:href="@{/agendar}" class="nav-link"
+       sec:authorize="hasAnyRole('ADMIN','OPERADOR')"
+       th:classappend="${currentUri == '/agendar'} ? ' active' : ''">➕ Agendar</a>
+
+    <!-- ── ASOs ── -->
+    <div class="nav-dropdown">
+      <span class="nav-link nav-dropdown-trigger"
+            th:classappend="${currentUri == '/dashboard' or currentUri == '/agenda' or currentUri == '/dashboard_sangue' or currentUri == '/dashboard_exames'} ? ' group-active' : ''">
+        📅 ASOs <span class="dd-arrow">▾</span>
+      </span>
+      <div class="dropdown-menu">
+        <a th:href="@{/dashboard}" class="dropdown-item"
+           th:classappend="${currentUri == '/dashboard'} ? ' active' : ''">
+          <span class="di-icon">📊</span> Agendamentos
+        </a>
+        <a th:href="@{/agenda}" class="dropdown-item"
+           th:classappend="${currentUri == '/agenda'} ? ' active' : ''">
+          <span class="di-icon">📅</span> Agenda
+        </a>
+        <a th:href="@{/dashboard_sangue}" class="dropdown-item"
+           th:classappend="${currentUri == '/dashboard_sangue'} ? ' active' : ''">
+          <span class="di-icon">🩸</span> Sangue
+        </a>
+        <div class="dropdown-divider"></div>
+        <a th:href="@{/dashboard_exames}" class="dropdown-item"
+           th:classappend="${currentUri == '/dashboard_exames'} ? ' active' : ''">
+          <span class="di-icon">💊</span> Relatório ASO
+        </a>
+      </div>
+    </div>
+
+    <!-- ── Atestados ── -->
+    <div class="nav-dropdown">
+      <span class="nav-link nav-dropdown-trigger"
+            th:classappend="${#strings.startsWith(currentUri, '/atestados')} ? ' group-active' : ''">
+        📄 Atestados <span class="dd-arrow">▾</span>
+      </span>
+      <div class="dropdown-menu">
+        <a th:href="@{/atestados}" class="dropdown-item"
+           th:classappend="${currentUri == '/atestados'} ? ' active' : ''">
+          <span class="di-icon">📄</span> Lista Semanal
+        </a>
+        <a th:href="@{/atestados/indicadores}" class="dropdown-item"
+           th:classappend="${currentUri == '/atestados/indicadores'} ? ' active' : ''">
+          <span class="di-icon">📊</span> Indicadores
+        </a>
+      </div>
+    </div>
+
+    <!-- ── Relatórios ── -->
+    <div class="nav-dropdown">
+      <span class="nav-link nav-dropdown-trigger"
+            th:classappend="${#strings.startsWith(currentUri, '/funcionario') or currentUri == '/dashboard_estatisticas' or currentUri == '/indicadores'} ? ' group-active' : ''">
+        📈 Relatórios <span class="dd-arrow">▾</span>
+      </span>
+      <div class="dropdown-menu">
+        <a th:href="@{/funcionarios}" class="dropdown-item"
+           th:classappend="${#strings.startsWith(currentUri, '/funcionario')} ? ' active' : ''">
+          <span class="di-icon">👤</span> Funcionários
+        </a>
+        <a th:href="@{/dashboard_estatisticas}" class="dropdown-item"
+           th:classappend="${currentUri == '/dashboard_estatisticas'} ? ' active' : ''">
+          <span class="di-icon">📈</span> Estatísticas de Exames
+        </a>
+        <a th:href="@{/indicadores}" class="dropdown-item"
+           th:classappend="${currentUri == '/indicadores'} ? ' active' : ''">
+          <span class="di-icon">📊</span> Indicadores SESMT
+        </a>
+      </div>
+    </div>
+
+    <!-- ── Admin ── -->
+    <div class="nav-dropdown" sec:authorize="hasRole('ADMIN')">
+      <span class="nav-link nav-dropdown-trigger"
+            th:classappend="${#strings.startsWith(currentUri, '/admin')} ? ' group-active' : ''">
+        ⚙️ Admin <span class="dd-arrow">▾</span>
+      </span>
+      <div class="dropdown-menu">
+        <a th:href="@{/admin/usuarios}" class="dropdown-item"
+           th:classappend="${#strings.startsWith(currentUri, '/admin') and !#strings.startsWith(currentUri, '/admin/auditoria') and !#strings.startsWith(currentUri, '/admin/funcionarios')} ? ' active' : ''">
+          <span class="di-icon">👥</span> Usuários
+        </a>
+        <a th:href="@{/admin/auditoria}" class="dropdown-item"
+           th:classappend="${#strings.startsWith(currentUri, '/admin/auditoria')} ? ' active' : ''">
+          <span class="di-icon">🔍</span> Auditoria
+        </a>
+        <a th:href="@{/admin/funcionarios/importar}" class="dropdown-item"
+           th:classappend="${#strings.startsWith(currentUri, '/admin/funcionarios/importar')} ? ' active' : ''">
+          <span class="di-icon">📥</span> Importar Funcionários
+        </a>
+        <div class="dropdown-divider"></div>
+        <a th:href="@{/minha-senha}" class="dropdown-item"
+           th:classappend="${currentUri == '/minha-senha'} ? ' active' : ''">
+          <span class="di-icon">🔑</span> Mudar Senha
+        </a>
+      </div>
+    </div>
+
+    <!-- Mudar senha para não-admin -->
+    <a sec:authorize="!hasRole('ADMIN')" th:href="@{/minha-senha}" class="nav-link"
+       th:classappend="${currentUri == '/minha-senha'} ? ' active' : ''">🔑 Senha</a>
+
   </div>
 
   <!-- Toggle mobile -->
@@ -38,10 +131,9 @@
   <div class="navbar-right">
     <button class="btn-theme" id="themeBtn" title="Alternar tema">🌙</button>
     <div class="user-info">
-      <div class="user-avatar" sec:authentication="name" th:text="${#strings.substring(#authentication.name, 0, 1).toUpperCase()}">U</div>
+      <div class="user-avatar" th:text="${#strings.substring(#authentication.name, 0, 1).toUpperCase()}">U</div>
       <span class="user-name" sec:authentication="name">usuário</span>
     </div>
-    <a th:href="@{/minha-senha}" class="btn-ghost btn btn-sm" title="Alterar senha">🔑</a>
     <form th:action="@{/logout}" method="post" style="margin:0">
       <button type="submit" class="btn-logout">Sair</button>
     </form>

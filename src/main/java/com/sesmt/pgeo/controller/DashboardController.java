@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 Pedro Henrique Maciel da Silva Faria. Todos os direitos reservados.
+ * Desenvolvido de forma independente como projeto de portfólio.
+ * Autorizado apenas para uso interno homologado.
+ */
 package com.sesmt.pgeo.controller;
 
 import com.sesmt.pgeo.model.Agendamento;
@@ -177,19 +182,19 @@ public class DashboardController {
         return "dashboard_sangue";
     }
 
-    private static final int EXAMES_POR_PAGINA = 20;
+    private static final int EXAMES_POR_PAGINA = 30;
+
+    record MesTab(String key, String label, long count) {}
 
     @GetMapping("/dashboard_exames")
     public String dashboardExames(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String busca,
             @RequestParam(required = false) String estabelecimento,
-            @RequestParam(defaultValue = "30") int diasAviso,
             @RequestParam(defaultValue = "0") int pagina,
             Model model) {
 
-        LocalDate hoje   = LocalDate.now();
-        LocalDate limite = hoje.plusDays(diasAviso);
+        LocalDate hoje = LocalDate.now();
 
         List<Funcionario> todos = funcionarioRepo.findByAtivoTrue();
 
@@ -208,18 +213,44 @@ public class DashboardController {
         }
 
         long qtdVencidos = todos.stream().filter(f -> f.getAso() != null && f.getAso().isBefore(hoje)).count();
-        long qtdAVencer  = todos.stream().filter(f -> f.getAso() != null && !f.getAso().isBefore(hoje) && f.getAso().isBefore(limite)).count();
-        long qtdEmDia    = todos.stream().filter(f -> f.getAso() != null && !f.getAso().isBefore(limite)).count();
+        long qtdEmDia    = todos.stream().filter(f -> f.getAso() != null && !f.getAso().isBefore(hoje)).count();
         long qtdSemAso   = todos.stream().filter(f -> f.getAso() == null).count();
 
+        // Tabs mensais — todos os 12 meses do ano atual
+        String[] nomeMeses = {"Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"};
+        List<MesTab> mesesTabs = new ArrayList<>();
+        int anoAtual = hoje.getYear();
+        for (int mes = 1; mes <= 12; mes++) {
+            final int m = mes;
+            long count = todos.stream()
+                .filter(f -> f.getAso() != null
+                    && f.getAso().getYear() == anoAtual
+                    && f.getAso().getMonthValue() == m)
+                .count();
+            String key   = "mes_" + anoAtual + "_" + String.format("%02d", mes);
+            String label = nomeMeses[mes - 1];
+            mesesTabs.add(new MesTab(key, label, count));
+        }
+
         String statusFiltro = status != null ? status : "todos";
-        List<Funcionario> exames = switch (statusFiltro) {
-            case "vencidos"  -> todos.stream().filter(f -> f.getAso() != null && f.getAso().isBefore(hoje)).toList();
-            case "a_vencer"  -> todos.stream().filter(f -> f.getAso() != null && !f.getAso().isBefore(hoje) && f.getAso().isBefore(limite)).toList();
-            case "em_dia"    -> todos.stream().filter(f -> f.getAso() != null && !f.getAso().isBefore(limite)).toList();
-            case "sem_aso"   -> todos.stream().filter(f -> f.getAso() == null).toList();
-            default          -> todos;
-        };
+        List<Funcionario> exames;
+        if (statusFiltro.startsWith("mes_")) {
+            String[] parts = statusFiltro.split("_");
+            int ano = Integer.parseInt(parts[1]);
+            int mes = Integer.parseInt(parts[2]);
+            exames = todos.stream()
+                .filter(f -> f.getAso() != null
+                    && f.getAso().getYear() == ano
+                    && f.getAso().getMonthValue() == mes)
+                .toList();
+        } else {
+            exames = switch (statusFiltro) {
+                case "vencidos" -> todos.stream().filter(f -> f.getAso() != null && f.getAso().isBefore(hoje)).toList();
+                case "em_dia"   -> todos.stream().filter(f -> f.getAso() != null && !f.getAso().isBefore(hoje)).toList();
+                case "sem_aso"  -> todos.stream().filter(f -> f.getAso() == null).toList();
+                default         -> todos;
+            };
+        }
 
         exames = exames.stream()
             .sorted(Comparator.comparing(f -> f.getAso() != null ? f.getAso() : LocalDate.MAX))
@@ -237,21 +268,26 @@ public class DashboardController {
                 Funcionario::getId,
                 f -> ChronoUnit.DAYS.between(hoje, f.getAso())));
 
-        model.addAttribute("exames",        examesPagina);
-        model.addAttribute("hoje",          hoje);
-        model.addAttribute("diasAviso",     diasAviso);
-        model.addAttribute("statusFiltro",  statusFiltro);
-        model.addAttribute("busca",         busca);
+        List<String> estabelecimentos = funcionarioRepo.findByAtivoTrue().stream()
+            .map(Funcionario::getEstabelecimentoEfetivo)
+            .filter(e -> e != null && !e.isBlank())
+            .distinct().sorted().toList();
+
+        model.addAttribute("exames",          examesPagina);
+        model.addAttribute("hoje",            hoje);
+        model.addAttribute("statusFiltro",    statusFiltro);
+        model.addAttribute("busca",           busca);
         model.addAttribute("estabelecimento", estabelecimento);
-        model.addAttribute("qtdTotal",      todos.size());
-        model.addAttribute("qtdVencidos",   qtdVencidos);
-        model.addAttribute("qtdAVencer",    qtdAVencer);
-        model.addAttribute("qtdEmDia",      qtdEmDia);
-        model.addAttribute("qtdSemAso",     qtdSemAso);
-        model.addAttribute("diasAso",       diasAso);
-        model.addAttribute("totalItens",    totalItens);
-        model.addAttribute("totalPaginas",  totalPaginas);
-        model.addAttribute("paginaAtual",   paginaAtual);
+        model.addAttribute("estabelecimentos", estabelecimentos);
+        model.addAttribute("qtdTotal",        todos.size());
+        model.addAttribute("qtdVencidos",     qtdVencidos);
+        model.addAttribute("qtdEmDia",        qtdEmDia);
+        model.addAttribute("qtdSemAso",       qtdSemAso);
+        model.addAttribute("mesesTabs",       mesesTabs);
+        model.addAttribute("diasAso",         diasAso);
+        model.addAttribute("totalItens",      totalItens);
+        model.addAttribute("totalPaginas",    totalPaginas);
+        model.addAttribute("paginaAtual",     paginaAtual);
         return "dashboard_exames";
     }
 
@@ -306,23 +342,57 @@ public class DashboardController {
             @RequestParam(required = false) Integer ano, Model model) {
 
         List<Agendamento> todos = agendamentoRepo.findAll();
-        Map<String, Integer> contadorTipo = new LinkedHashMap<>();
+        Map<String, Integer> contadorTipo  = new LinkedHashMap<>();
+        Map<String, Integer> contadorSetor = new LinkedHashMap<>();
+        Map<String, Integer> contadorEstab = new LinkedHashMap<>();
         int[] contadorMes = new int[12];
         Set<Integer> anosDisponiveis = new TreeSet<>();
+        int totalFiltrado = 0;
 
         for (Agendamento a : todos) {
             if (a.getDataClinico() == null) continue;
             int anoAg = a.getDataClinico().getYear();
             anosDisponiveis.add(anoAg);
             if (ano != null && ano != anoAg) continue;
+            totalFiltrado++;
             int mes = a.getDataClinico().getMonthValue() - 1;
-            String tipo = a.getTipoExameDescricao();
+            String tipo  = a.getTipoExameDescricao();
+            String setor = a.getFuncionarioSetor() != null && !a.getFuncionarioSetor().isBlank() ? a.getFuncionarioSetor() : "Não informado";
+            String estab = "Não informado";
+            try {
+                if (a.getFuncionario() != null && a.getFuncionario().getEstabelecimentoEfetivo() != null
+                        && !a.getFuncionario().getEstabelecimentoEfetivo().isBlank())
+                    estab = a.getFuncionario().getEstabelecimentoEfetivo();
+            } catch (Exception ignored) {}
             contadorMes[mes]++;
             contadorTipo.merge(tipo, 1, Integer::sum);
+            contadorSetor.merge(setor, 1, Integer::sum);
+            contadorEstab.merge(estab, 1, Integer::sum);
         }
 
-        model.addAttribute("contadorTipoExame", contadorTipo);
-        model.addAttribute("contadorExamesMes", contadorMes);
+        // Top 10 setores por volume
+        Map<String, Integer> topSetores = contadorSetor.entrySet().stream()
+            .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+            .limit(10)
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
+                     (e1, e2) -> e1, LinkedHashMap::new));
+
+        Map<String, Integer> topEstab = contadorEstab.entrySet().stream()
+            .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
+                     (e1, e2) -> e1, LinkedHashMap::new));
+
+        model.addAttribute("contadorTipoExame",  contadorTipo);
+        model.addAttribute("contadorExamesMes",  contadorMes);
+        model.addAttribute("contadorSetor",      topSetores);
+        model.addAttribute("contadorEstab",      topEstab);
+        model.addAttribute("totalExames",        totalFiltrado);
+        model.addAttribute("tiposLabels",        new ArrayList<>(contadorTipo.keySet()));
+        model.addAttribute("tiposVals",          new ArrayList<>(contadorTipo.values()));
+        model.addAttribute("setorLabels",        new ArrayList<>(topSetores.keySet()));
+        model.addAttribute("setorVals",          new ArrayList<>(topSetores.values()));
+        model.addAttribute("estabLabels",        new ArrayList<>(topEstab.keySet()));
+        model.addAttribute("estabVals",          new ArrayList<>(topEstab.values()));
         model.addAttribute("meses", List.of("Jan","Fev","Mar","Abr","Mai","Jun",
                                             "Jul","Ago","Set","Out","Nov","Dez"));
         model.addAttribute("anosDisponiveis", new ArrayList<>(anosDisponiveis));
@@ -408,4 +478,10 @@ public class DashboardController {
         model.addAttribute("dias",          dias);
         return "indicadores";
     }
+
+    @GetMapping("/vencimentos")
+    public String vencimentosRedirect() {
+        return "redirect:/dashboard_exames";
+    }
+
 }

@@ -1,4 +1,5 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
+<!-- Copyright (c) 2026 Pedro Henrique Maciel da Silva Faria. Sistema autoral protegido. -->
 <html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
 <head>
   <meta charset="UTF-8">
@@ -18,19 +19,16 @@
       <div class="page-title">🩸 Exames de Sangue</div>
       <div class="page-subtitle">Agendamentos por dia com controle de limite (5 por dia)</div>
     </div>
-    <form th:action="@{/dashboard_sangue}" method="GET" class="header-actions">
-      <select name="mes" class="form-control min-w-80">
-        <option th:each="m,s : ${ {1,2,3,4,5,6,7,8,9,10,11,12} }"
-                th:value="${m}"
-                th:text="${{'Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'}[s.index]}"
-                th:selected="${m == mesFiltro}"></option>
-      </select>
-      <select name="ano" class="form-control min-w-76">
-        <option th:each="a : ${anos}" th:value="${a}" th:text="${a}"
-                th:selected="${a == anoFiltro}"></option>
-      </select>
-      <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
-    </form>
+    <div class="header-actions">
+      <a th:href="@{/dashboard_sangue(mes=${mesFiltro == 1 ? 12 : mesFiltro - 1},ano=${mesFiltro == 1 ? anoFiltro - 1 : anoFiltro})}"
+         class="btn btn-secondary btn-sm" title="Mês anterior">◀</a>
+      <span class="mes-nav-label"
+            th:text="${{'Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'}[mesFiltro - 1] + ' ' + anoFiltro}">
+        Jun 2026
+      </span>
+      <a th:href="@{/dashboard_sangue(mes=${mesFiltro == 12 ? 1 : mesFiltro + 1},ano=${mesFiltro == 12 ? anoFiltro + 1 : anoFiltro})}"
+         class="btn btn-secondary btn-sm" title="Próximo mês">▶</a>
+    </div>
   </div>
 
   <!-- Resumo -->
@@ -58,7 +56,7 @@
     </div>
   </div>
 
-  <!-- Cards por dia -->
+  <!-- Tabela unificada -->
   <div th:if="${#lists.isEmpty(porDia)}" class="card">
     <div class="empty-state">
       <div class="empty-state-icon">🩸</div>
@@ -66,45 +64,77 @@
     </div>
   </div>
 
-  <div th:each="dia : ${porDia}" class="dia-card">
-
-    <div class="dia-header">
-      <span class="dia-titulo" th:text="${dia.dataFormatada}">DD/MM/YYYY</span>
-      <span class="badge"
-            th:class="${dia.total >= 5 ? 'badge badge-danger' :
-                        dia.total >= 4 ? 'badge badge-warning' : 'badge badge-success'}"
-            th:text="${dia.total + '/5'}">0/5</span>
-    </div>
-
-    <div class="barra-bg">
-      <div class="barra-fill"
-           th:class="${dia.total >= 5 ? 'barra-cheio' : dia.total >= 4 ? 'barra-aviso' : 'barra-ok'}"
-           th:attr="data-v=${dia.total > 5 ? 5 : dia.total}"></div>
-    </div>
-
-    <div class="table-wrapper table-sangue">
-      <table>
+  <div th:if="${!#lists.isEmpty(porDia)}" class="card p-0">
+    <div class="table-wrapper" style="overflow-x:auto;">
+      <table style="table-layout:fixed;width:100%;min-width:640px;">
+        <colgroup>
+          <col style="width:22%">
+          <col style="width:18%">
+          <col style="width:18%">
+          <col style="width:16%">
+          <col style="width:14%">
+          <col style="width:12%">
+        </colgroup>
         <thead>
           <tr>
-            <th>Funcionário</th><th>Setor</th><th>Função</th>
-            <th>Tipo de Exame</th><th>Clínico</th><th>Hora</th>
+            <th>Funcionário</th>
+            <th>Setor</th>
+            <th>Função</th>
+            <th>Tipo de Exame</th>
+            <th>Clínico</th>
+            <th>Hora</th>
           </tr>
         </thead>
         <tbody>
-          <tr th:each="a : ${dia.agendamentos}">
-            <td th:text="${a.funcionarioNome}">—</td>
-            <td th:text="${a.funcionarioSetor ?: '—'}">—</td>
-            <td th:text="${a.funcionarioFuncao ?: '—'}">—</td>
-            <td><span class="badge-tipo" th:classappend="${a.tipoExame != null ? a.tipoExame.cssClass : ''}" th:text="${a.tipoExameDescricao}">—</span></td>
-            <td th:text="${a.dataClinico != null ? #temporals.format(a.dataClinico, 'dd/MM/yyyy') : '—'}">—</td>
-            <td th:text="${a.horaClinico ?: '—'}">—</td>
-          </tr>
+          <th:block th:each="dia : ${porDia}">
+
+            <!-- Cabeçalho do dia: data + badge de ocupação -->
+            <tr class="sangue-dia-head">
+              <td colspan="6">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <span class="dia-titulo" th:text="${dia.dataFormatada}">DD/MM/YYYY</span>
+                  <span th:class="${dia.total >= 5 ? 'badge badge-danger' :
+                                    dia.total >= 4 ? 'badge badge-warning' : 'badge badge-success'}"
+                        th:text="${dia.total + '/5'}">0/5</span>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Linhas de agendamento -->
+            <tr th:each="a : ${dia.agendamentos}">
+              <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+                  th:text="${a.funcionarioNome}">—</td>
+              <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+                  th:text="${a.funcionarioSetor ?: '—'}">—</td>
+              <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+                  th:text="${a.funcionarioFuncao ?: '—'}">—</td>
+              <td>
+                <span class="badge-tipo"
+                      th:classappend="${a.tipoExame != null ? a.tipoExame.cssClass : ''}"
+                      th:text="${a.tipoExameDescricao}">—</span>
+              </td>
+              <td th:text="${a.dataClinico != null ? #temporals.format(a.dataClinico, 'dd/MM/yyyy') : '—'}">—</td>
+              <td th:text="${a.horaClinico ?: '—'}">—</td>
+            </tr>
+
+            <!-- Barra de progresso divisora: aparece APÓS os agendamentos do dia -->
+            <tr class="sangue-dia-sep">
+              <td colspan="6">
+                <div class="barra-bg" style="margin:0;">
+                  <div class="barra-fill"
+                       th:class="${dia.total >= 5 ? 'barra-cheio' : dia.total >= 4 ? 'barra-aviso' : 'barra-ok'}"
+                       th:attr="data-v=${dia.total > 5 ? 5 : dia.total}"></div>
+                </div>
+              </td>
+            </tr>
+
+          </th:block>
         </tbody>
       </table>
     </div>
-
   </div>
 
 </div>
+<div th:replace="~{components/footer :: footer}"></div>
 </body>
 </html>

@@ -1,4 +1,5 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
+<!-- Copyright (c) 2026 Pedro Henrique Maciel da Silva Faria. Sistema autoral protegido. -->
 <html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
 <head>
   <meta charset="UTF-8">
@@ -6,6 +7,22 @@
   <title>Indicadores de Atestados — PGEO</title>
   <link rel="stylesheet" th:href="@{/css/global.css}">
   <script th:src="@{/js/theme.js}"></script>
+  <style th:attr="nonce=${cspNonce}">
+    .kpi-grid   { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; margin-bottom:40px; }
+    .kpi-card   { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius);
+                  padding:28px 24px; display:flex; align-items:center; gap:18px; }
+    .kpi-icon   { font-size:34px; line-height:1; }
+    .kpi-value  { font-size:32px; font-weight:700; color:var(--text); line-height:1; margin-bottom:6px; }
+    .kpi-label  { font-size:12px; color:var(--text-muted); font-weight:500; text-transform:uppercase; letter-spacing:.5px; }
+    .legenda    { margin-bottom:32px; padding:14px 18px; border-radius:10px;
+                  background:var(--bg-card); border:1px solid var(--border);
+                  font-size:13px; color:var(--text-muted); }
+    .badge-inss { font-size:11px; padding:2px 8px; background:#fef08a; color:#92400e;
+                  border-radius:20px; font-weight:600; margin-left:8px; }
+    tr.risco-alto td { background:#2d1a00 !important; }
+    [data-theme="light"] tr.risco-alto td { background:#fefce8 !important; }
+    tr.risco-alto .dias-forte { color:#f97316; font-weight:700; font-size:16px; }
+  </style>
 </head>
 <body>
 <div th:replace="~{components/navbar :: navbar}"></div>
@@ -23,26 +40,34 @@
   </div>
 
   <!-- KPIs -->
-  <div style="display:flex; gap:16px; margin-bottom:24px; flex-wrap:wrap">
-    <div class="stat-card">
-      <div class="stat-icon">📄</div>
-      <div><div class="stat-value" th:text="${totalAtestados}">0</div><div class="stat-label">Atestados no período</div></div>
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-icon">📄</div>
+      <div>
+        <div class="kpi-value" th:text="${totalAtestados}">0</div>
+        <div class="kpi-label">Atestados no período</div>
+      </div>
     </div>
-    <div class="stat-card">
-      <div class="stat-icon">🗓</div>
-      <div><div class="stat-value" th:text="${totalDias}">0</div><div class="stat-label">Dias de afastamento</div></div>
+    <div class="kpi-card">
+      <div class="kpi-icon">🗓</div>
+      <div>
+        <div class="kpi-value" th:text="${totalDias}">0</div>
+        <div class="kpi-label">Dias de afastamento</div>
+      </div>
     </div>
-    <div class="stat-card" style="border-left: 3px solid var(--warning)">
-      <div class="stat-icon">⚠️</div>
-      <div><div class="stat-value" style="color:var(--warning)" th:text="${comRisco}">0</div>
-           <div class="stat-label">Funcionários com risco INSS</div></div>
+    <div class="kpi-card" style="border-left:3px solid var(--warning)">
+      <div class="kpi-icon">⚠️</div>
+      <div>
+        <div class="kpi-value" style="color:var(--warning)" th:text="${comRisco}">0</div>
+        <div class="kpi-label">Funcionários com risco INSS</div>
+      </div>
     </div>
   </div>
 
   <!-- Legenda -->
-  <div style="margin-bottom:16px; font-size:13px; color:var(--text-muted)">
+  <div class="legenda">
     <span style="display:inline-block; width:14px; height:14px; background:#fef08a; border:1px solid #ca8a04;
-                 border-radius:3px; vertical-align:middle; margin-right:6px"></span>
+                 border-radius:3px; vertical-align:middle; margin-right:8px"></span>
     Funcionários com ≥ 15 dias de afastamento nos últimos 60 dias estão sinalizados — verifique encaminhamento ao INSS.
   </div>
 
@@ -70,21 +95,17 @@
             </td>
           </tr>
           <tr th:each="r, i : ${resumos}"
-              th:style="${r.riscoInss} ? 'background:#fefce8' : ''">
+              th:classappend="${r.totalDias >= 15} ? 'risco-alto' : ''">
             <td th:text="${i.count}">1</td>
             <td>
               <span th:text="${r.nome}">—</span>
-              <span th:if="${r.riscoInss}"
-                    style="display:inline-block; margin-left:8px; font-size:11px; padding:2px 7px;
-                           background:#fef08a; color:#92400e; border-radius:20px; font-weight:600">
-                ⚠️ INSS
-              </span>
+              <span th:if="${r.totalDias >= 15}" class="badge-inss">⚠️ INSS</span>
             </td>
             <td th:text="${r.setor}">—</td>
             <td class="text-center" th:text="${r.totalAtestados}">0</td>
             <td class="text-center">
-              <strong th:text="${r.totalDias}"
-                      th:style="${r.riscoInss} ? 'color:#92400e' : ''">0</strong>
+              <span th:text="${r.totalDias}"
+                    th:classappend="${r.totalDias >= 15} ? 'dias-forte' : ''">0</span>
             </td>
             <td>
               <span th:each="ml : ${r.atestados}"
@@ -116,5 +137,6 @@
   </div>
 
 </div>
+<div th:replace="~{components/footer :: footer}"></div>
 </body>
 </html>

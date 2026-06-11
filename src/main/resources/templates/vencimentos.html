@@ -1,0 +1,212 @@
+﻿<!DOCTYPE html>
+<!-- Copyright (c) 2026 Pedro Henrique Maciel da Silva Faria. Sistema autoral protegido. -->
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vencimentos ASO — PGEO</title>
+  <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
+  <link rel="stylesheet" th:href="@{/css/global.css}">
+  <script th:src="@{/js/theme.js}"></script>
+</head>
+<body>
+<div th:replace="~{components/navbar :: navbar}"></div>
+
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">🔔 Vencimentos ASO</div>
+      <div class="page-subtitle">Controle de Atestados de Saúde Ocupacional por status</div>
+    </div>
+    <div class="header-actions">
+      <a th:href="@{/exportar_aso(status=${statusFiltro},busca=${buscaFiltro},estabelecimento=${estFiltro},diasAviso=${diasAviso})}"
+         class="btn btn-secondary btn-sm">📥 Exportar Excel</a>
+    </div>
+  </div>
+
+  <!-- KPI cards -->
+  <div class="grid-4 mb-16">
+    <a th:href="@{/vencimentos(status='vencidos',diasAviso=${diasAviso})}" class="stat-card stat-card-link" style="border-left:4px solid var(--danger);text-decoration:none;">
+      <span class="stat-icon">❌</span>
+      <div>
+        <div class="stat-label">Vencidos</div>
+        <div class="stat-value" style="color:var(--danger)" th:text="${qtdVencidos}">0</div>
+      </div>
+    </a>
+    <a th:href="@{/vencimentos(status='a_vencer',diasAviso=${diasAviso})}" class="stat-card stat-card-link" style="border-left:4px solid var(--warning);text-decoration:none;">
+      <span class="stat-icon">⚠️</span>
+      <div>
+        <div class="stat-label" th:text="'A vencer (' + ${diasAviso} + ' dias)'">A vencer</div>
+        <div class="stat-value" style="color:var(--warning)" th:text="${qtdAVencer}">0</div>
+      </div>
+    </a>
+    <a th:href="@{/vencimentos(status='em_dia',diasAviso=${diasAviso})}" class="stat-card stat-card-link" style="border-left:4px solid var(--success);text-decoration:none;">
+      <span class="stat-icon">✅</span>
+      <div>
+        <div class="stat-label">Em dia</div>
+        <div class="stat-value" style="color:var(--success)" th:text="${qtdEmDia}">0</div>
+      </div>
+    </a>
+    <a th:href="@{/vencimentos(status='sem_aso',diasAviso=${diasAviso})}" class="stat-card stat-card-link" style="border-left:4px solid var(--text-muted);text-decoration:none;">
+      <span class="stat-icon">❓</span>
+      <div>
+        <div class="stat-label">Sem ASO</div>
+        <div class="stat-value" style="color:var(--text-muted)" th:text="${qtdSemAso}">0</div>
+      </div>
+    </a>
+  </div>
+
+  <!-- Busca por nome em tempo real -->
+  <div style="margin-bottom:16px;display:flex;gap:8px;align-items:center;">
+    <input type="text" id="buscaNome" class="form-control" style="max-width:300px;"
+           placeholder="🔍 Buscar por nome..." th:value="${buscaFiltro}">
+    <span id="buscaInfo" style="font-size:13px;color:var(--text-muted);"></span>
+  </div>
+
+  <!-- Tabs de status rápido -->
+  <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
+    <a th:href="@{/vencimentos(diasAviso=${diasAviso},busca=${buscaFiltro},estabelecimento=${estFiltro})}"
+       th:class="${statusFiltro == 'todos'} ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'">Todos</a>
+    <a th:href="@{/vencimentos(status='vencidos',diasAviso=${diasAviso},busca=${buscaFiltro},estabelecimento=${estFiltro})}"
+       th:class="${statusFiltro == 'vencidos'} ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'">❌ Vencidos <span th:text="${qtdVencidos}"></span></a>
+    <a th:href="@{/vencimentos(status='a_vencer',diasAviso=${diasAviso},busca=${buscaFiltro},estabelecimento=${estFiltro})}"
+       th:class="${statusFiltro == 'a_vencer'} ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'">⚠️ A vencer <span th:text="${qtdAVencer}"></span></a>
+    <a th:href="@{/vencimentos(status='sem_aso',diasAviso=${diasAviso},busca=${buscaFiltro},estabelecimento=${estFiltro})}"
+       th:class="${statusFiltro == 'sem_aso'} ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'">❓ Sem ASO <span th:text="${qtdSemAso}"></span></a>
+    <a th:href="@{/vencimentos(status='em_dia',diasAviso=${diasAviso},busca=${buscaFiltro},estabelecimento=${estFiltro})}"
+       th:class="${statusFiltro == 'em_dia'} ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'">✅ Em dia <span th:text="${qtdEmDia}"></span></a>
+  </div>
+
+  <!-- Resultado -->
+  <div id="tabelaWrap" class="card p-0">
+    <div th:fragment="tabelaVencimentos">
+    <div class="card-header" style="padding:12px 16px;">
+      <span class="card-title">Funcionários</span>
+      <span class="badge badge-gray" th:text="${totalItens} + ' resultado(s)'"></span>
+    </div>
+
+    <div th:if="${#lists.isEmpty(funcionarios)}" class="empty-state" style="padding:40px;">
+      <div class="empty-state-icon">🔔</div>
+      <div class="empty-state-title">Nenhum funcionário encontrado</div>
+    </div>
+
+    <div th:if="${!#lists.isEmpty(funcionarios)}" class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Funcionário</th>
+            <th>Matrícula</th>
+            <th>Setor / Função</th>
+            <th>Estabelecimento</th>
+            <th>Data ASO</th>
+            <th>Status</th>
+            <th>Dias</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr th:each="f : ${funcionarios}">
+            <td>
+              <a th:href="@{/funcionario/{id}(id=${f.id})}" class="link-text" th:text="${f.nome}">Nome</a>
+            </td>
+            <td class="text-muted" th:text="${f.matricula ?: '—'}">—</td>
+            <td>
+              <div th:text="${f.setor ?: '—'}">—</div>
+              <div class="text-muted" style="font-size:12px;" th:text="${f.funcao ?: ''}"></div>
+            </td>
+            <td>
+              <span class="badge badge-gray" th:if="${f.estabelecimentoEfetivo != null}" th:text="${f.estabelecimentoEfetivo}"></span>
+              <span th:if="${f.estabelecimentoEfetivo == null}" class="text-muted">—</span>
+            </td>
+            <td>
+              <span th:if="${f.aso != null}" th:text="${#temporals.format(f.aso, 'dd/MM/yyyy')}">—</span>
+              <span th:if="${f.aso == null}" class="text-muted">—</span>
+            </td>
+            <td>
+              <!-- Sem ASO -->
+              <span th:if="${f.aso == null}" class="badge badge-gray">Sem ASO</span>
+              <!-- Vencido -->
+              <span th:if="${f.aso != null and f.aso.isBefore(hoje)}" class="badge badge-danger">Vencido</span>
+              <!-- A vencer -->
+              <span th:if="${f.aso != null and !f.aso.isBefore(hoje) and f.aso.isBefore(limite)}" class="badge badge-warning">A vencer</span>
+              <!-- Em dia -->
+              <span th:if="${f.aso != null and !f.aso.isBefore(limite)}" class="badge badge-success">Em dia</span>
+            </td>
+            <td class="text-center">
+              <span th:if="${f.aso == null}" class="text-muted">—</span>
+              <span th:if="${f.aso != null and f.aso.isBefore(hoje)}"
+                    style="color:var(--danger);font-weight:600;"
+                    th:text="${'-' + T(java.time.temporal.ChronoUnit).DAYS.between(f.aso, hoje) + ' d'}"></span>
+              <span th:if="${f.aso != null and !f.aso.isBefore(hoje) and f.aso.isBefore(limite)}"
+                    style="color:var(--warning);font-weight:600;"
+                    th:text="${T(java.time.temporal.ChronoUnit).DAYS.between(hoje, f.aso) + ' d'}"></span>
+              <span th:if="${f.aso != null and !f.aso.isBefore(limite)}"
+                    class="text-muted"
+                    th:text="${T(java.time.temporal.ChronoUnit).DAYS.between(hoje, f.aso) + ' d'}"></span>
+            </td>
+            <td>
+              <a th:href="@{/agendar(matricula=${f.matricula})}" class="btn btn-primary btn-sm"
+                 title="Agendar exame">➕</a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginação -->
+    <div th:if="${totalPaginas > 1}" class="pg-bar" style="padding:12px 16px;">
+      <a th:href="@{/vencimentos(pagina=${paginaAtual - 1},status=${statusFiltro},busca=${buscaFiltro},estabelecimento=${estFiltro},diasAviso=${diasAviso})}"
+         th:class="${paginaAtual == 0} ? 'pg-btn disabled' : 'pg-btn'">‹ Ant</a>
+      <a th:each="i : ${#numbers.sequence(0, totalPaginas - 1)}"
+         th:href="@{/vencimentos(pagina=${i},status=${statusFiltro},busca=${buscaFiltro},estabelecimento=${estFiltro},diasAviso=${diasAviso})}"
+         th:text="${i + 1}"
+         th:class="${i == paginaAtual} ? 'pg-btn active' : 'pg-btn'"></a>
+      <a th:href="@{/vencimentos(pagina=${paginaAtual + 1},status=${statusFiltro},busca=${buscaFiltro},estabelecimento=${estFiltro},diasAviso=${diasAviso})}"
+         th:class="${paginaAtual >= totalPaginas - 1} ? 'pg-btn disabled' : 'pg-btn'">Próx ›</a>
+    </div>
+    </div><!-- fim fragment tabelaVencimentos -->
+  </div>
+
+</div>
+
+<script th:attr="nonce=${cspNonce}">
+(function () {
+  var input = document.getElementById("buscaNome");
+  var wrap  = document.getElementById("tabelaWrap");
+  var info  = document.getElementById("buscaInfo");
+  var timer = null;
+
+  var params = new URLSearchParams(window.location.search);
+  var status = params.get("status") || "todos";
+  var est    = params.get("estabelecimento") || "todos";
+  var dias   = params.get("diasAviso") || "30";
+
+  function buscar(q) {
+    var p = new URLSearchParams({ busca: q, status: status, estabelecimento: est, diasAviso: dias });
+    info.textContent = "Buscando...";
+    fetch("/vencimentos/tabela?" + p)
+      .then(function (r) { return r.text(); })
+      .then(function (html) {
+        wrap.innerHTML = html;
+        var badge = wrap.querySelector(".badge-gray");
+        info.textContent = "";
+      })
+      .catch(function () { info.textContent = "Erro ao buscar."; });
+  }
+
+  input.addEventListener("input", function () {
+    clearTimeout(timer);
+    var q = this.value.trim();
+    if (q.length === 0) {
+      info.textContent = "";
+      location.href = "/vencimentos?" + new URLSearchParams({ status: status, estabelecimento: est, diasAviso: dias });
+      return;
+    }
+    timer = setTimeout(function () { buscar(q); }, 300);
+  });
+})();
+</script>
+<div th:replace="~{components/footer :: footer}"></div>
+</body>
+</html>

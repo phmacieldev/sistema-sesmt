@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 Pedro Henrique Maciel da Silva Faria. Todos os direitos reservados.
+ * Desenvolvido de forma independente como projeto de portfólio.
+ * Autorizado apenas para uso interno homologado.
+ */
 /* PGEO Theme Manager */
 (function () {
   const KEY = 'pgeo-theme';
@@ -28,7 +33,10 @@
   apply(getPreferred());
 
   document.addEventListener('DOMContentLoaded', function () {
+    const theme = document.documentElement.getAttribute('data-theme') || LIGHT;
     document.querySelectorAll('.btn-theme').forEach(btn => {
+      btn.textContent = theme === DARK ? '☀️' : '🌙';
+      btn.title = theme === DARK ? 'Tema claro' : 'Tema escuro';
       btn.addEventListener('click', toggle);
     });
   });

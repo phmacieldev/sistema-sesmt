@@ -1,13 +1,38 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
+<!-- Copyright (c) 2026 Pedro Henrique Maciel da Silva Faria. Sistema autoral protegido. -->
 <html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Estatísticas — PGEO</title>
+  <title>Estatísticas de Exames — PGEO</title>
   <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
   <link rel="stylesheet" th:href="@{/css/global.css}">
-  <script th:src="@{/js/theme.js}"></script>
-  <script th:src="@{/webjars/chart.js/dist/chart.umd.js}"></script>
+  <script th:src="@{/js/theme.js}" th:attr="nonce=${cspNonce}"></script>
+  <script th:src="@{/webjars/chart.js/4.4.3/dist/chart.umd.js}" th:attr="nonce=${cspNonce}"></script>
+  <style th:attr="nonce=${cspNonce}">
+    .charts-2 { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px; }
+    .charts-2 > .card { margin-top:0 !important; }
+    .ch-wrap { position:relative; }
+    .ch-wrap-sm { height:300px; }
+    .ch-wrap-lg { height:380px; }
+    .kpi-tipos { display:flex; flex-wrap:nowrap; gap:12px; margin-bottom:28px; overflow-x:auto; }
+    .kpi-tipos .stat-card { flex:1 1 0; min-width:120px; padding:16px 18px; gap:12px; align-items:center; }
+    .kpi-tipos .stat-icon { font-size:26px; flex-shrink:0; }
+    .kpi-tipos .stat-value { font-size:22px; margin-bottom:2px; }
+    .kpi-tipos .stat-label { font-size:11px; letter-spacing:.4px; line-height:1.3; }
+    @media(max-width:768px){ .charts-2 { grid-template-columns:1fr; } }
+    #selectAno {
+      padding:5px 28px 5px 14px; font-size:13px; font-weight:500;
+      border-radius:20px; border:1px solid var(--border);
+      background:var(--bg-card) !important; color:var(--text-secondary) !important;
+      cursor:pointer; transition:all .15s;
+      appearance:none; -webkit-appearance:none;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E") !important;
+      background-repeat:no-repeat !important;
+      background-position:right 10px center !important;
+    }
+    #selectAno:hover { background:var(--bg-table-hover) !important; }
+  </style>
 </head>
 <body>
 <div th:replace="~{components/navbar :: navbar}"></div>
@@ -17,22 +42,29 @@
   <div class="page-header">
     <div>
       <div class="page-title">📈 Estatísticas de Exames</div>
+      <div class="page-subtitle">Visão geral dos exames ocupacionais realizados</div>
     </div>
-    <form th:action="@{/dashboard_estatisticas}" method="GET" class="header-actions">
-      <select name="ano" class="form-control min-w-90">
-        <option value="">Todos</option>
+    <form id="frmAno" th:action="@{/dashboard_estatisticas}" method="GET">
+      <select name="ano" id="selectAno">
+        <option value="">Todos os anos</option>
         <option th:each="a : ${anosDisponiveis}"
                 th:value="${a}" th:text="${a}"
                 th:selected="${anoFiltro != null and anoFiltro == a}"></option>
       </select>
-      <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
     </form>
   </div>
 
-  <!-- Cards de totais por tipo -->
-  <div class="grid-3 mb-24">
-    <div th:each="entry : ${contadorTipoExame.entrySet()}" class="stat-card">
-      <span class="stat-icon">📋</span>
+  <!-- KPIs -->
+  <div class="kpi-tipos">
+    <div class="stat-card">
+      <div class="stat-icon">📋</div>
+      <div>
+        <div class="stat-label">Total de exames</div>
+        <div class="stat-value" th:text="${totalExames}">0</div>
+      </div>
+    </div>
+    <div th:each="entry : ${contadorTipoExame}" class="stat-card">
+      <div class="stat-icon">📄</div>
       <div>
         <div class="stat-label" th:text="${entry.key}">Tipo</div>
         <div class="stat-value" th:text="${entry.value}">0</div>
@@ -40,19 +72,27 @@
     </div>
   </div>
 
-  <!-- Gráficos -->
-  <div class="grid-2">
+  <!-- Linha 1: Exames por mês + Distribuição por tipo -->
+  <div class="charts-2">
     <div class="card">
-      <div class="card-header">
-        <span class="card-title">📊 Exames por Mês</span>
-      </div>
-      <canvas id="graficoMes"></canvas>
+      <div class="card-header"><span class="card-title">📊 Exames por Mês</span></div>
+      <div class="ch-wrap ch-wrap-sm"><canvas id="graficoMes"></canvas></div>
     </div>
     <div class="card">
-      <div class="card-header">
-        <span class="card-title">🍩 Distribuição por Tipo</span>
-      </div>
-      <canvas id="graficoPizza"></canvas>
+      <div class="card-header"><span class="card-title">🍩 Distribuição por Tipo de Exame</span></div>
+      <div class="ch-wrap ch-wrap-sm"><canvas id="graficoPizza"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Linha 2: Por setor + Por estabelecimento -->
+  <div class="charts-2">
+    <div class="card">
+      <div class="card-header"><span class="card-title">🏢 Exames por Setor (Top 10)</span></div>
+      <div class="ch-wrap ch-wrap-lg"><canvas id="graficoSetor"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">🏭 Exames por Estabelecimento</span></div>
+      <div class="ch-wrap ch-wrap-lg"><canvas id="graficoEstab"></canvas></div>
     </div>
   </div>
 
@@ -61,66 +101,108 @@
 <script th:inline="javascript" th:attr="nonce=${cspNonce}">
 var meses        = /*[[${meses}]]*/ [];
 var examesPorMes = /*[[${contadorExamesMes}]]*/ [];
-var tiposExame   = /*[[${tiposExame}]]*/ [];
-var tiposTotais  = /*[[${contadorTipoExame.values()}]]*/ [];
+var tiposLabels  = /*[[${tiposLabels}]]*/ [];
+var tiposVals    = /*[[${tiposVals}]]*/ [];
+var setorLabels  = /*[[${setorLabels}]]*/ [];
+var setorVals    = /*[[${setorVals}]]*/ [];
+var estabLabels  = /*[[${estabLabels}]]*/ [];
+var estabVals    = /*[[${estabVals}]]*/ [];
 
-function isDark() {
-  return document.documentElement.getAttribute('data-theme') === 'dark';
-}
+var COLORS = ["#3b82f6","#10b981","#f59e0b","#ef4444","#8b5cf6","#06b6d4","#f97316","#84cc16","#ec4899","#14b8a6"];
 
-function textColor() { return isDark() ? '#94a3b8' : '#64748b'; }
-function gridColor()  { return isDark() ? '#334155' : '#e2e8f0'; }
+function isDark() { return document.documentElement.getAttribute('data-theme') === 'dark'; }
+function tc() { return isDark() ? '#94a3b8' : '#64748b'; }
+function gc() { return isDark() ? '#334155' : '#e2e8f0'; }
 
-var barChart, pieChart;
+var charts = {};
+
+function destroyAll() { Object.values(charts).forEach(c => c && c.destroy()); charts = {}; }
 
 function buildCharts() {
-  const dark = isDark();
-  const tc = textColor(), gc = gridColor();
+  destroyAll();
+  const t = tc(), g = gc();
 
-  if (barChart) barChart.destroy();
-  if (pieChart) pieChart.destroy();
-
-  barChart = new Chart(document.getElementById("graficoMes"), {
+  // ── Barras por mês ──
+  charts.mes = new Chart(document.getElementById("graficoMes"), {
     type: "bar",
     data: {
       labels: meses,
-      datasets: [{
-        label: "Exames",
-        data: examesPorMes,
-        backgroundColor: "#3b82f6",
-        borderRadius: 6
-      }]
+      datasets: [{ label: "Exames", data: examesPorMes,
+        backgroundColor: "#3b82f6", borderRadius: 6 }]
     },
     options: {
-      responsive: true,
+      responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { grid: { color: gc }, ticks: { color: tc } },
-        y: { grid: { color: gc }, ticks: { color: tc } }
+        x: { grid: { color: g }, ticks: { color: t } },
+        y: { grid: { color: g }, ticks: { color: t, stepSize: 1 }, beginAtZero: true }
       }
     }
   });
 
-  pieChart = new Chart(document.getElementById("graficoPizza"), {
+  // ── Doughnut por tipo ──
+  charts.pizza = new Chart(document.getElementById("graficoPizza"), {
     type: "doughnut",
     data: {
-      labels: Object.keys(/*[[${contadorTipoExame}]]*/ {}),
-      datasets: [{
-        data: Object.values(/*[[${contadorTipoExame}]]*/ {}),
-        backgroundColor: ["#3b82f6","#10b981","#f59e0b","#ef4444","#8b5cf6","#06b6d4"]
-      }]
+      labels: tiposLabels,
+      datasets: [{ data: tiposVals, backgroundColor: COLORS, borderWidth: 2,
+        borderColor: isDark() ? '#1e293b' : '#fff' }]
     },
     options: {
-      responsive: true,
-      plugins: { legend: { labels: { color: tc } } }
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { color: t, boxWidth: 14, padding: 12 } }
+      }
+    }
+  });
+
+  // ── Barras horizontais por setor ──
+  charts.setor = new Chart(document.getElementById("graficoSetor"), {
+    type: "bar",
+    data: {
+      labels: setorLabels,
+      datasets: [{ label: "Exames", data: setorVals,
+        backgroundColor: "#8b5cf6", borderRadius: 4 }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: g }, ticks: { color: t, stepSize: 1 }, beginAtZero: true },
+        y: { grid: { display: false }, ticks: { color: t } }
+      }
+    }
+  });
+
+  // ── Barras por estabelecimento ──
+  charts.estab = new Chart(document.getElementById("graficoEstab"), {
+    type: "bar",
+    data: {
+      labels: estabLabels,
+      datasets: [{ label: "Exames", data: estabVals,
+        backgroundColor: estabLabels.map((_, i) => COLORS[i % COLORS.length]),
+        borderRadius: 6 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: g }, ticks: { color: t, maxRotation: 30 } },
+        y: { grid: { color: g }, ticks: { color: t, stepSize: 1 }, beginAtZero: true }
+      }
     }
   });
 }
 
-document.addEventListener('DOMContentLoaded', buildCharts);
-
-const observer = new MutationObserver(() => buildCharts());
-observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+document.addEventListener('DOMContentLoaded', function() {
+  buildCharts();
+  document.getElementById('selectAno').addEventListener('change', function() {
+    document.getElementById('frmAno').submit();
+  });
+});
+new MutationObserver(buildCharts).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 </script>
+<div th:replace="~{components/footer :: footer}"></div>
 </body>
 </html>

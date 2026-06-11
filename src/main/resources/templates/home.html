@@ -1,4 +1,5 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
+<!-- Copyright (c) 2026 Pedro Henrique Maciel da Silva Faria. Sistema autoral protegido. -->
 <html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
@@ -39,8 +40,7 @@
     .agenda-info  { flex: 1; min-width: 0; }
     .agenda-nome  { font-weight: 600; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .agenda-sub   { font-size: 12px; color: var(--text-muted); }
-    .badge-tipo   { font-size: 11px; padding: 2px 7px; border-radius: 20px; white-space: nowrap;
-                    background: var(--bg-badge); color: var(--text-secondary); }
+    .badge-tipo   { font-size: 11px; padding: 2px 7px; border-radius: 20px; white-space: nowrap; }
     .atestado-item { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); align-items: flex-start; }
     .atestado-item:last-child { border-bottom: none; }
     .atestado-dias  { min-width: 44px; text-align: center; flex-shrink: 0; }
@@ -169,7 +169,7 @@
       <span style="color:var(--text-muted);font-size:12px" th:text="${f.estabelecimentoEfetivo ?: '—'}">—</span>
       <span style="color:var(--danger);font-size:12px;flex-shrink:0"
             th:text="'venceu ' + ${#temporals.format(f.aso, 'dd/MM/yyyy')}">—</span>
-      <a th:href="@{/agendar}" class="btn btn-primary btn-sm" style="padding:3px 10px;font-size:11px;flex-shrink:0">Agendar</a>
+      <a th:href="@{/agendar(matricula=${f.matricula})}" class="btn btn-primary btn-sm" style="padding:3px 10px;font-size:11px;flex-shrink:0">Agendar</a>
     </div>
 
     <!-- Paginação dos ASOs -->
@@ -189,5 +189,6 @@
   </div>
 
 </div>
+<div th:replace="~{components/footer :: footer}"></div>
 </body>
 </html>

@@ -8,13 +8,14 @@ Sistema web para controle de agendamentos de exames clínicos (ASO), atestados m
 
 ### Agendamentos
 - Dashboard com filtros por mês, funcionário, estabelecimento e período personalizado
-- Agenda semanal visual com todos os horários
+- Agenda semanal visual com todos os horários e navegação com setas
 - Criação, edição e exclusão de agendamentos
 - Controle de status ASO (enviado / recebido) com atualização em tempo real via WebSocket
 - Export para Excel com todos os filtros ativos
 - Limite de 10 exames de sangue por dia (validação automática)
-- Guia PDF por agendamento
+- **Guia PDF por agendamento** — guia completa, guia de sangue e guia clínico Proteus (botões individuais por linha)
 - Badges coloridos por tipo de exame (Periódico, Admissional, Demissional, Retorno, Mudança de Risco)
+- Pré-preenchimento automático do formulário ao agendar a partir de ASO vencido
 
 ### Atestados Médicos
 - Lançamento semanal com navegação por semanas (terça a segunda)
@@ -41,8 +42,16 @@ Sistema web para controle de agendamentos de exames clínicos (ASO), atestados m
 ### Início
 - KPIs: exames do mês, ASOs vencidos, atestados dos últimos 60 dias
 - Atalhos rápidos para todas as seções
-- Lista de ASOs vencidos com nome, setor, função, estabelecimento e data
+- Lista de ASOs vencidos com nome, setor, função, estabelecimento e data — botão Agendar pré-preenche o formulário
 - Próximos agendamentos (14 dias) e atestados recentes
+
+### Estatísticas de Exames
+- Dashboard completo com 4 gráficos (exames por mês, por tipo, por setor, por estabelecimento)
+- KPIs para todos os tipos de exame
+- Filtro por ano com aplicação automática (sem botão confirmar)
+
+### Funcionários
+- Cards de KPI no topo: Total, Ativos, Pré-admissional, Desligados
 
 ### Admin
 - Gerenciamento de usuários (criar, editar, redefinir senha, ativar/desativar)
@@ -50,13 +59,16 @@ Sistema web para controle de agendamentos de exames clínicos (ASO), atestados m
 - Controle de papéis (ADMIN / OPERADOR)
 
 ### Geral
-- Tema claro / escuro com persistência por cookie
-- Navbar responsiva com compactação progressiva e min-width para zoom
+- Tema claro / escuro com persistência por localStorage — ícone sincronizado corretamente no reload
+- Navbar responsiva com dropdown estável (hover gap corrigido)
 - Notificações em tempo real via WebSocket — banner "X atualizações pendentes" sem interromper o usuário
 - Optimistic locking em todas as entidades principais (conflito de edição simultânea detectado e informado)
 - CSP (Content Security Policy) com nonce por requisição
 - Rate limiting no login (proteção contra força bruta)
 - Sessão expira após 4 horas de inatividade (prod)
+- Rodapé com copyright em todas as páginas
+- Agenda com navegação Anterior/Próximo em português e botões FullCalendar corrigidos
+- **Direitos autorais:** cabeçalho de copyright em todos os arquivos fonte (`.java`, `.css`, `.js`, `.html`) e arquivo `LICENSE` com licença de uso institucional
 
 ---
 

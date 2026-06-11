@@ -1,4 +1,5 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
+<!-- Copyright (c) 2026 Pedro Henrique Maciel da Silva Faria. Sistema autoral protegido. -->
 <html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
 <head>
   <meta charset="UTF-8">
@@ -41,7 +42,8 @@
         </label>
         <div class="autocomplete-wrapper">
           <input type="text" id="matricula" name="matricula" class="form-control"
-                 autocomplete="off" placeholder="Matrícula (opcional para admissional)">
+                 autocomplete="off" placeholder="Matrícula (opcional para admissional)"
+                 th:value="${prefillMatricula}">
           <div id="sugestoes-matricula" class="suggestions"></div>
         </div>
         <div id="aviso-pre-adm" class="alert alert-warning d-none mt-8">
@@ -55,7 +57,7 @@
         <label class="form-label" for="nome">Nome</label>
         <div class="autocomplete-wrapper">
           <input id="nome" name="nome" class="form-control" autocomplete="off"
-                 placeholder="Nome do funcionário">
+                 placeholder="Nome do funcionário" th:value="${prefillNome}">
           <div id="sugestoes" class="suggestions"></div>
         </div>
         <div id="alerta-agendamento" class="alert alert-warning d-none mt-8"></div>
@@ -64,7 +66,7 @@
       <!-- Setor: texto ou dropdown (Mudança de Risco). Apenas um tem name="setor" por vez -->
       <div class="form-group">
         <label class="form-label" for="setor">Setor</label>
-        <input id="setor" name="setor" class="form-control" placeholder="Setor">
+        <input id="setor" name="setor" class="form-control" placeholder="Setor" th:value="${prefillSetor}">
         <select id="setor-select" class="form-control d-none">
           <option value="">Selecione o setor</option>
         </select>
@@ -74,7 +76,7 @@
       <!-- Função: texto ou dropdown (Mudança de Risco). Apenas um tem name="funcao" por vez -->
       <div class="form-group">
         <label class="form-label" for="funcao">Função</label>
-        <input id="funcao" name="funcao" class="form-control" placeholder="Função">
+        <input id="funcao" name="funcao" class="form-control" placeholder="Função" th:value="${prefillFuncao}">
         <select id="funcao-select" class="form-control d-none">
           <option value="">Selecione a função</option>
         </select>
@@ -144,8 +146,25 @@
   </div>
 </div>
 
+<script th:attr="nonce=${cspNonce}" th:inline="javascript">
+  var _prefill = {
+    matricula:   /*[[${prefillMatricula}]]*/ null,
+    nome:        /*[[${prefillNome}]]*/ null,
+    setor:       /*[[${prefillSetor}]]*/ null,
+    funcao:      /*[[${prefillFuncao}]]*/ null,
+    exigeSangue: /*[[${prefillExigeSangue}]]*/ null
+  };
+</script>
 <script th:attr="nonce=${cspNonce}">
 document.addEventListener("DOMContentLoaded", function() {
+
+  // ── Pré-preenchimento via URL ─────────────────────────────────────────
+  if (_prefill && _prefill.nome) {
+    var wrapSangue = document.getElementById("campo-sangue-wrapper");
+    if (_prefill.exigeSangue === false) {
+      if (wrapSangue) wrapSangue.style.display = "none";
+    }
+  }
 
   // ── Helpers ──────────────────────────────────────────────────────────
   function elVal(id)     { var e = document.getElementById(id); return e ? e.value.trim() : ""; }
@@ -455,5 +474,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
 });
 </script>
+<div th:replace="~{components/footer :: footer}"></div>
 </body>
 </html>

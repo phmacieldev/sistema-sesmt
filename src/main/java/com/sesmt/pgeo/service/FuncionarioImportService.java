@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 Pedro Henrique Maciel da Silva Faria. Todos os direitos reservados.
+ * Desenvolvido de forma independente como projeto de portfólio.
+ * Autorizado apenas para uso interno homologado.
+ */
 package com.sesmt.pgeo.service;
 
 import com.sesmt.pgeo.audit.AuditService;
@@ -61,7 +66,7 @@ public class FuncionarioImportService {
             while ((row = br.readLine()) != null) {
                 linha++;
                 // Remove BOM se presente
-                row = row.replace("﻿", "").strip();
+                row = row.replace("", "").strip();
                 if (row.isBlank()) continue;
 
                 String[] cols = row.split(";", -1);

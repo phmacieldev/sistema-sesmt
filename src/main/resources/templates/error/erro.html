@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Copyright (c) 2026 Pedro Henrique Maciel da Silva Faria. Sistema autoral protegido. -->
 <html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
@@ -22,5 +23,6 @@
   <a sec:authorize="!isAuthenticated()" th:href="@{/login}" class="btn btn-primary mt-24">← Ir para o Login</a>
 </div>
 
+<div th:replace="~{components/footer :: footer}"></div>
 </body>
 </html>
