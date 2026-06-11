@@ -6,6 +6,7 @@ import com.sesmt.pgeo.model.enums.StatusFuncionario;
 import com.sesmt.pgeo.repository.AgendamentoRepository;
 import com.sesmt.pgeo.repository.FuncionarioRepository;
 import com.sesmt.pgeo.repository.HistoricoCargoRepository;
+import com.sesmt.pgeo.repository.MedicalLeaveRepository;
 import com.sesmt.pgeo.repository.UsuarioRepository;
 import com.sesmt.pgeo.service.FuncionarioImportService;
 import com.sesmt.pgeo.service.FuncionarioService;
@@ -16,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -39,6 +41,7 @@ class FuncionarioControllerTest {
     @MockBean FuncionarioRepository    funcionarioRepo;
     @MockBean HistoricoCargoRepository historicoRepo;
     @MockBean AgendamentoRepository    agendamentoRepo;
+    @MockBean MedicalLeaveRepository   medicalLeaveRepo;
     @MockBean FuncionarioService       funcionarioService;
     @MockBean FuncionarioImportService importService;
 
@@ -185,5 +188,61 @@ class FuncionarioControllerTest {
         mvc.perform(get("/api/funcionario/99999"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.encontrado").value(false));
+    }
+
+    // ── Importação CSV/Excel ──────────────────────────────────────────
+
+    @Test
+    void importarForm_semAutenticacao_redirecionaParaLogin() throws Exception {
+        mvc.perform(get("/admin/funcionarios/importar"))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(redirectedUrlPattern("**/login"));
+    }
+
+    @Test
+    @WithMockUser(roles = "OPERADOR")
+    void importarForm_semPermissaoAdmin_retorna403() throws Exception {
+        mvc.perform(get("/admin/funcionarios/importar"))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void importarForm_admin_retorna200() throws Exception {
+        mvc.perform(get("/admin/funcionarios/importar"))
+            .andExpect(status().isOk())
+            .andExpect(view().name("admin/importar_funcionarios"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void importarPost_admin_processaArquivoERedireiona() throws Exception {
+        var resultado = new com.sesmt.pgeo.service.FuncionarioImportService.ImportacaoResultado(
+            2, 1, 0, List.of());
+        when(importService.importar(any())).thenReturn(resultado);
+
+        MockMultipartFile arquivo = new MockMultipartFile(
+            "arquivo", "func.csv", "text/csv", "dados".getBytes());
+
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                .multipart("/admin/funcionarios/importar")
+                .file(arquivo)
+                .with(csrf()))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(redirectedUrl("/admin/funcionarios/importar"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void importarPost_semArquivo_redirecionaComErro() throws Exception {
+        MockMultipartFile arquivoVazio = new MockMultipartFile(
+            "arquivo", "", "text/csv", new byte[0]);
+
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                .multipart("/admin/funcionarios/importar")
+                .file(arquivoVazio)
+                .with(csrf()))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(redirectedUrl("/admin/funcionarios/importar"));
     }
 }
