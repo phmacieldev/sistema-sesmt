@@ -208,27 +208,17 @@ class DashboardControllerTest {
 
     @Test
     @WithMockUser
-    void vencimentos_autenticado_retorna200ComModelCompleto() throws Exception {
-        when(funcionarioRepo.findByAtivoTrue()).thenReturn(List.of());
-
+    void vencimentos_autenticado_redirecionaParaDashboardExames() throws Exception {
         mvc.perform(get("/vencimentos"))
-            .andExpect(status().isOk())
-            .andExpect(view().name("vencimentos"))
-            .andExpect(model().attributeExists("qtdVencidos"))
-            .andExpect(model().attributeExists("qtdAVencer"))
-            .andExpect(model().attributeExists("qtdEmDia"))
-            .andExpect(model().attributeExists("qtdSemAso"))
-            .andExpect(model().attributeExists("funcionarios"))
-            .andExpect(model().attributeExists("statusFiltro"));
+            .andExpect(status().is3xxRedirection())
+            .andExpect(redirectedUrl("/dashboard_exames"));
     }
 
     @Test
     @WithMockUser
-    void vencimentos_comFiltroStatus_filtraVencidos() throws Exception {
-        when(funcionarioRepo.findByAtivoTrue()).thenReturn(List.of());
-
+    void vencimentos_comFiltroStatus_redirecionaParaDashboardExames() throws Exception {
         mvc.perform(get("/vencimentos").param("status", "vencidos"))
-            .andExpect(status().isOk())
-            .andExpect(model().attribute("statusFiltro", "vencidos"));
+            .andExpect(status().is3xxRedirection())
+            .andExpect(redirectedUrl("/dashboard_exames"));
     }
 }
