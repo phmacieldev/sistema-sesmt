@@ -58,16 +58,7 @@ document.addEventListener('DOMContentLoaded', function() {
         },
 
         eventClick: function(info) {
-            var d = info.event.extendedProps;
-            abrirModal({
-                id:    info.event.id,
-                nome:  d.nome,
-                setor: d.setor,
-                funcao: d.funcao,
-                exame: d.tipo,
-                data:  info.event.start.toLocaleDateString('pt-BR'),
-                hora:  info.event.start.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})
-            });
+            window.location.href = '/editar_agendamento/' + info.event.id + '?origem=agenda';
         },
 
         eventDrop: function(info) {
@@ -87,7 +78,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         },
 
-        datesSet: function() { calendar.refetchEvents(); }
+        datesSet: function() { }
     });
 
     calendar.render();

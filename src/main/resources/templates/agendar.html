@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Agendar Exame — PGEO</title>
+  <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
   <link rel="stylesheet" th:href="@{/css/global.css}">
-  <link rel="stylesheet" th:href="@{/webjars/flatpickr/dist/flatpickr.min.css}">
   <script th:src="@{/js/theme.js}"></script>
 </head>
 <body>
@@ -24,7 +24,7 @@
 
       <div class="form-group">
         <label class="form-label" for="tipo_exame">Tipo de exame</label>
-        <select id="tipo_exame" name="tipo_exame" class="form-control" required>
+        <select id="tipo_exame" name="tipo_exame" class="form-control">
           <option value="">Selecione</option>
           <option th:each="tipo : ${tiposExame}"
                   th:value="${tipo.descricao}"
@@ -39,8 +39,11 @@
             — Deixar em branco para pré-admissional
           </span>
         </label>
-        <input type="text" id="matricula" name="matricula" class="form-control"
-               placeholder="Matrícula (opcional para admissional)">
+        <div class="autocomplete-wrapper">
+          <input type="text" id="matricula" name="matricula" class="form-control"
+                 autocomplete="off" placeholder="Matrícula (opcional para admissional)">
+          <div id="sugestoes-matricula" class="suggestions"></div>
+        </div>
         <div id="aviso-pre-adm" class="alert alert-warning d-none mt-8">
           ⚠ Admissional sem matrícula: o funcionário será cadastrado como
           <strong>Pré-admissional</strong>. Após a contratação, acesse o perfil
@@ -52,20 +55,30 @@
         <label class="form-label" for="nome">Nome</label>
         <div class="autocomplete-wrapper">
           <input id="nome" name="nome" class="form-control" autocomplete="off"
-                 required placeholder="Nome do funcionário">
+                 placeholder="Nome do funcionário">
           <div id="sugestoes" class="suggestions"></div>
         </div>
         <div id="alerta-agendamento" class="alert alert-warning d-none mt-8"></div>
       </div>
 
+      <!-- Setor: texto ou dropdown (Mudança de Risco). Apenas um tem name="setor" por vez -->
       <div class="form-group">
         <label class="form-label" for="setor">Setor</label>
         <input id="setor" name="setor" class="form-control" placeholder="Setor">
+        <select id="setor-select" class="form-control d-none">
+          <option value="">Selecione o setor</option>
+        </select>
+        <div id="erro-setor" class="alert alert-danger d-none mt-6">⚠ Setor não cadastrado.</div>
       </div>
 
+      <!-- Função: texto ou dropdown (Mudança de Risco). Apenas um tem name="funcao" por vez -->
       <div class="form-group">
         <label class="form-label" for="funcao">Função</label>
         <input id="funcao" name="funcao" class="form-control" placeholder="Função">
+        <select id="funcao-select" class="form-control d-none">
+          <option value="">Selecione a função</option>
+        </select>
+        <div id="erro-funcao" class="alert alert-danger d-none mt-6">⚠ Função não cadastrada.</div>
       </div>
 
       <div id="campo-sangue-wrapper" class="form-group">
@@ -73,22 +86,20 @@
           Data exame de sangue
           <small id="info-sangue">(máx. 5 por dia — opcional para alguns cargos)</small>
         </label>
-        <input type="text" name="data_sangue" id="data_sangue" class="form-control"
-               placeholder="Selecione a data">
+        <input type="date" id="data_sangue" name="data_sangue" class="form-control" th:attr="min=${hoje}">
         <div id="aviso-limite-sangue" class="alert alert-warning d-none mt-6">
           ⚠ Limite de 5 exames de sangue atingido nesta data. Escolha outra data.
         </div>
       </div>
 
       <div class="form-group">
-        <label class="form-label">Data exame clínico</label>
-        <input type="text" name="data_clinico" class="form-control"
-               required placeholder="Selecione a data">
+        <label class="form-label" for="data_clinico">Data exame clínico</label>
+        <input type="date" id="data_clinico" name="data_clinico" class="form-control">
       </div>
 
       <div class="form-group">
-        <label class="form-label">Horário</label>
-        <select name="hora" class="form-control" required>
+        <label class="form-label" for="hora">Horário</label>
+        <select id="hora" name="hora" class="form-control">
           <option value="">Selecione</option>
           <option th:each="h : ${horarios}" th:value="${h}" th:text="${h}"></option>
         </select>
@@ -133,112 +144,315 @@
   </div>
 </div>
 
-<script th:src="@{/webjars/jquery/jquery.min.js}"></script>
-<script th:src="@{/webjars/flatpickr/dist/flatpickr.min.js}"></script>
-<script th:src="@{/webjars/flatpickr/dist/l10n/pt.js}"></script>
-
 <script th:attr="nonce=${cspNonce}">
-$(document).ready(function(){
+document.addEventListener("DOMContentLoaded", function() {
 
-  $("#nome").on("keyup", function(){
-    let texto = $(this).val();
-    if(texto.length < 2){ $("#sugestoes").hide(); return; }
-    $.getJSON("/buscar_funcionarios_nome", {q: texto}, function(data){
-      let html = "";
-      data.forEach(f => {
-        html += `<div class="suggestion-item"
-            data-matricula="${f.matricula}" data-nome="${f.nome}"
-            data-setor="${f.setor}" data-funcao="${f.funcao}"
-            data-exige-sangue="${f.exigeSangue}">${f.nome}
-            <div class="suggestion-sub">${f.setor || ''} · ${f.funcao || ''}</div></div>`;
-      });
-      html ? $("#sugestoes").html(html).show() : $("#sugestoes").hide();
+  // ── Helpers ──────────────────────────────────────────────────────────
+  function elVal(id)     { var e = document.getElementById(id); return e ? e.value.trim() : ""; }
+  function setVal(id, v) { var e = document.getElementById(id); if (e) e.value = v; }
+  function escH(s)       { return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+  function marcarInvalido(el) {
+    if (!el) return;
+    el.classList.add("is-invalid");
+    ["input","change"].forEach(function(ev) {
+      el.addEventListener(ev, function() { el.classList.remove("is-invalid"); }, { once: true });
     });
-  });
-
-  $(document).on("click", ".suggestion-item", function(){
-    $("#matricula").val($(this).data("matricula"));
-    $("#nome").val($(this).data("nome"));
-    $("#setor").val($(this).data("setor"));
-    $("#funcao").val($(this).data("funcao"));
-    $("#sugestoes").hide();
-    if ($(this).data("exige-sangue") === false || $(this).data("exige-sangue") === "false") {
-      $("#campo-sangue-wrapper").hide();
-      $("[name=data_sangue]").val("");
-    } else {
-      $("#campo-sangue-wrapper").show();
-    }
-  });
-
-  $(document).click(e => { if(!$(e.target).closest("#nome").length) $("#sugestoes").hide(); });
-
-  $("#nome").on("blur", function(){
-    let nome = $(this).val();
-    if(!nome) return;
-    $.getJSON("/verificar_agendamento_nome", {nome}, function(resp){
-      if(resp.existe){
-        $("#alerta-agendamento")
-          .html(`⚠ Já possui agendamento em ${resp.data} às ${resp.hora}`).show();
-      } else {
-        $("#alerta-agendamento").hide();
-      }
-    });
-  });
-
-  const sanguePicker = flatpickr("[name=data_sangue]", {
-    dateFormat: "Y-m-d", altInput: true, altFormat: "d/m/Y",
-    disable: [date => date.getDay() === 0 || date.getDay() === 6],
-    onChange: function(selectedDates) {
-      if (!selectedDates.length) return;
-      const dataISO = selectedDates[0].toISOString().slice(0, 10);
-      $.getJSON("/verificar_limite_sangue", {data: dataISO}, function(resp) {
-        resp.atingido ? $("#aviso-limite-sangue").show() : $("#aviso-limite-sangue").hide();
-        const info = `(${resp.atual}/${resp.limite} agendamentos de sangue nesta data)`;
-        $("#info-sangue").text(info);
-      });
-    }
-  });
-
-  flatpickr("[name=data_clinico]", {
-    dateFormat: "Y-m-d", altInput: true, altFormat: "d/m/Y",
-    disable: [date => date.getDay() === 0 || date.getDay() === 6],
-    monthSelectorType: "dropdown"
-  });
-
-  function formatarDataBR(iso){
-    if(!iso) return "";
-    const [a,m,d] = iso.split("-");
-    return `${d}/${m}/${a}`;
   }
 
-  $("#form-agendar").on("submit", function(e){
-    e.preventDefault();
-    let formData = $(this).serialize();
-    let nome   = $("#nome").val();
-    let exame  = $("#tipo_exame").val();
-    let sangue = $("[name=data_sangue]").val();
-    let clinico= $("[name=data_clinico]").val();
-    let hora   = $("[name=hora]").val();
+  function formatarDataBR(iso) {
+    if (!iso) return "—";
+    var p = iso.split("-");
+    return p.length === 3 ? p[2]+"/"+p[1]+"/"+p[0] : iso;
+  }
 
-    $("#modal-text").html(
-      `Funcionário: ${nome}\nExame: ${exame}\nSangue: ${formatarDataBR(sangue)}\nClínico: ${formatarDataBR(clinico)}\nHorário: ${hora}`
-    );
+  function isWeekend(isoDate) {
+    if (!isoDate) return false;
+    var d = new Date(isoDate + "T12:00:00");
+    return d.getDay() === 0 || d.getDay() === 6;
+  }
+
+  // ── Autocomplete ──────────────────────────────────────────────────────
+  function mostrarSugestoes(elId, html) {
+    var el = document.getElementById(elId);
+    if (!el) return;
+    el.innerHTML = html || "";
+    el.style.display = html ? "block" : "none";
+  }
+
+  function buildItemNome(f) {
+    return '<div class="suggestion-item"'
+      + ' data-matricula="'+escH(f.matricula)+'" data-nome="'+escH(f.nome)+'"'
+      + ' data-setor="'+escH(f.setor)+'" data-funcao="'+escH(f.funcao)+'"'
+      + ' data-exige-sangue="'+f.exigeSangue+'">'
+      + escH(f.nome)+'<div class="suggestion-sub">'+escH(f.setor)+' · '+escH(f.funcao)+'</div></div>';
+  }
+  function buildItemMatricula(f) {
+    return '<div class="suggestion-item"'
+      + ' data-matricula="'+escH(f.matricula)+'" data-nome="'+escH(f.nome)+'"'
+      + ' data-setor="'+escH(f.setor)+'" data-funcao="'+escH(f.funcao)+'"'
+      + ' data-exige-sangue="'+f.exigeSangue+'">'
+      + escH(f.matricula)+' — '+escH(f.nome)
+      + '<div class="suggestion-sub">'+escH(f.setor)+' · '+escH(f.funcao)+'</div></div>';
+  }
+
+  function preencherFuncionario(f) {
+    setVal("matricula", f.matricula || "");
+    setVal("nome",      f.nome      || "");
+    var isMudanca = elVal("tipo_exame") === "Mudança de Risco";
+    if (!isMudanca) {
+      setVal("setor",  f.setor  || "");
+      setVal("funcao", f.funcao || "");
+    }
+    var wrapSangue = document.getElementById("campo-sangue-wrapper");
+    if (f.exigeSangue === false || f.exigeSangue === "false") {
+      if (wrapSangue) wrapSangue.style.display = "none";
+      setVal("data_sangue", "");
+    } else {
+      if (wrapSangue) wrapSangue.style.display = "";
+    }
+  }
+
+  // Autocomplete por nome
+  var inputNome = document.getElementById("nome");
+  var debNome;
+  if (inputNome) {
+    inputNome.addEventListener("input", function() {
+      clearTimeout(debNome);
+      var q = this.value.trim();
+      if (q.length < 2) { mostrarSugestoes("sugestoes", ""); return; }
+      debNome = setTimeout(function() {
+        fetch("/buscar_funcionarios_nome?q=" + encodeURIComponent(q))
+          .then(function(r){ return r.json(); })
+          .then(function(d){ mostrarSugestoes("sugestoes", d.map(buildItemNome).join("")); })
+          .catch(function(){ mostrarSugestoes("sugestoes", ""); });
+      }, 200);
+    });
+    inputNome.addEventListener("blur", function() {
+      var nome = this.value.trim();
+      if (!nome) return;
+      fetch("/verificar_agendamento_nome?nome=" + encodeURIComponent(nome))
+        .then(function(r){ return r.json(); })
+        .then(function(resp) {
+          var el = document.getElementById("alerta-agendamento");
+          if (!el) return;
+          if (resp.existe) {
+            el.textContent = "⚠ Já possui agendamento em " + resp.data + " às " + resp.hora;
+            el.classList.remove("d-none");
+          } else {
+            el.classList.add("d-none");
+          }
+        });
+    });
+  }
+
+  // Autocomplete por matrícula (só dígitos)
+  var inputMatricula = document.getElementById("matricula");
+  var debMat;
+  if (inputMatricula) {
+    inputMatricula.addEventListener("keypress", function(e) {
+      if (!/\d/.test(e.key) && !e.ctrlKey && !e.metaKey) e.preventDefault();
+    });
+    inputMatricula.addEventListener("input", function() {
+      this.value = this.value.replace(/\D/g, "");
+      clearTimeout(debMat);
+      var q = this.value.trim();
+      if (q.length < 1) { mostrarSugestoes("sugestoes-matricula", ""); return; }
+      debMat = setTimeout(function() {
+        fetch("/buscar_funcionarios_matricula?q=" + encodeURIComponent(q))
+          .then(function(r){ return r.json(); })
+          .then(function(d){ mostrarSugestoes("sugestoes-matricula", d.map(buildItemMatricula).join("")); })
+          .catch(function(){ mostrarSugestoes("sugestoes-matricula", ""); });
+      }, 200);
+    });
+  }
+
+  // Clique nas sugestões
+  document.addEventListener("click", function(e) {
+    var item = e.target.closest(".suggestion-item");
+    if (item) {
+      preencherFuncionario({
+        matricula:   item.dataset.matricula,
+        nome:        item.dataset.nome,
+        setor:       item.dataset.setor,
+        funcao:      item.dataset.funcao,
+        exigeSangue: item.dataset.exigeSangue
+      });
+      mostrarSugestoes("sugestoes", "");
+      mostrarSugestoes("sugestoes-matricula", "");
+      return;
+    }
+    if (!e.target.closest("#nome"))      mostrarSugestoes("sugestoes", "");
+    if (!e.target.closest("#matricula")) mostrarSugestoes("sugestoes-matricula", "");
+  });
+
+  // ── Mudança de Risco: dropdowns de setor e função ────────────────────
+  var setoresCache = null, funcoesCache = null;
+
+  function setDropdownOpts(selectId, values, placeholder) {
+    var sel = document.getElementById(selectId);
+    if (!sel) return;
+    sel.innerHTML = '<option value="">' + placeholder + '</option>'
+      + values.map(function(v){ return '<option value="'+escH(v)+'">'+escH(v)+'</option>'; }).join("");
+  }
+
+  function carregarMudancaRisco() {
+    var s = document.getElementById("setor");
+    s.classList.add("d-none"); s.removeAttribute("name");
+    var ss = document.getElementById("setor-select");
+    ss.classList.remove("d-none"); ss.setAttribute("name", "setor"); ss.required = true;
+
+    var f = document.getElementById("funcao");
+    f.classList.add("d-none"); f.removeAttribute("name");
+    var fs = document.getElementById("funcao-select");
+    fs.classList.remove("d-none"); fs.setAttribute("name", "funcao"); fs.required = true;
+
+    if (!setoresCache) {
+      fetch("/setores").then(function(r){return r.json();}).then(function(d){
+        setoresCache = d; setDropdownOpts("setor-select", d, "Selecione o setor");
+      });
+    }
+    if (!funcoesCache) {
+      fetch("/funcoes").then(function(r){return r.json();}).then(function(d){
+        funcoesCache = d; setDropdownOpts("funcao-select", d, "Selecione a função");
+      });
+    }
+  }
+
+  function restaurarInputsNormais() {
+    var s = document.getElementById("setor");
+    s.classList.remove("d-none"); s.setAttribute("name", "setor"); s.required = false;
+    var ss = document.getElementById("setor-select");
+    ss.classList.add("d-none"); ss.removeAttribute("name"); ss.required = false;
+
+    var f = document.getElementById("funcao");
+    f.classList.remove("d-none"); f.setAttribute("name", "funcao"); f.required = false;
+    var fs = document.getElementById("funcao-select");
+    fs.classList.add("d-none"); fs.removeAttribute("name"); fs.required = false;
+
+    document.getElementById("erro-setor").classList.add("d-none");
+    document.getElementById("erro-funcao").classList.add("d-none");
+  }
+
+  document.getElementById("tipo_exame").addEventListener("change", function() {
+    var isMudanca = this.value === "Mudança de Risco";
+    var isAdm     = this.value === "Admissional";
+    document.getElementById("label-adm").classList.toggle("d-none", !isAdm);
+    document.getElementById("aviso-pre-adm").classList.add("d-none");
+    if (isMudanca) carregarMudancaRisco();
+    else            restaurarInputsNormais();
+  });
+
+  // ── Validação de fim-de-semana nas datas ─────────────────────────────
+  document.getElementById("data_sangue").addEventListener("change", function() {
+    if (isWeekend(this.value)) {
+      window.showToast("Exame de sangue não pode ser em fim de semana.", "danger");
+      this.value = "";
+      return;
+    }
+    if (!this.value) { document.getElementById("aviso-limite-sangue").classList.add("d-none"); return; }
+    fetch("/verificar_limite_sangue?data=" + this.value)
+      .then(function(r){ return r.json(); })
+      .then(function(resp) {
+        document.getElementById("aviso-limite-sangue").classList.toggle("d-none", !resp.atingido);
+        var info = document.getElementById("info-sangue");
+        if (info) info.textContent = "("+resp.atual+"/"+resp.limite+" agendamentos de sangue nesta data)";
+      });
+  });
+
+  document.getElementById("data_clinico").addEventListener("change", function() {
+    if (isWeekend(this.value)) {
+      window.showToast("Exame clínico não pode ser em fim de semana.", "danger");
+      this.value = "";
+    }
+  });
+
+  // ── Submit ────────────────────────────────────────────────────────────
+  var form = document.getElementById("form-agendar");
+  form.addEventListener("submit", function(e) {
+    e.preventDefault();
+
+    var tipoEl    = document.getElementById("tipo_exame");
+    var nomeEl    = document.getElementById("nome");
+    var setorEl   = document.getElementById("setor-select").hasAttribute("name")
+                      ? document.getElementById("setor-select")
+                      : document.getElementById("setor");
+    var funcaoEl  = document.getElementById("funcao-select").hasAttribute("name")
+                      ? document.getElementById("funcao-select")
+                      : document.getElementById("funcao");
+    var clinicoEl = document.getElementById("data_clinico");
+    var horaEl    = document.getElementById("hora");
+
+    var exame   = tipoEl.value.trim();
+    var nome    = nomeEl.value.trim();
+    var setor   = setorEl.value.trim();
+    var funcao  = funcaoEl.value.trim();
+    var clinico = clinicoEl.value;
+    var hora    = horaEl.value;
+    var sangue  = document.getElementById("data_sangue").value;
+
+    var erros = [];
+    if (!exame)   { marcarInvalido(tipoEl);    erros.push("Tipo de exame"); }
+    if (!nome)    { marcarInvalido(nomeEl);     erros.push("Nome"); }
+    if (!setor)   { marcarInvalido(setorEl);    erros.push("Setor"); }
+    if (!funcao)  { marcarInvalido(funcaoEl);   erros.push("Função"); }
+    if (!clinico) { marcarInvalido(clinicoEl);  erros.push("Data do exame clínico"); }
+    if (!hora)    { marcarInvalido(horaEl);     erros.push("Horário"); }
+
+    if (erros.length) {
+      window.showToast("Preencha: " + erros.join(", ") + ".", "danger");
+      return;
+    }
+
+    var mt = document.getElementById("modal-text");
+    if (mt) mt.innerHTML =
+      "Funcionário: " + escH(nome) +
+      "\nExame: "      + escH(exame) +
+      (sangue ? "\nSangue: "  + formatarDataBR(sangue)  : "") +
+      "\nClínico: "    + formatarDataBR(clinico) +
+      "\nHorário: "    + hora;
     document.getElementById("modal-confirm").classList.add("show");
 
-    $(".btn-confirm").off("click").on("click", function(){
+    document.querySelector(".btn-confirm").onclick = function() {
       document.getElementById("modal-confirm").classList.remove("show");
-      $.post("/agendar", formData, function(resp){
-        if(resp.redirect){ window.location.href = resp.redirect; return; }
-        if(resp.erro){ window.showToast(resp.mensagem, 'danger'); return; }
-        window.showToast("Agendamento realizado com sucesso!", 'success');
-        setTimeout(() => location.reload(), 1500);
-      });
-    });
+      var fd  = new FormData(form);
+      var csrf = document.querySelector("[name=_csrf]");
+      fetch("/agendar", {
+        method: "POST",
+        body: new URLSearchParams(fd),
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "X-CSRF-TOKEN": csrf ? csrf.value : ""
+        }
+      })
+      .then(function(r){ return r.json(); })
+      .then(function(resp) {
+        if (resp.duplicado) {
+          var dup = document.getElementById("modal-duplicado");
+          var txt = document.getElementById("duplicado-text");
+          if (txt) txt.textContent = resp.mensagem || "Já existe um agendamento para este funcionário.";
+          var btnEd = document.getElementById("btn-editar");
+          if (btnEd) btnEd.onclick = function() { window.location.href = "/editar_agendamento/" + resp.id; };
+          if (dup) dup.classList.add("show");
+          return;
+        }
+        if (resp.erro) { window.showToast(resp.mensagem, "danger"); return; }
+        window.showToast("Agendamento realizado com sucesso!", "success");
+        setTimeout(function() { location.reload(); }, 1500);
+      })
+      .catch(function() { window.showToast("Erro ao comunicar com o servidor.", "danger"); });
+    };
 
-    $(".btn-cancel").off("click").on("click", function(){
+    document.querySelector(".btn-cancel").onclick = function() {
       document.getElementById("modal-confirm").classList.remove("show");
-    });
+    };
   });
+
+  // Modal duplicado — fechar
+  document.getElementById("btn-cancelar-dup").addEventListener("click", function() {
+    document.getElementById("modal-duplicado").classList.remove("show");
+  });
+
 });
 </script>
 </body>

@@ -7,21 +7,22 @@ package com.sesmt.pgeo.model.enums;
  * e facilita comparações no código (sem .equals("Periódico") espalhado).
  */
 public enum TipoExame {
-    PERIODICO("Periódico"),
-    ADMISSIONAL("Admissional"),
-    DEMISSIONAL("Demissional"),
-    RETORNO_AO_TRABALHO("Retorno ao Trabalho"),
-    MUDANCA_DE_RISCO("Mudança de Risco");
+    PERIODICO("Periódico", "exame-periodico"),
+    ADMISSIONAL("Admissional", "exame-admissional"),
+    DEMISSIONAL("Demissional", "exame-demissional"),
+    RETORNO_AO_TRABALHO("Retorno ao Trabalho", "exame-retorno"),
+    MUDANCA_DE_RISCO("Mudança de Risco", "exame-mudanca");
 
     private final String descricao;
+    private final String cssClass;
 
-    TipoExame(String descricao) {
+    TipoExame(String descricao, String cssClass) {
         this.descricao = descricao;
+        this.cssClass  = cssClass;
     }
 
-    public String getDescricao() {
-        return descricao;
-    }
+    public String getDescricao() { return descricao; }
+    public String getCssClass()  { return cssClass; }
 
     /** Converte a String do formulário para o enum (tolerante a variações) */
     public static TipoExame fromDescricao(String descricao) {

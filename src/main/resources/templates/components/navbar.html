@@ -4,24 +4,27 @@
 <nav th:fragment="navbar" class="navbar">
 
   <!-- Brand -->
-  <a th:href="@{/dashboard}" class="navbar-brand" style="text-decoration:none">
+  <div class="navbar-brand">
     <span class="brand-icon">🏥</span>
     <span class="brand-name">PGEO <small>SESMT</small></span>
-  </a>
+  </div>
 
   <!-- Links principais -->
   <div class="navbar-links" id="navLinks">
-    <a th:href="@{/agenda}"                 class="nav-link">📅 Agenda</a>
-    <a th:href="@{/agendar}"                class="nav-link">➕ Agendar</a>
-    <a th:href="@{/dashboard}"              class="nav-link">📊 Dashboard</a>
-    <a th:href="@{/dashboard_exames}"       class="nav-link">💊 Exames</a>
-    <a th:href="@{/dashboard_estatisticas}" class="nav-link">📈 Estatísticas</a>
-    <a th:href="@{/dashboard_sangue}"       class="nav-link">🩸 Sangue</a>
-    <a th:href="@{/indicadores}"            class="nav-link">📋 Indicadores</a>
+    <a th:href="@{/home}"                    class="nav-link" th:classappend="${currentUri == '/home'} ? ' active' : ''">🏠 Início</a>
+    <a th:href="@{/agendar}"                 class="nav-link" th:classappend="${currentUri == '/agendar'} ? ' active' : ''">➕ Agendar</a>
+    <a th:href="@{/dashboard}"               class="nav-link" th:classappend="${currentUri == '/dashboard'} ? ' active' : ''">📊 Agendamentos</a>
+    <a th:href="@{/agenda}"                  class="nav-link" th:classappend="${currentUri == '/agenda'} ? ' active' : ''">📅 Agenda</a>
+    <a th:href="@{/dashboard_sangue}"        class="nav-link" th:classappend="${currentUri == '/dashboard_sangue'} ? ' active' : ''">🩸 Sangue</a>
+    <a th:href="@{/atestados}"               class="nav-link" th:classappend="${#strings.startsWith(currentUri, '/atestados')} ? ' active' : ''">📄 Atestados</a>
+    <a th:href="@{/indicadores}"             class="nav-link" th:classappend="${currentUri == '/indicadores'} ? ' active' : ''">📋 Indicadores de Atestados</a>
+    <a th:href="@{/funcionarios}"             class="nav-link" th:classappend="${#strings.startsWith(currentUri, '/funcionario')} ? ' active' : ''">👤 Funcionários</a>
+    <a th:href="@{/dashboard_exames}"        class="nav-link" th:classappend="${currentUri == '/dashboard_exames'} ? ' active' : ''">💊 Exames</a>
+    <a th:href="@{/dashboard_estatisticas}"  class="nav-link" th:classappend="${currentUri == '/dashboard_estatisticas'} ? ' active' : ''">📈 Estatísticas de Exames</a>
     <a sec:authorize="hasRole('ADMIN')"
-       th:href="@{/admin/usuarios}"         class="nav-link">⚙️ Admin</a>
+       th:href="@{/admin/usuarios}"          class="nav-link" th:classappend="${#strings.startsWith(currentUri, '/admin') and !#strings.startsWith(currentUri, '/admin/auditoria')} ? ' active' : ''">⚙️ Admin</a>
     <a sec:authorize="hasRole('ADMIN')"
-       th:href="@{/admin/auditoria}"        class="nav-link">🔍 Auditoria</a>
+       th:href="@{/admin/auditoria}"         class="nav-link" th:classappend="${#strings.startsWith(currentUri, '/admin/auditoria')} ? ' active' : ''">🔍 Auditoria</a>
   </div>
 
   <!-- Toggle mobile -->

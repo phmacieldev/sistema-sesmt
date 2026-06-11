@@ -52,7 +52,7 @@
       const href = link.getAttribute('href');
       if (!href) return;
       if (href === '/' && path === '/') { link.classList.add('active'); return; }
-      if (href !== '/' && path.startsWith(href)) link.classList.add('active');
+      if (href !== '/' && (path === href || path.startsWith(href + '/'))) link.classList.add('active');
     });
   });
 

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -30,61 +31,106 @@
   <div th:if="${aviso}"    class="alert alert-warning" th:text="${aviso}"></div>
   <div th:if="${erro}"     class="alert alert-danger"  th:text="${erro}"></div>
 
-  <div class="grid-2 mb-16">
+  <div class="grid-2 mb-16" style="align-items:start">
 
-    <!-- Dados do funcionário -->
+    <!-- Dados do funcionário (com edição inline para ADMIN) -->
     <div class="card">
       <div class="card-header">
         <span class="card-title">👤 Dados do Funcionário</span>
+        <button type="button" id="btnEditar" class="btn btn-secondary btn-sm"
+                sec:authorize="hasRole('ADMIN')">✏️ Editar</button>
+        <button type="button" id="btnCancelar" class="btn btn-ghost btn-sm d-none"
+                sec:authorize="hasRole('ADMIN')">✕ Cancelar</button>
       </div>
-      <div class="info-row">
-        <span class="info-label">Matrícula</span>
-        <span class="info-val"
-              th:text="${funcionario.matricula ?: 'Pré-admissional'}">—</span>
+
+      <!-- Modo visualização -->
+      <div id="modoVer">
+        <div class="info-row">
+          <span class="info-label">Matrícula</span>
+          <span class="info-val" th:text="${funcionario.matricula ?: 'Pré-admissional'}">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Nome</span>
+          <span class="info-val" th:text="${funcionario.nome}">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Cargo / Função</span>
+          <span class="info-val" th:text="${funcionario.funcao ?: '—'}">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Setor</span>
+          <span class="info-val" th:text="${funcionario.setor ?: '—'}">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Estabelecimento</span>
+          <span class="info-val" th:text="${funcionario.estabelecimentoEfetivo}">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">E-mail</span>
+          <span class="info-val" th:text="${funcionario.email ?: '—'}">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Último ASO</span>
+          <span class="info-val"
+                th:text="${funcionario.aso != null ? #temporals.format(funcionario.aso,'dd/MM/yyyy') : '—'}">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Status ASO</span>
+          <span th:if="${funcionario.aso == null}" class="badge badge-gray">Sem ASO</span>
+          <span th:if="${funcionario.aso != null}"
+                th:with="hoje=${T(java.time.LocalDate).now()}"
+                th:class="${funcionario.aso.isBefore(hoje) ? 'badge badge-danger' :
+                            funcionario.aso.isBefore(hoje.plusDays(30)) ? 'badge badge-warning' :
+                            'badge badge-success'}"
+                th:text="${funcionario.aso.isBefore(hoje) ? 'Vencido' :
+                            funcionario.aso.isBefore(hoje.plusDays(30)) ? 'A vencer' : 'Em dia'}">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Exige sangue</span>
+          <span class="info-val" th:text="${funcionario.exigeSangue ? 'Sim' : 'Não'}">—</span>
+        </div>
       </div>
-      <div class="info-row">
-        <span class="info-label">Nome</span>
-        <span class="info-val" th:text="${funcionario.nome}">—</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Cargo / Função</span>
-        <span class="info-val" th:text="${funcionario.funcao ?: '—'}">—</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Setor</span>
-        <span class="info-val" th:text="${funcionario.setor ?: '—'}">—</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Estabelecimento</span>
-        <span class="info-val" th:text="${funcionario.estabelecimentoEfetivo}">—</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">E-mail</span>
-        <span class="info-val" th:text="${funcionario.email ?: '—'}">—</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Último ASO</span>
-        <span class="info-val"
-              th:with="hoje=${T(java.time.LocalDate).now()}"
-              th:text="${funcionario.aso != null ?
-                  #temporals.format(funcionario.aso, 'dd/MM/yyyy') : '—'}">—</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Status ASO</span>
-        <span th:if="${funcionario.aso == null}" class="badge badge-gray">Sem ASO</span>
-        <span th:if="${funcionario.aso != null}"
-              th:with="hoje=${T(java.time.LocalDate).now()}"
-              th:class="${funcionario.aso.isBefore(hoje) ? 'badge badge-danger' :
-                          funcionario.aso.isBefore(hoje.plusDays(30)) ? 'badge badge-warning' :
-                          'badge badge-success'}"
-              th:text="${funcionario.aso.isBefore(hoje) ? 'Vencido' :
-                          funcionario.aso.isBefore(hoje.plusDays(30)) ? 'A vencer' : 'Em dia'}">—</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Exige sangue</span>
-        <span class="info-val"
-              th:text="${funcionario.exigeSangue ? 'Sim' : 'Não'}">—</span>
-      </div>
+
+      <!-- Modo edição (somente ADMIN, oculto por padrão) -->
+      <form id="modoEditar" class="d-none"
+            th:action="@{/funcionario/{id}/editar(id=${funcionario.id})}" method="POST">
+        <div class="form-group">
+          <label class="form-label">Nome</label>
+          <input type="text" name="nome" class="form-control" th:value="${funcionario.nome}" required>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Matrícula</label>
+            <input type="text" name="matricula" class="form-control" th:value="${funcionario.matricula}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Estabelecimento</label>
+            <input type="text" name="estabelecimento" class="form-control"
+                   th:value="${funcionario.estabelecimento}" placeholder="HEAA, FMC, CSEC…">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">E-mail</label>
+          <input type="email" name="email" class="form-control" th:value="${funcionario.email}">
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Vencimento ASO</label>
+            <input type="date" name="aso" class="form-control" th:value="${funcionario.aso}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Exige exame de sangue</label>
+            <select name="exigeSangue" class="form-control">
+              <option value="true"  th:selected="${funcionario.exigeSangue}">Sim</option>
+              <option value="false" th:selected="${!funcionario.exigeSangue}">Não</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button type="submit" class="btn btn-primary" style="flex:1">Salvar</button>
+          <button type="button" id="btnCancelarForm" class="btn btn-ghost" style="flex:1">Cancelar</button>
+        </div>
+      </form>
     </div>
 
     <!-- Alterar cargo -->
@@ -182,6 +228,32 @@
     </div>
   </div>
 
+  <!-- Atestados do funcionário -->
+  <div th:if="${not #lists.isEmpty(atestados)}" class="card p-0 mb-16">
+    <div class="card-header">
+      <span class="card-title">📄 Atestados</span>
+      <span class="badge badge-gray" th:text="${#lists.size(atestados)} + ' registro(s)'"></span>
+    </div>
+    <div class="table-wrapper card-inner">
+      <table>
+        <thead>
+          <tr>
+            <th>Data</th><th>Dias</th><th>Tipo</th><th>CID</th><th>Médico</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr th:each="ml : ${atestados}">
+            <td th:text="${#temporals.format(ml.dataAfastamento, 'dd/MM/yyyy')}">—</td>
+            <td class="text-center" th:text="${ml.diasAfastamento}">—</td>
+            <td th:text="${ml.tipo != null ? ml.tipo.descricao : '—'}">—</td>
+            <td class="text-center" th:text="${ml.cid != null ? ml.cid : '—'}">—</td>
+            <td th:text="${ml.medicoNome != null ? ml.medicoNome : '—'}">—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
   <!-- Agendamentos do funcionário -->
   <div class="card p-0">
     <div class="card-header">
@@ -200,7 +272,7 @@
         </thead>
         <tbody>
           <tr th:each="a : ${agendamentos}">
-            <td th:text="${a.tipoExameDescricao}">—</td>
+            <td><span class="badge-tipo" th:classappend="${a.tipoExame != null ? a.tipoExame.cssClass : ''}" th:text="${a.tipoExameDescricao}">—</span></td>
             <td th:text="${a.dataClinico != null ?
                 #temporals.format(a.dataClinico, 'dd/MM/yyyy') : '—'}">—</td>
             <td th:text="${a.horaClinico ?: '—'}">—</td>
@@ -222,5 +294,33 @@
   </div>
 
 </div>
+
+<script th:attr="nonce=${cspNonce}">
+(function() {
+  var btnEditar     = document.getElementById("btnEditar");
+  var btnCancelar   = document.getElementById("btnCancelar");
+  var btnCancelarForm = document.getElementById("btnCancelarForm");
+  var modoVer       = document.getElementById("modoVer");
+  var modoEditar    = document.getElementById("modoEditar");
+  if (!btnEditar) return; // não é admin, sai
+
+  function abrirEdicao() {
+    modoVer.classList.add("d-none");
+    modoEditar.classList.remove("d-none");
+    btnEditar.classList.add("d-none");
+    btnCancelar.classList.remove("d-none");
+  }
+  function fecharEdicao() {
+    modoVer.classList.remove("d-none");
+    modoEditar.classList.add("d-none");
+    btnEditar.classList.remove("d-none");
+    btnCancelar.classList.add("d-none");
+  }
+
+  btnEditar.addEventListener("click", abrirEdicao);
+  btnCancelar.addEventListener("click", fecharEdicao);
+  btnCancelarForm.addEventListener("click", fecharEdicao);
+})();
+</script>
 </body>
 </html>

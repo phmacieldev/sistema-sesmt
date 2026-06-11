@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Funcionários — PGEO</title>
+  <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
+  <link rel="stylesheet" th:href="@{/css/global.css}">
+  <script th:src="@{/js/theme.js}"></script>
+</head>
+<body>
+<div th:replace="~{components/navbar :: navbar}"></div>
+
+<div class="page-wrapper-wide">
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">👤 Funcionários</div>
+      <div class="page-subtitle" id="subtitulo" th:text="${totalItens + ' funcionário(s)'}">—</div>
+    </div>
+  </div>
+
+  <!-- Busca live -->
+  <div style="margin-bottom:20px;">
+    <input type="text" id="buscaNome" class="form-control" style="max-width:340px;"
+           placeholder="🔍 Buscar por nome..." th:value="${nomeFiltro}">
+  </div>
+
+  <!-- Tabela -->
+  <div class="card p-0">
+    <div id="tabelaWrap" th:fragment="tabelaFuncionarios" class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Matrícula</th><th>Nome</th><th>Setor</th><th>Função</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr th:each="f : ${funcionarios}">
+            <td th:text="${f.matricula ?: '—'}">—</td>
+            <td><a th:href="@{/funcionario/{id}(id=${f.id})}" class="link-func" th:text="${f.nome}">—</a></td>
+            <td th:text="${f.setor ?: '—'}">—</td>
+            <td th:text="${f.funcao ?: '—'}">—</td>
+            <td>
+              <span th:class="${f.status.name() == 'ATIVO' ? 'badge badge-success' :
+                               f.status.name() == 'PRE_ADMISSIONAL' ? 'badge badge-warning' :
+                               'badge badge-danger'}"
+                    th:text="${f.status.descricao}">—</span>
+            </td>
+          </tr>
+          <tr th:if="${#lists.isEmpty(funcionarios)}">
+            <td colspan="5">
+              <div class="empty-state">
+                <div class="empty-state-icon">👤</div>
+                <div class="empty-state-title">Nenhum funcionário encontrado</div>
+                <div class="empty-state-text">Tente outro nome.</div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Paginação (oculta durante busca) -->
+  <div id="paginacaoWrap">
+    <div class="pg-bar" th:if="${totalPaginas > 1}">
+      <a th:href="@{/funcionarios(pagina=${paginaAtual - 1})}"
+         class="pg-btn" th:classappend="${paginaAtual == 0} ? ' disabled' : ''">‹</a>
+      <th:block th:each="p : ${#numbers.sequence(0, totalPaginas - 1)}">
+        <a th:if="${p >= paginaAtual - 2 and p <= paginaAtual + 2}"
+           th:href="@{/funcionarios(pagina=${p})}"
+           class="pg-btn" th:classappend="${p == paginaAtual} ? ' active' : ''"
+           th:text="${p + 1}">1</a>
+      </th:block>
+      <a th:href="@{/funcionarios(pagina=${paginaAtual + 1})}"
+         class="pg-btn" th:classappend="${paginaAtual >= totalPaginas - 1} ? ' disabled' : ''">›</a>
+      <span style="font-size:12px;color:var(--text-muted);margin-left:8px"
+            th:text="${'Página ' + (paginaAtual + 1) + ' de ' + totalPaginas + ' · ' + totalItens + ' funcionário(s)'}"></span>
+    </div>
+  </div>
+
+</div>
+
+<script th:attr="nonce=${cspNonce}">
+(function() {
+  var input     = document.getElementById("buscaNome");
+  var wrap      = document.getElementById("tabelaWrap");
+  var paginacao = document.getElementById("paginacaoWrap");
+  var subtitulo = document.getElementById("subtitulo");
+  var timer     = null;
+
+  input.addEventListener("input", function() {
+    clearTimeout(timer);
+    var q = this.value.trim();
+
+    if (q.length === 0) {
+      paginacao.style.display = "";
+      window.location.href = "/funcionarios";
+      return;
+    }
+
+    paginacao.style.display = "none";
+
+    if (q.length < 2) return;
+
+    timer = setTimeout(function() {
+      fetch("/funcionarios/busca?nome=" + encodeURIComponent(q), {
+        headers: { "X-Requested-With": "XMLHttpRequest" }
+      })
+      .then(function(r) { return r.text(); })
+      .then(function(html) {
+        wrap.outerHTML = html;
+        wrap = document.getElementById("tabelaWrap");
+        var rows = document.querySelectorAll("#tabelaWrap tbody tr").length;
+        var temEmpty = document.querySelector("#tabelaWrap .empty-state");
+        subtitulo.textContent = temEmpty ? "Nenhum resultado" : rows + " funcionário(s) encontrado(s)";
+      });
+    }, 300);
+  });
+})();
+</script>
+</body>
+</html>

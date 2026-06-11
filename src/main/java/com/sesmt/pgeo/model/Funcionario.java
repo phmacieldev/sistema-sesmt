@@ -27,6 +27,9 @@ public class Funcionario {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Version
+    private Long version;
+
     /**
      * Matrícula pode ser NULL para pré-admissionais.
      * Só é preenchida quando o funcionário entra no sistema da empresa

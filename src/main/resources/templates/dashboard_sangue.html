@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Exames de Sangue — PGEO</title>
+  <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
   <link rel="stylesheet" th:href="@{/css/global.css}">
   <script th:src="@{/js/theme.js}"></script>
 </head>
@@ -94,7 +95,7 @@
             <td th:text="${a.funcionarioNome}">—</td>
             <td th:text="${a.funcionarioSetor ?: '—'}">—</td>
             <td th:text="${a.funcionarioFuncao ?: '—'}">—</td>
-            <td th:text="${a.tipoExameDescricao}">—</td>
+            <td><span class="badge-tipo" th:classappend="${a.tipoExame != null ? a.tipoExame.cssClass : ''}" th:text="${a.tipoExameDescricao}">—</span></td>
             <td th:text="${a.dataClinico != null ? #temporals.format(a.dataClinico, 'dd/MM/yyyy') : '—'}">—</td>
             <td th:text="${a.horaClinico ?: '—'}">—</td>
           </tr>

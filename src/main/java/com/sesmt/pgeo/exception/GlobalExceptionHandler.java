@@ -10,7 +10,10 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
+import jakarta.persistence.OptimisticLockException;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import java.util.Map;
 
 @Slf4j
@@ -24,6 +27,20 @@ public class GlobalExceptionHandler {
         return (accept != null && accept.contains("application/json"))
             || (contentType != null && contentType.contains("application/json"))
             || "XMLHttpRequest".equals(req.getHeader("X-Requested-With"));
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public Object handleNoResource(NoResourceFoundException ex,
+                                   Model model, HttpServletRequest req) {
+        if (isJsonRequest(req)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("erro", true, "mensagem", "Recurso não encontrado."));
+        }
+        model.addAttribute("titulo", "Não encontrado");
+        model.addAttribute("mensagem", "O recurso solicitado não existe.");
+        model.addAttribute("status", 404);
+        return "error/erro";
     }
 
     @ExceptionHandler(RecursoNaoEncontradoException.class)
@@ -53,6 +70,21 @@ public class GlobalExceptionHandler {
         model.addAttribute("titulo", "Operação não permitida");
         model.addAttribute("mensagem", ex.getMessage());
         model.addAttribute("status", 422);
+        return "error/erro";
+    }
+
+    @ExceptionHandler({OptimisticLockException.class, ObjectOptimisticLockingFailureException.class})
+    public Object handleConflito(Exception ex, Model model, HttpServletRequest req) {
+        log.warn("Conflito de edição simultânea [{}]", req.getRequestURI());
+        String msg = "Este registro foi alterado por outro usuário enquanto você editava. Recarregue a página e tente novamente.";
+        if (isJsonRequest(req)) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("erro", true, "mensagem", msg));
+        }
+        model.addAttribute("titulo", "Conflito de edição");
+        model.addAttribute("mensagem", msg);
+        model.addAttribute("status", 409);
         return "error/erro";
     }
 

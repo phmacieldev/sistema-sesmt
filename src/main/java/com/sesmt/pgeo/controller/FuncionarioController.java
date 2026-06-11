@@ -8,6 +8,7 @@ import com.sesmt.pgeo.model.HistoricoCargo;
 import com.sesmt.pgeo.repository.AgendamentoRepository;
 import com.sesmt.pgeo.repository.FuncionarioRepository;
 import com.sesmt.pgeo.repository.HistoricoCargoRepository;
+import com.sesmt.pgeo.repository.MedicalLeaveRepository;
 import com.sesmt.pgeo.service.FuncionarioService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -15,6 +16,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import org.springframework.data.domain.PageRequest;
 
 import java.util.List;
 import java.util.Map;
@@ -27,7 +30,45 @@ public class FuncionarioController {
     private final FuncionarioRepository    funcionarioRepo;
     private final HistoricoCargoRepository historicoRepo;
     private final AgendamentoRepository    agendamentoRepo;
+    private final MedicalLeaveRepository   atestadoRepo;
     private final FuncionarioService       funcionarioService;
+
+    private static final int POR_PAGINA = 30;
+
+    // ── Lista de funcionários ─────────────────────────────────────────
+
+    @GetMapping("/funcionarios")
+    @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
+    public String lista(@RequestParam(required = false) String nome,
+                        @RequestParam(defaultValue = "0") int pagina,
+                        Model model) {
+        List<Funcionario> todos = (nome != null && !nome.isBlank())
+            ? funcionarioRepo.findByNomeContainingIgnoreCaseOrderByNomeAsc(nome.strip())
+            : funcionarioRepo.findAll(org.springframework.data.domain.Sort.by("nome"));
+
+        int total    = todos.size();
+        int totalPag = Math.max(1, (int) Math.ceil((double) total / POR_PAGINA));
+        int pag      = Math.max(0, Math.min(pagina, totalPag - 1));
+        int ini      = pag * POR_PAGINA;
+        List<Funcionario> pagina_ = todos.subList(ini, Math.min(ini + POR_PAGINA, total));
+
+        model.addAttribute("funcionarios",  pagina_);
+        model.addAttribute("nomeFiltro",    nome);
+        model.addAttribute("totalItens",    total);
+        model.addAttribute("totalPaginas",  totalPag);
+        model.addAttribute("paginaAtual",   pag);
+        return "funcionario/lista";
+    }
+
+    @GetMapping("/funcionarios/busca")
+    @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
+    public String busca(@RequestParam(required = false) String nome, Model model) {
+        List<Funcionario> resultado = (nome != null && !nome.isBlank())
+            ? funcionarioRepo.findByNomeContainingIgnoreCaseOrderByNomeAsc(nome.strip())
+            : List.of();
+        model.addAttribute("funcionarios", resultado);
+        return "funcionario/lista :: tabelaFuncionarios";
+    }
 
     // ── Perfil do funcionário (histórico + agendamentos) ─────────────
 
@@ -45,7 +86,35 @@ public class FuncionarioController {
         model.addAttribute("historicoCargo", historico);
         model.addAttribute("agendamentos",
             agendamentoRepo.findByFuncionarioIdOrderByDataClinicoDesc(id));
+        model.addAttribute("atestados",
+            atestadoRepo.findByFuncionarioIdOrderByDataDesc(id));
         return "funcionario/perfil";
+    }
+
+    // ── Editar dados básicos do funcionário (somente ADMIN) ──────────
+
+    @PostMapping("/funcionario/{id}/editar")
+    @PreAuthorize("hasRole('ADMIN')")
+    public String editar(
+            @PathVariable Long id,
+            @RequestParam String nome,
+            @RequestParam(required = false) String matricula,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String estabelecimento,
+            @RequestParam(defaultValue = "true") boolean exigeSangue,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate aso,
+            RedirectAttributes redirect) {
+        Funcionario func = funcionarioRepo.findById(id)
+            .orElseThrow(() -> new com.sesmt.pgeo.exception.RecursoNaoEncontradoException("Funcionário", id));
+        if (nome != null && !nome.isBlank()) func.setNome(nome.strip());
+        func.setMatricula(matricula != null && !matricula.isBlank() ? matricula.strip() : null);
+        func.setEmail(email != null && !email.isBlank() ? email.strip() : null);
+        func.setEstabelecimento(estabelecimento != null && !estabelecimento.isBlank() ? estabelecimento.strip() : null);
+        func.setExigeSangue(exigeSangue);
+        func.setAso(aso);
+        funcionarioRepo.save(func);
+        redirect.addFlashAttribute("mensagem", "Dados do funcionário atualizados.");
+        return "redirect:/funcionario/" + id;
     }
 
     // ── Alterar cargo / mudança de risco ─────────────────────────────

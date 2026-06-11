@@ -1,5 +1,6 @@
 package com.sesmt.pgeo.model;
 
+import com.sesmt.pgeo.model.enums.TipoAtestado;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.ToString;
@@ -29,6 +30,9 @@ public class MedicalLeave {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Version
+    private Long version;
+
     // ManyToOne = muitos atestados podem pertencer a um funcionário
     // Equivalente ao db.ForeignKey("funcionario.id") do SQLAlchemy
     @ManyToOne(fetch = FetchType.LAZY)
@@ -55,6 +59,10 @@ public class MedicalLeave {
 
     @Column(name = "data_lancamento")
     private LocalDateTime dataLancamento = LocalDateTime.now();
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 30, nullable = false)
+    private TipoAtestado tipo = TipoAtestado.NAO_INFORMADO;
 
     @PrePersist
     public void prePersist() {
