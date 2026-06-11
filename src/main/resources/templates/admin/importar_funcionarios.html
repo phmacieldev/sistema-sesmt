@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Importar Funcionários — PGEO</title>
+  <link rel="stylesheet" th:href="@{/css/global.css}">
+  <script th:src="@{/js/theme.js}"></script>
+</head>
+<body>
+<div th:replace="~{components/navbar :: navbar}"></div>
+
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">📥 Importar Funcionários</div>
+      <div class="page-subtitle">Cadastro em lote via CSV ou Excel (.xlsx)</div>
+    </div>
+    <div class="header-actions">
+      <a th:href="@{/admin/usuarios}" class="btn btn-secondary btn-sm">← Usuários</a>
+    </div>
+  </div>
+
+  <!-- Resultado da importação -->
+  <div th:if="${resultado}" class="alert alert-success" style="display:flex;gap:24px;flex-wrap:wrap;">
+    <span>✅ <strong th:text="${resultado.criados}">0</strong> criado(s)</span>
+    <span>✏️ <strong th:text="${resultado.atualizados}">0</strong> atualizado(s)</span>
+    <span>⏭️ <strong th:text="${resultado.ignorados}">0</strong> ignorado(s)</span>
+  </div>
+  <div th:if="${resultado != null and !#lists.isEmpty(resultado.erros)}" class="alert alert-warning">
+    <strong>Linhas com erro:</strong>
+    <ul style="margin:8px 0 0 16px;">
+      <li th:each="e : ${resultado.erros}" th:text="${e}"></li>
+    </ul>
+  </div>
+  <div th:if="${erro}" class="alert alert-danger" th:text="${erro}"></div>
+
+  <div class="grid-2">
+
+    <!-- Formulário de upload -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📂 Selecionar Arquivo</span>
+      </div>
+      <form th:action="@{/admin/funcionarios/importar}" method="POST"
+            enctype="multipart/form-data">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <div class="form-group">
+          <label class="form-label">Arquivo CSV ou Excel (.xlsx)</label>
+          <input type="file" name="arquivo" class="form-control"
+                 accept=".csv,.xlsx,.xls" required>
+          <span class="form-hint">Máximo 5 MB. Codificação UTF-8 para CSV.</span>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">
+          📥 Importar
+        </button>
+      </form>
+    </div>
+
+    <!-- Instruções -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📋 Formato esperado</span>
+      </div>
+      <p class="form-hint mb-10">
+        A <strong>primeira linha</strong> é o cabeçalho e será ignorada.
+        Campos em branco não sobrescrevem dados existentes.
+      </p>
+      <div class="table-wrapper" style="font-size:12px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Coluna</th>
+              <th>Obrigatório</th>
+              <th>Exemplo</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>matricula</td> <td>Não</td> <td>12345 (em branco = pré-admissional)</td></tr>
+            <tr><td>nome</td>      <td><strong>Sim</strong></td> <td>João Silva</td></tr>
+            <tr><td>setor</td>     <td>Não</td> <td>Lavanderia FMC</td></tr>
+            <tr><td>funcao</td>    <td>Não</td> <td>Auxiliar de Lavanderia</td></tr>
+            <tr><td>email</td>     <td>Não</td> <td>joao@hospital.com</td></tr>
+            <tr><td>aso</td>       <td>Não</td> <td>15/03/2025</td></tr>
+            <tr><td>exigeSangue</td><td>Não</td><td>sim / nao (padrão: sim)</td></tr>
+            <tr><td>estabelecimento</td><td>Não</td><td>HEAA / FMC / CSEC</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="section-divider" style="margin-top:12px;font-size:12px;color:var(--text-muted);">
+        <strong>CSV:</strong> separador ponto-e-vírgula (<code>;</code>)<br>
+        <strong>Upsert:</strong> matrícula existente → atualiza | nova → cria
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Exemplo de CSV -->
+  <div class="card mt-16">
+    <div class="card-header">
+      <span class="card-title">💡 Exemplo CSV</span>
+    </div>
+    <pre style="font-size:12px;color:var(--text-secondary);margin:0;overflow-x:auto;">matricula;nome;setor;funcao;email;aso;exigeSangue;estabelecimento
+12345;João da Silva;UTI;Técnico de Enfermagem;joao@hosp.com;15/03/2025;sim;HEAA
+67890;Maria Souza;Lavanderia FMC;Auxiliar;maria@hosp.com;20/01/2025;nao;FMC
+;Pedro Lima;CSEC;Recepcionista;;;sim;CSEC</pre>
+  </div>
+
+</div>
+</body>
+</html>

@@ -136,6 +136,59 @@ class DashboardControllerTest {
     void raiz_redirecionaParaDashboard() throws Exception {
         mvc.perform(get("/"))
             .andExpect(status().is3xxRedirection())
-            .andExpect(redirectedUrl("/dashboard"));
+            .andExpect(redirectedUrl("/home"));
+    }
+
+    // ── Indicadores SESMT ─────────────────────────────────────────────
+
+    @Test
+    void indicadores_semAutenticacao_redirecionaParaLogin() throws Exception {
+        mvc.perform(get("/indicadores"))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(redirectedUrlPattern("**/login"));
+    }
+
+    @Test
+    @WithMockUser
+    void indicadores_autenticado_retorna200ComModelCompleto() throws Exception {
+        when(funcionarioRepo.findByAtivoTrue()).thenReturn(List.of());
+        when(agendamentoRepo.findAll()).thenReturn(List.of());
+        when(medicalLeaveRepo.findRecentes(any())).thenReturn(List.of());
+
+        mvc.perform(get("/indicadores"))
+            .andExpect(status().isOk())
+            .andExpect(view().name("indicadores"))
+            .andExpect(model().attributeExists("qtdVencidos"))
+            .andExpect(model().attributeExists("qtdAVencer"))
+            .andExpect(model().attributeExists("qtdEmDia"))
+            .andExpect(model().attributeExists("qtdSemAso"))
+            .andExpect(model().attributeExists("labelesMeses"))
+            .andExpect(model().attributeExists("examesPorMes"))
+            .andExpect(model().attributeExists("resultados"));
+    }
+
+    @Test
+    @WithMockUser
+    void indicadores_comParametroDias_filtraCorretamente() throws Exception {
+        when(funcionarioRepo.findByAtivoTrue()).thenReturn(List.of());
+        when(agendamentoRepo.findAll()).thenReturn(List.of());
+        when(medicalLeaveRepo.findRecentes(any())).thenReturn(List.of());
+
+        mvc.perform(get("/indicadores").param("dias", "30"))
+            .andExpect(status().isOk())
+            .andExpect(model().attribute("dias", 30));
+    }
+
+    @Test
+    @WithMockUser
+    void indicadores_paginacaoValida_respeitaParametro() throws Exception {
+        when(funcionarioRepo.findByAtivoTrue()).thenReturn(List.of());
+        when(agendamentoRepo.findAll()).thenReturn(List.of());
+        when(medicalLeaveRepo.findRecentes(any())).thenReturn(List.of());
+
+        mvc.perform(get("/indicadores").param("pagina", "0"))
+            .andExpect(status().isOk())
+            .andExpect(model().attribute("paginaAtual", 0))
+            .andExpect(model().attribute("totalPaginas", 1));
     }
 }

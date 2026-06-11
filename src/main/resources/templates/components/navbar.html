@@ -22,9 +22,11 @@
     <a th:href="@{/dashboard_exames}"        class="nav-link" th:classappend="${currentUri == '/dashboard_exames'} ? ' active' : ''">💊 Exames</a>
     <a th:href="@{/dashboard_estatisticas}"  class="nav-link" th:classappend="${currentUri == '/dashboard_estatisticas'} ? ' active' : ''">📈 Estatísticas de Exames</a>
     <a sec:authorize="hasRole('ADMIN')"
-       th:href="@{/admin/usuarios}"          class="nav-link" th:classappend="${#strings.startsWith(currentUri, '/admin') and !#strings.startsWith(currentUri, '/admin/auditoria')} ? ' active' : ''">⚙️ Admin</a>
+       th:href="@{/admin/usuarios}"              class="nav-link" th:classappend="${#strings.startsWith(currentUri, '/admin') and !#strings.startsWith(currentUri, '/admin/auditoria') and !#strings.startsWith(currentUri, '/admin/funcionarios/importar')} ? ' active' : ''">⚙️ Admin</a>
     <a sec:authorize="hasRole('ADMIN')"
-       th:href="@{/admin/auditoria}"         class="nav-link" th:classappend="${#strings.startsWith(currentUri, '/admin/auditoria')} ? ' active' : ''">🔍 Auditoria</a>
+       th:href="@{/admin/auditoria}"             class="nav-link" th:classappend="${#strings.startsWith(currentUri, '/admin/auditoria')} ? ' active' : ''">🔍 Auditoria</a>
+    <a sec:authorize="hasRole('ADMIN')"
+       th:href="@{/admin/funcionarios/importar}" class="nav-link" th:classappend="${#strings.startsWith(currentUri, '/admin/funcionarios/importar')} ? ' active' : ''">📥 Importar</a>
   </div>
 
   <!-- Toggle mobile -->

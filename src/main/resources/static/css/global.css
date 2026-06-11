@@ -1108,3 +1108,14 @@ body.no-navbar {
   background: var(--primary-dark);
   border-color: var(--primary-dark);
 }
+
+/* ── Paginação reutilizável ─────────────────────────────────── */
+.pg-bar { display:flex; gap:4px; flex-wrap:wrap; align-items:center; margin-top:16px; }
+.pg-btn {
+  padding:4px 10px; border-radius:6px; font-size:13px;
+  border:1px solid var(--border); background:var(--bg-card);
+  color:var(--text-secondary); text-decoration:none;
+}
+.pg-btn:hover  { background:var(--bg-table-hover); }
+.pg-btn.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+.pg-btn.disabled { pointer-events:none; opacity:.4; }

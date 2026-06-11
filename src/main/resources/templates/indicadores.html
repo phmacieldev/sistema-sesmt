@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Indicadores SESMT — PGEO</title>
+  <link rel="stylesheet" th:href="@{/css/global.css}">
+  <script th:src="@{/js/theme.js}"></script>
+  <script th:src="@{/webjars/chart.js/dist/chart.umd.js}"></script>
+  <style th:attr="nonce=${cspNonce}">
+    .kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px; }
+    .kpi-card  { background:var(--bg-card); border:1px solid var(--border); border-radius:12px;
+                 padding:20px 16px; display:flex; flex-direction:column; gap:6px; }
+    .kpi-label { font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; }
+    .kpi-value { font-size:32px; font-weight:700; line-height:1; }
+    .kpi-sub   { font-size:12px; color:var(--text-secondary); }
+    .kpi-danger  .kpi-value { color:#ef4444; }
+    .kpi-warning .kpi-value { color:#f59e0b; }
+    .kpi-success .kpi-value { color:#10b981; }
+    .kpi-gray    .kpi-value { color:var(--text-secondary); }
+    .section-title { font-size:15px; font-weight:600; color:var(--text-primary); margin-bottom:12px; }
+    @media (max-width:768px) { .kpi-grid { grid-template-columns:1fr 1fr; } }
+    @media (max-width:480px) { .kpi-grid { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+<div th:replace="~{components/navbar :: navbar}"></div>
+
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">📋 Indicadores SESMT</div>
+      <div class="page-subtitle"
+           th:text="${'Monitoramento de ASOs, exames e afastamentos — ' + totalAtivos + ' funcionários ativos'}">—</div>
+    </div>
+  </div>
+
+  <!-- Cards KPI: status dos ASOs -->
+  <div class="kpi-grid">
+    <div class="kpi-card kpi-danger">
+      <span class="kpi-label">ASOs Vencidos</span>
+      <span class="kpi-value" th:text="${qtdVencidos}">0</span>
+      <span class="kpi-sub">Exame periódico necessário</span>
+    </div>
+    <div class="kpi-card kpi-warning">
+      <span class="kpi-label">A Vencer em 30 dias</span>
+      <span class="kpi-value" th:text="${qtdAVencer}">0</span>
+      <span class="kpi-sub">Agendar com antecedência</span>
+    </div>
+    <div class="kpi-card kpi-success">
+      <span class="kpi-label">Em Dia</span>
+      <span class="kpi-value" th:text="${qtdEmDia}">0</span>
+      <span class="kpi-sub">ASO dentro do prazo</span>
+    </div>
+    <div class="kpi-card kpi-gray">
+      <span class="kpi-label">Sem ASO</span>
+      <span class="kpi-value" th:text="${qtdSemAso}">0</span>
+      <span class="kpi-sub">Nunca realizou ou pré-admissional</span>
+    </div>
+  </div>
+
+  <!-- Gráficos -->
+  <div class="grid-2 mb-24">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📊 Exames por Mês (últimos 12 meses)</span>
+      </div>
+      <canvas id="graficoMeses" style="max-height:260px;"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🍩 Distribuição por Tipo de Exame</span>
+      </div>
+      <canvas id="graficoPizza" style="max-height:260px;"></canvas>
+    </div>
+  </div>
+
+  <!-- Ranking de atestados com período e paginação -->
+  <div class="card p-0">
+    <div class="card-header" style="flex-wrap:wrap;gap:8px;">
+      <span class="card-title">🏥 Ranking de Afastamentos</span>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;">
+        <a th:each="d : ${#arrays.toIntegerArray({30, 60, 90, 180})}"
+           th:href="@{/indicadores(dias=${d},pagina=0)}"
+           class="btn btn-sm"
+           th:classappend="${d == dias} ? ' btn-primary' : ' btn-ghost'"
+           th:text="${d + ' dias'}">60 dias</a>
+      </div>
+    </div>
+    <div class="table-wrapper card-inner">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:50px;">#</th>
+            <th>Funcionário</th>
+            <th style="width:160px;">Dias de Afastamento</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr th:each="entry, stat : ${resultados}">
+            <td style="color:var(--text-muted);font-weight:600;"
+                th:text="${paginaAtual * 15 + stat.index + 1}">1</td>
+            <td th:text="${entry.key}">Nome</td>
+            <td>
+              <span class="badge"
+                    th:class="${entry.value >= 15 ? 'badge badge-danger' :
+                               entry.value >= 7  ? 'badge badge-warning' : 'badge badge-gray'}"
+                    th:text="${entry.value + ' dias'}">0</span>
+            </td>
+          </tr>
+          <tr th:if="${#lists.isEmpty(resultados)}">
+            <td colspan="3">
+              <div class="empty-state">
+                <div class="empty-state-icon">✅</div>
+                <div class="empty-state-title"
+                     th:text="${'Nenhum atestado nos últimos ' + dias + ' dias'}">Nenhum atestado</div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginação -->
+    <div th:if="${totalPaginas > 1}"
+         style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;padding:12px 16px;border-top:1px solid var(--border);">
+      <a th:href="@{/indicadores(dias=${dias},pagina=${paginaAtual - 1})}"
+         class="pg-btn" th:classappend="${paginaAtual == 0} ? ' disabled' : ''">‹</a>
+
+      <th:block th:each="p : ${#numbers.sequence(0, totalPaginas - 1)}">
+        <a th:if="${p >= paginaAtual - 2 and p <= paginaAtual + 2}"
+           th:href="@{/indicadores(dias=${dias},pagina=${p})}"
+           class="pg-btn"
+           th:classappend="${p == paginaAtual} ? ' active' : ''"
+           th:text="${p + 1}"></a>
+      </th:block>
+
+      <a th:href="@{/indicadores(dias=${dias},pagina=${paginaAtual + 1})}"
+         class="pg-btn" th:classappend="${paginaAtual >= totalPaginas - 1} ? ' disabled' : ''">›</a>
+
+      <span style="font-size:12px;color:var(--text-muted);margin-left:8px;"
+            th:text="${totalItens + ' funcionário(s) — Página ' + (paginaAtual + 1) + ' de ' + totalPaginas}"></span>
+    </div>
+  </div>
+
+</div>
+
+<script th:inline="javascript" th:attr="nonce=${cspNonce}">
+var labelesMeses = /*[[${labelesMeses}]]*/ [];
+var examesPorMes = /*[[${examesPorMes}]]*/ [];
+var tiposLabels  = /*[[${tiposLabels}]]*/ [];
+var tiposTotal   = /*[[${tiposTotal}]]*/ [];
+
+function isDark() { return document.documentElement.getAttribute('data-theme') === 'dark'; }
+function tc() { return isDark() ? '#94a3b8' : '#64748b'; }
+function gc() { return isDark() ? '#334155' : '#e2e8f0'; }
+
+var barChart, pieChart;
+
+function buildCharts() {
+  if (barChart) barChart.destroy();
+  if (pieChart) pieChart.destroy();
+
+  barChart = new Chart(document.getElementById('graficoMeses'), {
+    type: 'bar',
+    data: {
+      labels: labelesMeses,
+      datasets: [{ label: 'Exames', data: examesPorMes,
+                   backgroundColor: '#3b82f6', borderRadius: 6 }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: gc() }, ticks: { color: tc(), maxRotation: 45 } },
+        y: { grid: { color: gc() }, ticks: { color: tc(), stepSize: 1 } }
+      }
+    }
+  });
+
+  pieChart = new Chart(document.getElementById('graficoPizza'), {
+    type: 'doughnut',
+    data: {
+      labels: tiposLabels,
+      datasets: [{
+        data: tiposTotal,
+        backgroundColor: ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#ec4899']
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { color: tc() } } }
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', buildCharts);
+new MutationObserver(buildCharts)
+  .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+</script>
+</body>
+</html>

@@ -28,5 +28,13 @@
 <div th:replace="~{components/modal_agendamento :: modal}"></div>
 
 <script th:src="@{/js/agenda.js}"></script>
+<script th:src="@{/webjars/sockjs-client/dist/sockjs.min.js}"></script>
+<script th:src="@{/webjars/stomp-websocket/lib/stomp.min.js}"></script>
+<script th:attr="nonce=${cspNonce}">
+  function carregarDados() {
+    if (window.pgeoCalendar) window.pgeoCalendar.refetchEvents();
+  }
+</script>
+<script th:src="@{/js/websocket.js}"></script>
 </body>
 </html>
