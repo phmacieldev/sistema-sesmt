@@ -115,13 +115,16 @@ public class AgendaController {
             @RequestParam(defaultValue = "")  String setor,
             @RequestParam(defaultValue = "")  String funcao,
             @RequestParam                     String tipo_exame,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data_clinico,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data_clinico,
             @RequestParam                     String hora,
             // Bug fix: required=false — cargos sem exame de sangue
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
                                               LocalDate data_sangue,
             @RequestParam(required = false) String observacoes) {
 
+        if (data_clinico == null) {
+            return Map.of("erro", true, "mensagem", "Data do exame clínico é obrigatória.");
+        }
         TipoExame tipoEnum = TipoExame.fromDescricao(tipo_exame);
         if (tipoEnum == null) {
             return Map.of("erro", true, "mensagem", "Tipo de exame inválido: " + tipo_exame);
@@ -160,7 +163,7 @@ public class AgendaController {
         model.addAttribute("agendamento", ag);
         model.addAttribute("horarios", agendamentoService.getHorariosDisponiveis());
         model.addAttribute("tiposExame", TipoExame.values());
-        model.addAttribute("origem", origem != null ? origem : "agenda");
+        model.addAttribute("origem", origem != null ? origem : "dashboard");
         return "editar_agendamento";
     }
 
@@ -177,7 +180,7 @@ public class AgendaController {
                                             LocalDate data_sangue,
             @RequestParam String hora,
             @RequestParam(required = false) String observacoes,
-            @RequestParam(defaultValue = "agenda") String origem) {
+            @RequestParam(defaultValue = "dashboard") String origem) {
 
         TipoExame tipoEnum = TipoExame.fromDescricao(tipo_exame);
         if (tipoEnum == null) tipoEnum = TipoExame.PERIODICO;
@@ -244,6 +247,7 @@ public class AgendaController {
             .limit(10)
             .map(f -> {
                 Map<String, Object> r = new LinkedHashMap<>();
+                r.put("id",          f.getId());
                 r.put("matricula",   f.getMatricula() != null ? f.getMatricula() : "");
                 r.put("nome",        f.getNome());
                 r.put("setor",       f.getSetor() != null ? f.getSetor() : "");
@@ -252,6 +256,39 @@ public class AgendaController {
                 return r;
             })
             .toList();
+    }
+
+    @GetMapping("/buscar_funcionarios_matricula")
+    @ResponseBody
+    public List<Map<String, Object>> buscarPorMatricula(@RequestParam("q") String q) {
+        if (q == null || q.strip().length() < 1) return List.of();
+        return funcionarioRepo
+            .findByMatriculaContainingIgnoreCaseOrderByNomeAsc(q.strip())
+            .stream()
+            .limit(10)
+            .map(f -> {
+                Map<String, Object> r = new LinkedHashMap<>();
+                r.put("id",          f.getId());
+                r.put("matricula",   f.getMatricula() != null ? f.getMatricula() : "");
+                r.put("nome",        f.getNome());
+                r.put("setor",       f.getSetor() != null ? f.getSetor() : "");
+                r.put("funcao",      f.getFuncao() != null ? f.getFuncao() : "");
+                r.put("exigeSangue", f.isExigeSangue());
+                return r;
+            })
+            .toList();
+    }
+
+    @GetMapping("/setores")
+    @ResponseBody
+    public List<String> setores() {
+        return funcionarioRepo.findDistinctSetores();
+    }
+
+    @GetMapping("/funcoes")
+    @ResponseBody
+    public List<String> funcoes() {
+        return funcionarioRepo.findDistinctFuncoes();
     }
 
     @GetMapping("/verificar_agendamento_nome")

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Atestados — PGEO</title>
+  <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
+  <link rel="stylesheet" th:href="@{/css/global.css}">
+  <script th:src="@{/js/theme.js}"></script>
+</head>
+<body>
+<div th:replace="~{components/navbar :: navbar}"></div>
+
+<div class="page-wrapper-wide">
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">📄 Atestados — Semana</div>
+      <div class="page-subtitle" style="font-size:14px; color:var(--text-muted); margin-top:4px"
+           th:text="${#temporals.format(semanaInicio,'dd/MM/yyyy')} + ' a ' + ${#temporals.format(semanaFim,'dd/MM/yyyy')}">—</div>
+    </div>
+    <div class="header-actions">
+      <a th:href="@{/atestados(semana=${semanaAnterior})}" class="btn btn-secondary">◀ Semana anterior</a>
+      <a th:href="@{/atestados(semana=${semanaProxima})}"  class="btn btn-secondary">Próxima semana ▶</a>
+      <a th:href="@{/atestados(semana=${semanaAtualInicio})}" class="btn btn-ghost">Semana atual</a>
+      <a th:href="@{/atestados/indicadores}"               class="btn btn-secondary">📊 Indicadores</a>
+      <a sec:authorize="hasAnyRole('ADMIN','OPERADOR')"
+         th:href="@{/atestados/novo(semana=${semanaInicio})}" class="btn btn-success">➕ Lançar</a>
+      <a th:href="@{/atestados/pdf(semana=${semanaInicio})}"  class="btn btn-primary">⬇ PDF</a>
+    </div>
+  </div>
+
+  <!-- Busca global por nome -->
+  <div style="margin-bottom:16px;display:flex;gap:8px;align-items:center;">
+    <input type="text" id="buscaNome" class="form-control" style="max-width:300px;"
+           placeholder="🔍 Buscar por nome em todos os períodos...">
+    <span id="buscaInfo" style="font-size:13px;color:var(--text-muted);display:none;"></span>
+  </div>
+
+  <!-- Resumo rápido (oculto durante busca) -->
+  <div id="resumoSemana">
+    <div class="stat-bar">
+      <div class="stat-card">
+        <div class="stat-icon">📄</div>
+        <div><div class="stat-value" th:text="${totalAtestados}">0</div><div class="stat-label">Atestados</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🗓</div>
+        <div><div class="stat-value" th:text="${totalDias}">0</div><div class="stat-label">Dias de afastamento</div></div>
+      </div>
+      <div class="stat-card" th:each="entry : ${porTipo}">
+        <div><div class="stat-value" th:text="${entry.value}">0</div><div class="stat-label" th:text="${entry.key}">—</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabela (fragmento reutilizado pelo endpoint /atestados/busca) -->
+  <div id="tabelaWrap" class="card p-0">
+    <div th:fragment="tabelaAtestados" class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Matrícula</th><th>Nome</th><th>Função</th><th>Setor</th>
+            <th class="col-center">Dias</th><th class="col-center">Data Atestado</th>
+            <th>Tipo</th><th class="col-center">CID</th><th>Médico</th><th>CRM</th>
+            <th class="col-center" sec:authorize="hasAnyRole('ADMIN','OPERADOR')">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr th:each="ml : ${atestados}">
+            <td th:text="${ml.funcionario.matricula != null ? ml.funcionario.matricula : '—'}">—</td>
+            <td><a th:href="@{/funcionario/{id}(id=${ml.funcionario.id})}" class="link-func" th:text="${ml.funcionario.nome}">—</a></td>
+            <td th:text="${ml.funcionario.funcao}">—</td>
+            <td th:text="${ml.funcionario.setor}">—</td>
+            <td class="text-center" th:text="${ml.diasAfastamento}">0</td>
+            <td class="text-center" th:text="${#temporals.format(ml.dataAfastamento,'dd/MM/yyyy')}">—</td>
+            <td th:text="${ml.tipo != null ? ml.tipo.descricao : '—'}">—</td>
+            <td class="text-center" th:text="${ml.cid != null ? ml.cid : '—'}">—</td>
+            <td th:text="${ml.medicoNome != null ? ml.medicoNome : '—'}">—</td>
+            <td th:text="${ml.medicoCrm != null ? ml.medicoCrm : '—'}">—</td>
+            <td class="text-center" sec:authorize="hasAnyRole('ADMIN','OPERADOR')">
+              <div class="actions-cell" style="justify-content:center">
+                <a th:href="@{/atestados/{id}/editar(id=${ml.id})}" class="btn btn-primary btn-icon btn-sm" title="Editar">✏️</a>
+                <form th:action="@{/atestados/{id}/excluir(id=${ml.id})}" method="POST"
+                      onsubmit="return confirm('Excluir este atestado?')">
+                  <button class="btn btn-danger btn-icon btn-sm" title="Excluir">🗑</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          <tr th:if="${#lists.isEmpty(atestados)}">
+            <td colspan="11">
+              <div class="empty-state">
+                <div class="empty-state-icon">📭</div>
+                <div class="empty-state-title">Nenhum atestado encontrado</div>
+                <div class="empty-state-text">Nenhum registro para exibir.</div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Paginação (oculta durante busca) -->
+  <div id="paginacaoWrap">
+    <div class="pg-bar" th:if="${totalPaginas > 1}">
+      <a th:href="@{/atestados(semana=${semanaInicio},pagina=${paginaAtual - 1})}"
+         class="pg-btn" th:classappend="${paginaAtual == 0} ? ' disabled' : ''">‹</a>
+      <th:block th:each="p : ${#numbers.sequence(0, totalPaginas - 1)}">
+        <a th:if="${p >= paginaAtual - 2 and p <= paginaAtual + 2}"
+           th:href="@{/atestados(semana=${semanaInicio},pagina=${p})}"
+           class="pg-btn" th:classappend="${p == paginaAtual} ? ' active' : ''"
+           th:text="${p + 1}">1</a>
+      </th:block>
+      <a th:href="@{/atestados(semana=${semanaInicio},pagina=${paginaAtual + 1})}"
+         class="pg-btn" th:classappend="${paginaAtual >= totalPaginas - 1} ? ' disabled' : ''">›</a>
+      <span style="font-size:12px;color:var(--text-muted);margin-left:8px"
+            th:text="${'Página ' + (paginaAtual + 1) + ' de ' + totalPaginas + ' · ' + totalItens + ' atestados'}"></span>
+    </div>
+  </div>
+
+  <!-- Totais por setor e tipo (oculto durante busca) -->
+  <div id="totaisWrap" th:if="${not #lists.isEmpty(atestados)}" class="totais-grid">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Total por Setor</div></div>
+      <table style="width:100%">
+        <tr th:each="entry : ${porSetor}">
+          <td style="padding:8px 14px" th:text="${entry.key}">—</td>
+          <td style="padding:8px 14px; text-align:right; font-weight:600" th:text="${entry.value} + ' dias'">—</td>
+        </tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">Total por Tipo</div></div>
+      <table style="width:100%">
+        <tr th:each="entry : ${porTipo}">
+          <td style="padding:8px 14px" th:text="${entry.key}">—</td>
+          <td style="padding:8px 14px; text-align:right; font-weight:600" th:text="${entry.value} + ' atestado(s)'">—</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script th:attr="nonce=${cspNonce}">
+(function() {
+  var input      = document.getElementById("buscaNome");
+  var wrap       = document.getElementById("tabelaWrap");
+  var resumo     = document.getElementById("resumoSemana");
+  var paginacao  = document.getElementById("paginacaoWrap");
+  var totais     = document.getElementById("totaisWrap");
+  var info       = document.getElementById("buscaInfo");
+  var timer      = null;
+  var modoSearch = false;
+
+  function entrarModoSearch() {
+    if (!modoSearch) {
+      modoSearch = true;
+      resumo.style.display    = "none";
+      paginacao.style.display = "none";
+      if (totais) totais.style.display = "none";
+      info.style.display = "inline";
+    }
+  }
+
+  function sairModoSearch() {
+    if (modoSearch) {
+      modoSearch = false;
+      resumo.style.display    = "";
+      paginacao.style.display = "";
+      if (totais) totais.style.display = "";
+      info.style.display = "none";
+      // recarrega tabela original
+      fetch(window.location.href)
+        .then(function(r) { return r.text(); })
+        .then(function(html) {
+          var tmp = document.createElement("div");
+          tmp.innerHTML = html;
+          var novaTabela = tmp.querySelector("#tabelaWrap .table-wrapper");
+          if (novaTabela) wrap.innerHTML = novaTabela.outerHTML;
+        });
+    }
+  }
+
+  input.addEventListener("input", function() {
+    clearTimeout(timer);
+    var q = this.value.trim();
+    if (q.length === 0) { sairModoSearch(); return; }
+    if (q.length < 2) return;
+    entrarModoSearch();
+    info.textContent = "Buscando...";
+    timer = setTimeout(function() {
+      fetch("/atestados/busca?nome=" + encodeURIComponent(q), {
+        headers: { "X-Requested-With": "XMLHttpRequest" }
+      })
+      .then(function(r) { return r.text(); })
+      .then(function(html) {
+        wrap.innerHTML = html;
+        var rows = wrap.querySelectorAll("tbody tr:not(.empty-row)").length;
+        var temEmpty = wrap.querySelector(".empty-state");
+        info.textContent = temEmpty ? "Nenhum resultado." : (rows + " atestado(s) encontrado(s)");
+      })
+      .catch(function() { info.textContent = "Erro ao buscar."; });
+    }, 300);
+  });
+})();
+</script>
+</body>
+</html>

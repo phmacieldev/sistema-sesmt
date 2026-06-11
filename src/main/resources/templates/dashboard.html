@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Dashboard — PGEO</title>
+  <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
   <link rel="stylesheet" th:href="@{/css/global.css}">
   <script th:src="@{/js/theme.js}"></script>
 </head>
@@ -80,65 +81,10 @@
           <tr>
             <th>Nome / ASO</th><th>Setor</th><th>Função</th><th>Exame</th>
             <th>Proteus</th><th>Hora</th><th>Sangue</th>
-            <th>Envio</th><th>Receb.</th><th>Ações</th>
+            <th class="col-center">Envio</th><th class="col-center">Receb.</th><th class="col-center">Ações</th>
           </tr>
         </thead>
-        <tbody id="corpoTabela">
-          <tr th:each="a : ${agendamentos}" th:attr="data-id=${a.id}">
-            <td>
-              <a th:if="${a.funcionario != null}"
-                 th:href="@{/funcionario/{id}(id=${a.funcionario.id})}"
-                 class="link-func"
-                 th:text="${a.funcionarioNome}">—</a>
-              <span th:unless="${a.funcionario != null}"
-                    th:text="${a.funcionarioNome}">—</span>
-              <span th:if="${a.funcionario != null and a.funcionario.aso != null}"
-                    th:with="hoje=${T(java.time.LocalDate).now()}, aso=${a.funcionario.aso}"
-                    th:class="${aso.isBefore(hoje) ? 'aso-vencido aso-status' :
-                               aso.isBefore(hoje.plusDays(30)) ? 'aso-aviso aso-status' : 'aso-ok aso-status'}"
-                    th:text="${aso.isBefore(hoje) ? '● Vencido' :
-                               aso.isBefore(hoje.plusDays(30)) ? '● A vencer' : '● Em dia'}">
-              </span>
-              <span th:if="${a.funcionario != null and a.funcionario.aso == null}"
-                    class="aso-sem">sem ASO</span>
-            </td>
-            <td th:text="${a.funcionarioSetor}">—</td>
-            <td th:text="${a.funcionarioFuncao}">—</td>
-            <td th:text="${a.tipoExameDescricao}">—</td>
-            <td th:text="${a.dataClinico != null ? #temporals.format(a.dataClinico, 'dd/MM/yyyy') : '—'}">—</td>
-            <td th:text="${a.horaClinico}">—</td>
-            <td th:text="${a.dataSangue != null ? #temporals.format(a.dataSangue, 'dd/MM/yyyy') : '—'}">—</td>
-            <td class="text-center">
-              <input type="checkbox" class="check-toggle"
-                     th:checked="${a.asoEnviado}"
-                     th:attr="onchange=|toggleStatusAso(${a.id}, 'enviado', this.checked, this)|">
-            </td>
-            <td class="text-center">
-              <input type="checkbox" class="check-toggle"
-                     th:checked="${a.asoRecebido}"
-                     th:attr="onchange=|handleRecebimento(${a.id}, this.checked, this)|">
-            </td>
-            <td>
-              <div class="actions-cell">
-                <a th:href="@{/editar_agendamento/{id}(id=${a.id})}"
-                   class="btn btn-primary btn-icon btn-sm" title="Editar">✏️</a>
-                <form th:action="@{/excluir_agendamento/{id}(id=${a.id})}" method="POST"
-                      onsubmit="return confirmarExclusao()">
-                  <button class="btn btn-danger btn-icon btn-sm" title="Excluir">🗑</button>
-                </form>
-              </div>
-            </td>
-          </tr>
-          <tr th:if="${#lists.isEmpty(agendamentos)}">
-            <td colspan="10">
-              <div class="empty-state">
-                <div class="empty-state-icon">📭</div>
-                <div class="empty-state-title">Nenhum agendamento encontrado</div>
-                <div class="empty-state-text">Ajuste os filtros ou adicione um novo agendamento.</div>
-              </div>
-            </td>
-          </tr>
-        </tbody>
+        <tbody id="corpoTabela"></tbody>
       </table>
     </div>
   </div>
@@ -169,7 +115,9 @@
     fetch(`/dashboard_dados?${params}`)
       .then(res => res.text())
       .then(html => {
-        document.getElementById("corpoTabela").innerHTML = html;
+        const tbody = document.getElementById("corpoTabela");
+        tbody.innerHTML = html;
+        tbody.classList.remove("d-none");
         const meta = document.querySelector("#corpoTabela .pg-meta");
         criarPaginacao(
           meta ? +meta.dataset.totalPaginas : 1,
@@ -208,6 +156,8 @@
     if (++mes > 12) { mes = 1; ano++; }
     mesSelect.value = mes; anoSelect.value = ano; carregarDados();
   });
+
+  carregarDados();
 
   function criarPaginacao(totalPaginas, paginaAtual) {
     const div = document.getElementById("paginacao");

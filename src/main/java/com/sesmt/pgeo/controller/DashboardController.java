@@ -35,7 +35,7 @@ public class DashboardController {
     private final ExcelService excelService;
 
     @GetMapping("/")
-    public String home() { return "redirect:/dashboard"; }
+    public String root() { return "redirect:/home"; }
 
     @GetMapping("/dashboard")
     public String dashboard(
@@ -48,18 +48,7 @@ public class DashboardController {
         List<Integer> anos = agendamentoRepo.findAnosDisponiveis();
         if (anos.isEmpty()) anos = List.of(LocalDate.now().getYear());
 
-        String buscaFiltro = (busca != null && !busca.isBlank()) ? busca.strip() : null;
-        List<Agendamento> agendamentos = agendamentoRepo.buscarComFiltros(buscaFiltro, data_inicio, data_fim);
-
-        if (estabelecimento != null && !estabelecimento.isBlank() && !"todos".equalsIgnoreCase(estabelecimento)) {
-            String est = estabelecimento.strip().toUpperCase();
-            agendamentos = agendamentos.stream()
-                .filter(a -> est.equals(a.getEstabelecimento()))
-                .toList();
-        }
-
         model.addAttribute("anos", anos);
-        model.addAttribute("agendamentos", agendamentos);
         model.addAttribute("busca", busca);
         model.addAttribute("dataInicio", data_inicio);
         model.addAttribute("dataFim", data_fim);
@@ -156,7 +145,7 @@ public class DashboardController {
         }
 
         DateTimeFormatter diaSemanaFmt = DateTimeFormatter
-            .ofPattern("dd/MM/yyyy (EEEE)", new Locale("pt", "BR"));
+            .ofPattern("dd/MM/yyyy (EEEE)", Locale.of("pt", "BR"));
 
         List<Map<String, Object>> porDia = new ArrayList<>();
         for (Map.Entry<LocalDate, List<Agendamento>> entry : porDataMap.entrySet()) {
@@ -188,12 +177,15 @@ public class DashboardController {
         return "dashboard_sangue";
     }
 
+    private static final int EXAMES_POR_PAGINA = 20;
+
     @GetMapping("/dashboard_exames")
     public String dashboardExames(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String busca,
             @RequestParam(required = false) String estabelecimento,
             @RequestParam(defaultValue = "30") int diasAviso,
+            @RequestParam(defaultValue = "0") int pagina,
             Model model) {
 
         LocalDate hoje   = LocalDate.now();
@@ -233,13 +225,19 @@ public class DashboardController {
             .sorted(Comparator.comparing(f -> f.getAso() != null ? f.getAso() : LocalDate.MAX))
             .toList();
 
-        Map<Long, Long> diasAso = exames.stream()
+        int totalItens   = exames.size();
+        int totalPaginas = (int) Math.ceil((double) totalItens / EXAMES_POR_PAGINA);
+        int paginaAtual  = Math.max(0, Math.min(pagina, Math.max(0, totalPaginas - 1)));
+        int ini = paginaAtual * EXAMES_POR_PAGINA;
+        List<Funcionario> examesPagina = exames.subList(ini, Math.min(ini + EXAMES_POR_PAGINA, totalItens));
+
+        Map<Long, Long> diasAso = examesPagina.stream()
             .filter(f -> f.getAso() != null)
             .collect(Collectors.toMap(
                 Funcionario::getId,
                 f -> ChronoUnit.DAYS.between(hoje, f.getAso())));
 
-        model.addAttribute("exames",        exames);
+        model.addAttribute("exames",        examesPagina);
         model.addAttribute("hoje",          hoje);
         model.addAttribute("diasAviso",     diasAviso);
         model.addAttribute("statusFiltro",  statusFiltro);
@@ -251,6 +249,9 @@ public class DashboardController {
         model.addAttribute("qtdEmDia",      qtdEmDia);
         model.addAttribute("qtdSemAso",     qtdSemAso);
         model.addAttribute("diasAso",       diasAso);
+        model.addAttribute("totalItens",    totalItens);
+        model.addAttribute("totalPaginas",  totalPaginas);
+        model.addAttribute("paginaAtual",   paginaAtual);
         return "dashboard_exames";
     }
 

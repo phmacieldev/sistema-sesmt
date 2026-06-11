@@ -42,12 +42,10 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
-      # Nota para a TI: o banco NÃO está exposto na rede.
-      # Para acessar via DBeaver/pgAdmin durante manutenção, use:
-      #   docker exec -it pgeo-db psql -U pgeo_user -d pgeo_db
-      # Ou adicione temporariamente a linha abaixo e reinicie:
-      #   ports:
-      #     - "127.0.0.1:5432:5432"   (só localhost, não rede)
+
+    # Porta exposta apenas para localhost — permite rodar a app pela IDE (perfil local)
+    ports:
+      - "127.0.0.1:5432:5432"
 
   # ── Aplicação Spring Boot ───────────────────
   app:

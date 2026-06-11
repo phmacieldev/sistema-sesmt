@@ -67,7 +67,7 @@
       </div>
       <div class="info-row">
         <span class="info-label">Tipo</span>
-        <span class="info-val" th:text="${agendamento.tipoExameDescricao}">—</span>
+        <span class="badge-tipo" th:classappend="${agendamento.tipoExame != null ? agendamento.tipoExame.cssClass : ''}" th:text="${agendamento.tipoExameDescricao}">—</span>
       </div>
       <div class="info-row">
         <span class="info-label">Data clínico</span>

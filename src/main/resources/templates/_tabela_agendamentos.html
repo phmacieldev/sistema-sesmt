@@ -30,7 +30,7 @@
     </td>
     <td th:text="${a.funcionarioSetor}">—</td>
     <td th:text="${a.funcionarioFuncao}">—</td>
-    <td th:text="${a.tipoExameDescricao}">—</td>
+    <td><span class="badge-tipo" th:classappend="${a.tipoExame != null ? a.tipoExame.cssClass : ''}" th:text="${a.tipoExameDescricao}">—</span></td>
     <td th:text="${a.dataClinico != null ? #temporals.format(a.dataClinico, 'dd/MM/yyyy') : '—'}">—</td>
     <td th:text="${a.horaClinico}">—</td>
     <td th:text="${a.dataSangue != null ? #temporals.format(a.dataSangue, 'dd/MM/yyyy') : '—'}">—</td>

@@ -35,7 +35,7 @@ public class EmailService {
         }
 
         try {
-            Context ctx = new Context(new Locale("pt", "BR"));
+            Context ctx = new Context(Locale.of("pt", "BR"));
             ctx.setVariable("vencidos",  vencidos);
             ctx.setVariable("aVencer",   aVencer);
             ctx.setVariable("diasAviso", props.getDiasAviso());

@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title th:text="${titulo + ' — PGEO'}">Erro — PGEO</title>
+  <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
   <link rel="stylesheet" th:href="@{/css/global.css}">
   <script th:src="@{/js/theme.js}"></script>
 </head>
@@ -16,7 +18,8 @@
        th:text="${status}">500</div>
   <div class="error-title" th:text="${titulo}">Erro</div>
   <p class="error-msg" th:text="${mensagem}">Ocorreu um erro inesperado.</p>
-  <a th:href="@{/dashboard}" class="btn btn-primary mt-24">← Voltar ao Dashboard</a>
+  <a sec:authorize="isAuthenticated()" th:href="@{/dashboard}" class="btn btn-primary mt-24">← Voltar ao Dashboard</a>
+  <a sec:authorize="!isAuthenticated()" th:href="@{/login}" class="btn btn-primary mt-24">← Ir para o Login</a>
 </div>
 
 </body>

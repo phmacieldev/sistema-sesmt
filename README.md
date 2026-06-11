@@ -1,166 +1,213 @@
-# PGEO — Sistema de Exames Ocupacionais (Java / Spring Boot)
+# PGEO — Sistema de Gestão de Saúde Ocupacional (SESMT)
 
-Migração do projeto Python/Flask para Java/Spring Boot.  
-Sistema de agendamento de exames clínicos (ASO) do SESMT.
+Sistema web para controle de agendamentos de exames clínicos (ASO), atestados médicos e gestão de funcionários do SESMT.
+
+---
+
+## Funcionalidades
+
+### Agendamentos
+- Dashboard com filtros por mês, funcionário, estabelecimento e período personalizado
+- Agenda semanal visual com todos os horários
+- Criação, edição e exclusão de agendamentos
+- Controle de status ASO (enviado / recebido) com atualização em tempo real via WebSocket
+- Export para Excel com todos os filtros ativos
+- Limite de 10 exames de sangue por dia (validação automática)
+- Guia PDF por agendamento
+- Badges coloridos por tipo de exame (Periódico, Admissional, Demissional, Retorno, Mudança de Risco)
+
+### Atestados Médicos
+- Lançamento semanal com navegação por semanas (terça a segunda)
+- Busca global por nome em todos os períodos (live search sem botão)
+- Totais por setor e tipo de afastamento
+- Indicadores de absenteísmo dos últimos 60 dias com alerta de risco INSS (≥ 15 dias)
+- Export PDF do relatório semanal
+
+### Funcionários
+- Lista paginada com busca ao vivo
+- Perfil completo com histórico de cargos, agendamentos e atestados
+- Edição inline de dados cadastrais (Admin)
+- Alteração de cargo/setor com registro de histórico para auditoria
+- Efetivar pré-admissional com matrícula
+
+### Dashboard Sangue
+- Controle de agendamentos de exame de sangue por mês
+- Limite diário configurável
+
+### Dashboard ASO
+- Lista de exames por status (em dia / a vencer / vencidos) com filtros
+- Export Excel
+
+### Início
+- KPIs: exames do mês, ASOs vencidos, atestados dos últimos 60 dias
+- Atalhos rápidos para todas as seções
+- Lista de ASOs vencidos com nome, setor, função, estabelecimento e data
+- Próximos agendamentos (14 dias) e atestados recentes
+
+### Admin
+- Gerenciamento de usuários (criar, editar, redefinir senha, ativar/desativar)
+- Auditoria completa de ações (criação, edição, exclusão, login)
+- Controle de papéis (ADMIN / OPERADOR)
+
+### Geral
+- Tema claro / escuro com persistência por cookie
+- Navbar responsiva com compactação progressiva e min-width para zoom
+- Notificações em tempo real via WebSocket — banner "X atualizações pendentes" sem interromper o usuário
+- Optimistic locking em todas as entidades principais (conflito de edição simultânea detectado e informado)
+- CSP (Content Security Policy) com nonce por requisição
+- Rate limiting no login (proteção contra força bruta)
+- Sessão expira após 4 horas de inatividade (prod)
 
 ---
 
 ## Stack
 
-| Componente | Python (original) | Java (novo) |
-|---|---|---|
-| Framework web | Flask | Spring Boot 3 |
-| ORM | SQLAlchemy | Spring Data JPA (Hibernate) |
-| Migrations | Alembic / Flask-Migrate | Flyway |
-| Templates | Jinja2 | Thymeleaf |
-| Autenticação | Flask-Login | Spring Security |
-| PDF | ReportLab | iText 5 |
-| Excel | pandas + openpyxl | Apache POI |
-| Banco | SQLite / PostgreSQL | PostgreSQL |
-
----
-
-## Estrutura do Projeto
-
-```
-src/main/java/com/sesmt/pgeo/
-├── PgeoApplication.java          ← app.py (ponto de entrada)
-├── config/
-│   ├── SecurityConfig.java       ← Flask-Login + @login_required
-│   └── DataSeeder.java           ← cria usuário padrão na 1ª execução
-├── model/
-│   ├── Agendamento.java          ← class Agendamento(db.Model)
-│   ├── Funcionario.java          ← class Funcionario(db.Model)
-│   ├── MedicalLeave.java         ← class MedicalLeave(db.Model)
-│   └── Usuario.java              ← class Usuario(UserMixin, db.Model)
-├── repository/
-│   ├── AgendamentoRepository.java ← Agendamento.query.*
-│   ├── FuncionarioRepository.java ← Funcionario.query.*
-│   ├── MedicalLeaveRepository.java
-│   └── UsuarioRepository.java
-├── service/
-│   ├── AgendamentoService.java   ← lógica de agenda_routes.py
-│   ├── AsoService.java           ← lógica de aso_routes.py
-│   ├── FuncionarioImportService.java ← importar_funcionarios_excel_banco()
-│   └── PdfService.java           ← utils/pdf_generator.py
-└── controller/
-    ├── AgendaController.java     ← Blueprint agenda_bp
-    ├── AsoController.java        ← Blueprint aso_bp
-    ├── AuthController.java       ← Blueprint auth_bp
-    └── DashboardController.java  ← Blueprint dashboard_bp
-
-src/main/resources/
-├── application.properties        ← config.py + .env
-├── db/migration/
-│   └── V1__criar_tabelas.sql     ← migrations do Alembic
-├── templates/                    ← equivalente a /templates do Flask
-│   ├── login.html
-│   ├── agenda.html
-│   ├── agendar.html
-│   ├── editar_agendamento.html
-│   ├── dashboard.html
-│   ├── dashboard_exames.html
-│   ├── dashboard_estatisticas.html
-│   ├── indicadores_atestados.html
-│   ├── _tabela_agendamentos.html
-│   └── components/
-│       ├── topo.html
-│       └── modal_agendamento.html
-└── static/
-    ├── css/agenda.css
-    └── js/agenda.js
-```
+| Componente | Tecnologia |
+|---|---|
+| Framework | Spring Boot 3.3 |
+| ORM | Spring Data JPA / Hibernate 6 |
+| Migrations | Flyway |
+| Templates | Thymeleaf 3.1 |
+| Autenticação | Spring Security 6 |
+| PDF | iText 5 |
+| Excel | Apache POI |
+| Banco | PostgreSQL 16 |
+| WebSocket | STOMP over SockJS |
+| Deploy | Docker + nginx (proxy reverso SSL) |
+| Java | 21 |
 
 ---
 
 ## Como rodar
 
-### 1. Pré-requisitos
-- Java 21+
-- Maven 3.9+
-- PostgreSQL 14+
+### Opção 1 — Docker (recomendado para produção)
 
-### 2. Criar o banco
-```sql
-CREATE DATABASE pgeo_db;
-```
+**Pré-requisitos:** Docker + Docker Compose
 
-### 3. Configurar variáveis de ambiente
 ```bash
+# 1. Clone o repositório
+git clone <repo-url>
+cd sistema-sesmt
+
+# 2. Copie e configure o .env
 cp .env.example .env
-# Edite o .env com suas credenciais
+# Edite o .env com suas credenciais e SECRET_KEY
+
+# 3. Gere os certificados TLS (auto-assinados para uso interno)
+cd nginx && ./gen-self-signed.sh && cd ..
+
+# 4. Suba toda a stack
+docker compose up -d --build
+
+# 5. Acesse
+# https://localhost  (via nginx)
 ```
 
-Para o Spring Boot ler o `.env`, você pode:
-- Exportar as variáveis: `export $(cat .env | xargs)`
-- Ou definir diretamente em `application.properties`
-
-### 4. Rodar
+**Logs:**
 ```bash
-mvn spring-boot:run
+docker compose logs -f app   # logs da aplicação
+docker compose logs -f db    # logs do banco
 ```
 
-Acesse: http://localhost:8080  
-Login padrão: **admin / admin123** (troque após o primeiro acesso!)
-
-### 5. Importar funcionários
-- No dashboard, clique em **Sincronizar Excel**
-- Selecione o arquivo `.xlsx` com as colunas:
-  `matrícula | nome | setor | função | email | aso | estabelecimento`
+**Parar / reiniciar:**
+```bash
+docker compose down
+docker compose restart app
+```
 
 ---
 
-## Diferenças principais Flask → Spring Boot
+### Opção 2 — Desenvolvimento local (IDE)
 
-### Rotas
-```python
-# Flask
-@agenda_bp.route("/agenda")
-def agenda():
-    return render_template("agenda.html")
-```
-```java
-// Spring Boot
-@GetMapping("/agenda")
-public String agenda(Model model) {
-    return "agenda"; // resolve para templates/agenda.html
-}
+**Pré-requisitos:** Java 21, Maven 3.9+, PostgreSQL 16 local ou via Docker
+
+```bash
+# 1. Suba só o banco (se não tiver PostgreSQL local)
+docker compose up -d db
+
+# 2. Rode com perfil local
+SPRING_PROFILES_ACTIVE=local mvn spring-boot:run
 ```
 
-### Templates
-```html
-<!-- Jinja2 -->
-{% for a in agendamentos %}
-  {{ a.funcionario_nome }}
-{% endfor %}
-
-<!-- Thymeleaf -->
-<tr th:each="a : ${agendamentos}">
-  <td th:text="${a.funcionarioNome}"></td>
-</tr>
-```
-
-### Queries
-```python
-# SQLAlchemy
-Agendamento.query.filter_by(data_clinico=data).all()
-```
-```java
-// Spring Data JPA
-agendamentoRepo.findByDataClinico(data);
-// ou com @Query para consultas mais complexas
-```
-
-### CSRF
-- Flask-WTF: precisa configurar manualmente
-- Spring Security + Thymeleaf: **automático** — `th:action` já injeta o token
+Acesse: http://localhost:8080
 
 ---
 
-## Próximos passos sugeridos
+## Credenciais padrão
 
-1. Tela de cadastro/edição de usuários
-2. Envio de e-mail de confirmação de agendamento
-3. Notificação de ASO próximo do vencimento
-4. API REST para consumo mobile (Jackson já está no classpath)
-5. Deploy com Docker + docker-compose
+| Usuário | Senha | Papel |
+|---|---|---|
+| `admin` | `admin123` | ADMIN |
+
+> **Troque a senha no primeiro acesso em:** Navbar → 🔑 → Alterar senha
+
+---
+
+## Variáveis de ambiente (.env)
+
+```env
+# Banco
+DB_NAME=pgeo_db
+DB_USER=pgeo_user
+DB_PASSWORD=senha-segura
+
+# Segurança
+SECRET_KEY=chave-aleatoria-longa-e-segura
+
+# E-mail (notificações de ASO — opcional)
+SMTP_HOST=smtp.hospital.local
+SMTP_PORT=587
+SMTP_USER=sesmt@hospital.local
+SMTP_PASSWORD=senha
+SMTP_AUTH=true
+SMTP_TLS=true
+NOTIFICACAO_EMAIL_HABILITADO=true
+NOTIFICACAO_EMAIL_DESTINATARIO=sesmt@hospital.local
+NOTIFICACAO_EMAIL_REMETENTE=pgeo@noreply.local
+NOTIFICACAO_EMAIL_DIAS_AVISO=30
+```
+
+---
+
+## Migrations
+
+O Flyway gerencia o schema automaticamente ao iniciar a aplicação.  
+Migrations ficam em `src/main/resources/db/migration/` e seguem o padrão `V{n}__{descricao}.sql`.
+
+Para adicionar uma migration manualmente:
+```bash
+# Conecte no banco e execute o SQL, ou crie o arquivo V{n}__ e reinicie a app
+```
+
+---
+
+## Estrutura de pastas (simplificada)
+
+```
+src/main/java/com/sesmt/pgeo/
+├── config/          → SecurityConfig, DataInitializer
+├── controller/      → Agendamentos, Atestados, Funcionarios, Admin, Home, ...
+├── model/           → Agendamento, Funcionario, MedicalLeave, Usuario, HistoricoCargo
+├── repository/      → Spring Data JPA + Specifications
+├── service/         → Regras de negócio, PDF, Excel, E-mail, WebSocket
+├── websocket/       → Notificações em tempo real (STOMP/SockJS)
+├── audit/           → AuditLog + AuditService
+└── security/        → CSP nonce filter, rate limit filter
+
+src/main/resources/
+├── db/migration/    → V1 a V7 (Flyway)
+├── templates/       → Thymeleaf (dashboard, agenda, atestados, funcionario, admin, ...)
+└── static/
+    ├── css/global.css
+    └── js/           → theme.js, websocket.js, agenda.js
+```
+
+---
+
+## Perfis Spring
+
+| Perfil | Uso | ddl-auto |
+|---|---|---|
+| `prod` (padrão) | Docker / servidor | `validate` |
+| `local` | IDE com banco Docker local | `validate` |
+| `dev` | Desenvolvimento com reset do banco | `create-drop` |

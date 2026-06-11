@@ -31,14 +31,19 @@ import java.time.LocalDateTime;
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    @org.springframework.beans.factory.annotation.Value("${app.rate-limit.enabled:true}")
+    private boolean rateLimitEnabled;
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
                                            UsuarioRepository usuarioRepo,
                                            LoginAttemptService loginAttemptService) throws Exception {
+        http.addFilterBefore(new CspNonceFilter(), HeaderWriterFilter.class);
+        if (rateLimitEnabled) {
+            http.addFilterBefore(new LoginRateLimitFilter(loginAttemptService),
+                                 UsernamePasswordAuthenticationFilter.class);
+        }
         http
-            .addFilterBefore(new CspNonceFilter(), HeaderWriterFilter.class)
-            .addFilterBefore(new LoginRateLimitFilter(loginAttemptService),
-                             UsernamePasswordAuthenticationFilter.class)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/static/**", "/css/**", "/js/**", "/webjars/**", "/error").permitAll()
                 .requestMatchers("/login", "/login/**").permitAll()
@@ -106,7 +111,7 @@ public class SecurityConfig {
                 usuarioRepo.save(u);
             });
             log.info("LOGIN OK | usuario={} | ip={}", username, ip);
-            response.sendRedirect("/dashboard");
+            response.sendRedirect("/home");
         };
     }
 

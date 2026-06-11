@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Início — PGEO</title>
+  <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
+  <link rel="stylesheet" th:href="@{/css/global.css}">
+  <script th:src="@{/js/theme.js}"></script>
+  <style th:attr="nonce=${cspNonce}">
+    .home-kpi       { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+    .home-atalhos   { display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px; margin-bottom: 24px; }
+    .home-grid-2    { display: flex; gap: 16px; margin-bottom: 24px; align-items: flex-start; }
+    .home-grid-2 > .card { flex: 1; min-width: 0; margin-top: 0 !important; }
+    .stat-card-lg   { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px 28px; }
+    .stat-card-lg .stat-value { font-size: 42px; font-weight: 800; line-height: 1; }
+    .stat-card-lg .stat-label { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
+    .stat-card-lg .stat-sub   { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+    .stat-card-lg.danger  { border-left: 4px solid var(--danger); }
+    .stat-card-lg.warning { border-left: 4px solid var(--warning); }
+    .stat-card-lg.success { border-left: 4px solid var(--success); }
+    .stat-card-lg.primary { border-left: 4px solid var(--primary); }
+    .stat-value-danger  { color: var(--danger); }
+    .stat-value-warning { color: var(--warning); }
+    .stat-value-success { color: var(--success); }
+    .quick-link { display: flex; flex-direction: column; align-items: center; justify-content: center;
+                  gap: 8px; padding: 18px 8px; background: var(--bg-card); border: 1px solid var(--border);
+                  border-radius: var(--radius); text-decoration: none; color: var(--text);
+                  transition: all var(--transition); font-size: 12px; font-weight: 500; text-align: center; }
+    .quick-link:hover { border-color: var(--primary); color: var(--primary); background: var(--bg-input); text-decoration: none; }
+    .quick-link-icon  { font-size: 24px; }
+    .agenda-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .agenda-item:last-child { border-bottom: none; }
+    .agenda-date  { min-width: 52px; text-align: center; background: var(--bg-table-head);
+                    border-radius: var(--radius-sm); padding: 6px 8px; flex-shrink: 0; }
+    .agenda-day   { font-size: 20px; font-weight: 700; line-height: 1; color: var(--text); }
+    .agenda-month { font-size: 10px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; }
+    .agenda-info  { flex: 1; min-width: 0; }
+    .agenda-nome  { font-weight: 600; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .agenda-sub   { font-size: 12px; color: var(--text-muted); }
+    .badge-tipo   { font-size: 11px; padding: 2px 7px; border-radius: 20px; white-space: nowrap;
+                    background: var(--bg-badge); color: var(--text-secondary); }
+    .atestado-item { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); align-items: flex-start; }
+    .atestado-item:last-child { border-bottom: none; }
+    .atestado-dias  { min-width: 44px; text-align: center; flex-shrink: 0; }
+    .atestado-num   { font-size: 22px; font-weight: 700; line-height: 1; color: var(--text); }
+    .atestado-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; }
+    .atestado-info  { flex: 1; min-width: 0; }
+    .atestado-nome  { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .atestado-sub   { font-size: 12px; color: var(--text-muted); }
+    .aso-row { display: grid; grid-template-columns: 16px 1fr 1fr 1fr 60px 130px 80px; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .aso-row:last-child { border-bottom: none; }
+    @media (max-width: 1100px) { .home-atalhos { grid-template-columns: repeat(4, 1fr); } }
+    @media (max-width: 900px)  { .home-kpi { grid-template-columns: repeat(2, 1fr); } .home-grid-2 { grid-template-columns: 1fr; } }
+    @media (max-width: 600px)  { .home-kpi { grid-template-columns: 1fr; } .home-atalhos { grid-template-columns: repeat(3, 1fr); } }
+  </style>
+</head>
+<body>
+<div th:replace="~{components/navbar :: navbar}"></div>
+
+<div class="page-wrapper-wide">
+
+  <div class="page-header">
+    <div class="page-title">👋 Bem-vindo ao PGEO</div>
+  </div>
+
+  <!-- ── KPIs principais ── -->
+  <div class="home-kpi">
+
+    <div class="stat-card-lg primary">
+      <div class="stat-value" th:text="${totalMes}">0</div>
+      <div class="stat-label">Exames agendados este mês</div>
+      <div class="stat-sub" th:text="${proximos7dias} + ' nos próximos 7 dias'">—</div>
+    </div>
+
+    <div th:class="${totalAsoVencidos gt 0 ? 'stat-card-lg danger' : 'stat-card-lg success'}">
+      <div th:class="${totalAsoVencidos gt 0 ? 'stat-value stat-value-danger' : 'stat-value stat-value-success'}"
+           th:text="${totalAsoVencidos}">0</div>
+      <div class="stat-label">ASOs vencidos</div>
+      <div class="stat-sub"
+           th:text="${totalAsoAVencer30} + ' vencem em até 30 dias'">—</div>
+    </div>
+
+    <div th:class="${totalAtestados60dias gt 0 ? 'stat-card-lg warning' : 'stat-card-lg success'}">
+      <div class="stat-value" th:text="${totalAtestados60dias}">0</div>
+      <div class="stat-label">Atestados — últimos 60 dias</div>
+      <div class="stat-sub"
+           th:text="${diasAfastamento} + ' dias de afastamento no período'">—</div>
+    </div>
+
+  </div>
+
+  <!-- ── Atalhos rápidos (7 itens numa linha) ── -->
+  <div class="home-atalhos">
+    <a th:href="@{/agendar}"                class="quick-link"><span class="quick-link-icon">➕</span>Agendar Exame</a>
+    <a th:href="@{/dashboard}"              class="quick-link"><span class="quick-link-icon">📋</span>Agendamentos</a>
+    <a th:href="@{/agenda}"                 class="quick-link"><span class="quick-link-icon">📅</span>Agenda</a>
+    <a th:href="@{/atestados}"              class="quick-link"><span class="quick-link-icon">📄</span>Atestados</a>
+    <a th:href="@{/dashboard_sangue}"       class="quick-link"><span class="quick-link-icon">🩸</span>Sangue</a>
+    <a th:href="@{/dashboard_exames}"       class="quick-link"><span class="quick-link-icon">💊</span>Exames</a>
+    <a th:href="@{/dashboard_estatisticas}" class="quick-link"><span class="quick-link-icon">📈</span>Estatísticas</a>
+  </div>
+
+  <!-- ── Próximos agendamentos + Últimos atestados ── -->
+  <div class="home-grid-2">
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📅 Próximos 14 dias</div>
+        <a th:href="@{/dashboard}" class="btn btn-ghost btn-sm">Ver todos</a>
+      </div>
+      <div th:if="${#lists.isEmpty(proximosAgendamentos)}" class="empty-state" style="padding: 32px 24px">
+        <div class="empty-state-icon">📭</div>
+        <div class="empty-state-title">Nenhum agendamento nos próximos 14 dias</div>
+      </div>
+      <div th:each="a : ${proximosAgendamentos}" class="agenda-item" style="padding-left:4px;padding-right:4px">
+        <div class="agenda-date">
+          <div class="agenda-day"   th:text="${#temporals.format(a.dataClinico, 'dd')}">01</div>
+          <div class="agenda-month" th:text="${#temporals.format(a.dataClinico, 'MMM')}">Jan</div>
+        </div>
+        <div class="agenda-info">
+          <div class="agenda-nome" th:text="${a.funcionarioNome}">—</div>
+          <div class="agenda-sub"  th:text="${a.funcionarioSetor} + ' · ' + ${a.horaClinico}">—</div>
+        </div>
+        <span class="badge-tipo" th:classappend="${a.tipoExame != null ? a.tipoExame.cssClass : ''}" th:text="${a.tipoExameDescricao}">Periódico</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📄 Atestados recentes</div>
+        <a th:href="@{/atestados}" class="btn btn-ghost btn-sm">Ver atestados</a>
+      </div>
+      <div th:if="${#lists.isEmpty(ultimosAtestados)}" class="empty-state" style="padding: 32px 24px">
+        <div class="empty-state-icon">✅</div>
+        <div class="empty-state-title">Nenhum atestado nos últimos 30 dias</div>
+      </div>
+      <div th:each="ml : ${ultimosAtestados}" class="atestado-item" style="padding-left:4px;padding-right:4px">
+        <div class="atestado-dias">
+          <div class="atestado-num"   th:text="${ml.diasAfastamento}">0</div>
+          <div class="atestado-label">dias</div>
+        </div>
+        <div class="atestado-info">
+          <div class="atestado-nome" th:text="${ml.funcionario.nome}">—</div>
+          <div class="atestado-sub"
+               th:text="${ml.funcionario.setor} + ' · ' + ${#temporals.format(ml.dataAfastamento, 'dd/MM/yyyy')}">—</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── ASOs vencidos ── -->
+  <div class="card" th:if="${totalItensAso gt 0}">
+    <div class="card-header">
+      <div class="card-title">⚠️ ASOs vencidos
+        <span style="font-size:12px;font-weight:400;color:var(--text-muted);margin-left:8px"
+              th:text="${totalItensAso} + ' funcionário(s)'"></span>
+      </div>
+      <a th:href="@{/dashboard_exames(status='vencidos')}" class="btn btn-ghost btn-sm">Ver exames</a>
+    </div>
+
+    <div th:each="f : ${asoVencidos}" class="aso-row">
+      <span style="color:var(--danger);font-size:16px">●</span>
+      <span style="font-weight:600;font-size:13px;flex-shrink:0" th:text="${f.nome}">—</span>
+      <span style="color:var(--text-muted);font-size:12px" th:text="${f.setor ?: '—'}">—</span>
+      <span style="color:var(--text-muted);font-size:12px" th:text="${f.funcao ?: '—'}">—</span>
+      <span style="color:var(--text-muted);font-size:12px" th:text="${f.estabelecimentoEfetivo ?: '—'}">—</span>
+      <span style="color:var(--danger);font-size:12px;flex-shrink:0"
+            th:text="'venceu ' + ${#temporals.format(f.aso, 'dd/MM/yyyy')}">—</span>
+      <a th:href="@{/agendar}" class="btn btn-primary btn-sm" style="padding:3px 10px;font-size:11px;flex-shrink:0">Agendar</a>
+    </div>
+
+    <!-- Paginação dos ASOs -->
+    <div class="pg-bar" th:if="${totalPaginasAso gt 1}" style="margin-top:12px">
+      <a th:href="@{/home(paginaAso=${paginaAsoAtual - 1})}"
+         class="pg-btn" th:classappend="${paginaAsoAtual == 0} ? ' disabled' : ''">‹</a>
+      <th:block th:each="p : ${#numbers.sequence(0, totalPaginasAso - 1)}">
+        <a th:href="@{/home(paginaAso=${p})}"
+           class="pg-btn" th:classappend="${p == paginaAsoAtual} ? ' active' : ''"
+           th:text="${p + 1}">1</a>
+      </th:block>
+      <a th:href="@{/home(paginaAso=${paginaAsoAtual + 1})}"
+         class="pg-btn" th:classappend="${paginaAsoAtual >= totalPaginasAso - 1} ? ' disabled' : ''">›</a>
+      <span style="font-size:12px;color:var(--text-muted);margin-left:8px"
+            th:text="${'Página ' + (paginaAsoAtual + 1) + ' de ' + totalPaginasAso + ' · ' + totalItensAso + ' vencidos'}"></span>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

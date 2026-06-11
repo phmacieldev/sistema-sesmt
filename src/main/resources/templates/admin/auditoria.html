@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Auditoria — PGEO</title>
+  <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
   <link rel="stylesheet" th:href="@{/css/global.css}">
   <script th:src="@{/js/theme.js}"></script>
   <style th:attr="nonce=${cspNonce}">
@@ -127,9 +128,7 @@
               <div th:text="${log.descricao ?: '—'}" style="font-size:13px;">—</div>
               <!-- Toggle dados antes/depois se existirem -->
               <th:block th:if="${log.dadosAntes != null or log.dadosDepois != null}">
-                <span class="diff-toggle" th:attr="onclick='toggleDiff(this)'">
-                  ver diff ▾
-                </span>
+                <span class="diff-toggle">ver diff ▾</span>
                 <pre class="diff-block"
                      th:text="${(log.dadosAntes != null ? '— Antes:\n' + log.dadosAntes : '') +
                                 (log.dadosAntes != null and log.dadosDepois != null ? '\n\n' : '') +
@@ -154,13 +153,13 @@
   </div>
 
   <!-- Paginação -->
-  <div class="pg-bar" th:if="${totalPaginas > 1}">
+  <div class="pg-bar" th:if="${totalPaginas gt 1}">
     <a th:href="@{/admin/auditoria(usuario=${usuario},entidade=${entidade},acao=${acao},data_inicio=${dataInicio},data_fim=${dataFim},pagina=${paginaAtual - 1})}"
        class="pg-btn"
        th:classappend="${paginaAtual == 0} ? 'disabled' : ''">‹</a>
 
     <th:block th:each="p : ${#numbers.sequence(0, totalPaginas - 1)}">
-      <a th:if="${p >= paginaAtual - 2 and p <= paginaAtual + 2}"
+      <a th:if="${p ge paginaAtual - 2 and p le paginaAtual + 2}"
          th:href="@{/admin/auditoria(usuario=${usuario},entidade=${entidade},acao=${acao},data_inicio=${dataInicio},data_fim=${dataFim},pagina=${p})}"
          class="pg-btn"
          th:classappend="${p == paginaAtual} ? 'active' : ''"
@@ -169,7 +168,7 @@
 
     <a th:href="@{/admin/auditoria(usuario=${usuario},entidade=${entidade},acao=${acao},data_inicio=${dataInicio},data_fim=${dataFim},pagina=${paginaAtual + 1})}"
        class="pg-btn"
-       th:classappend="${paginaAtual >= totalPaginas - 1} ? 'disabled' : ''">›</a>
+       th:classappend="${paginaAtual ge totalPaginas - 1} ? 'disabled' : ''">›</a>
 
     <span style="font-size:12px;color:var(--text-muted);margin-left:8px;"
           th:text="${'Página ' + (paginaAtual + 1) + ' de ' + totalPaginas}"></span>
@@ -178,11 +177,14 @@
 </div>
 
 <script th:attr="nonce=${cspNonce}">
-  function toggleDiff(el) {
-    const block = el.nextElementSibling;
-    const open  = block.classList.toggle("visible");
+  document.addEventListener("click", function(e) {
+    var el = e.target.closest(".diff-toggle");
+    if (!el) return;
+    var block = el.nextElementSibling;
+    if (!block) return;
+    var open = block.classList.toggle("visible");
     el.textContent = open ? "fechar ▴" : "ver diff ▾";
-  }
+  });
 </script>
 </body>
 </html>
