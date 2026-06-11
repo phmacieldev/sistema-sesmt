@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 Pedro Henrique Maciel da Silva Faria. Todos os direitos reservados.
+ * Desenvolvido de forma independente como projeto de portfólio.
+ * Autorizado apenas para uso interno homologado.
+ */
 /* agenda.js — idêntico ao projeto Flask original.
    O JavaScript não precisa mudar: os endpoints /agenda_events_json,
    /mover_agendamento etc. são expostos pelo Java com as mesmas URLs. */
@@ -36,7 +41,8 @@ document.addEventListener('DOMContentLoaded', function() {
             right:  'dayGridMonth,timeGridWeek,timeGridDay'
         },
 
-        buttonText: { today: 'Hoje', month: 'Mês', week: 'Semana', day: 'Dia' },
+        buttonText: { today: 'Hoje', month: 'Mês', week: 'Semana', day: 'Dia', prev: '← Anterior', next: 'Próximo →' },
+        buttonIcons: false,
 
         slotLabelFormat: [{ hour: '2-digit', minute: '2-digit', hour12: false }],
         slotDuration: "00:30:00",

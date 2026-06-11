@@ -1,4 +1,5 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
+<!-- Copyright (c) 2026 Pedro Henrique Maciel da Silva Faria. Sistema autoral protegido. -->
 <html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
@@ -168,7 +169,7 @@
       <span style="color:var(--text-muted);font-size:12px" th:text="${f.estabelecimentoEfetivo ?: '—'}">—</span>
       <span style="color:var(--danger);font-size:12px;flex-shrink:0"
             th:text="'venceu ' + ${#temporals.format(f.aso, 'dd/MM/yyyy')}">—</span>
-      <a th:href="@{/agendar}" class="btn btn-primary btn-sm" style="padding:3px 10px;font-size:11px;flex-shrink:0">Agendar</a>
+      <a th:href="@{/agendar(matricula=${f.matricula})}" class="btn btn-primary btn-sm" style="padding:3px 10px;font-size:11px;flex-shrink:0">Agendar</a>
     </div>
 
     <!-- Paginação dos ASOs -->
@@ -188,5 +189,6 @@
   </div>
 
 </div>
+<div th:replace="~{components/footer :: footer}"></div>
 </body>
 </html>

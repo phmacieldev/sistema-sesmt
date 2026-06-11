@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 Pedro Henrique Maciel da Silva Faria. Todos os direitos reservados.
+ * Desenvolvido de forma independente como projeto de portfólio.
+ * Autorizado apenas para uso interno homologado.
+ */
 package com.sesmt.pgeo.controller;
 
 import com.sesmt.pgeo.exception.RecursoNaoEncontradoException;
@@ -18,7 +23,6 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @Controller
 @RequestMapping("/atestados")
@@ -51,19 +55,7 @@ public class AtestadoController {
                         @RequestParam(defaultValue = "0") int pagina,
                         Model model) {
         LocalDate hoje = LocalDate.now();
-        LocalDate inicio;
-        if (semana != null) {
-            inicio = service.semanaInicio(semana);
-        } else {
-            LocalDate semanaAtual = service.semanaInicio(hoje);
-            List<MedicalLeave> check = repo.findBySemana(semanaAtual, service.semanaFim(semanaAtual));
-            if (check.isEmpty()) {
-                Optional<LocalDate> dataRecente = repo.findDataMaisRecente();
-                inicio = dataRecente.map(service::semanaInicio).orElse(semanaAtual);
-            } else {
-                inicio = semanaAtual;
-            }
-        }
+        LocalDate inicio = semana != null ? service.semanaInicio(semana) : service.semanaInicio(hoje);
         LocalDate fim = service.semanaFim(inicio);
 
         boolean filtrando = nome != null && !nome.isBlank();

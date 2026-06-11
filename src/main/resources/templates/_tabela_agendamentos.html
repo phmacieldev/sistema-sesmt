@@ -1,3 +1,4 @@
+﻿<!-- Copyright (c) 2026 Pedro Henrique Maciel da Silva Faria. Sistema autoral protegido. -->
 <!--
     _tabela_agendamentos.html — Fragmento de <tr> retornado via AJAX pelo dashboard.
     O controller retorna "_tabela_agendamentos :: tbody".
@@ -46,6 +47,10 @@
     </td>
     <td>
       <div class="actions-cell">
+        <a th:href="@{/guia/sangue/{id}(id=${a.id})}"
+           class="btn btn-secondary btn-icon btn-sm" title="Guia de Sangue" target="_blank">🩸</a>
+        <a th:href="@{/guia/clinico/{id}(id=${a.id})}"
+           class="btn btn-secondary btn-icon btn-sm" title="Guia Clínico Proteus" target="_blank">📋</a>
         <a th:href="@{/editar_agendamento/{id}(id=${a.id})}"
            class="btn btn-primary btn-icon btn-sm" title="Editar">✏️</a>
         <form th:action="@{/excluir_agendamento/{id}(id=${a.id})}"

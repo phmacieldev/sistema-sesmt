@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 Pedro Henrique Maciel da Silva Faria. Todos os direitos reservados.
+ * Desenvolvido de forma independente como projeto de portfólio.
+ * Autorizado apenas para uso interno homologado.
+ */
 /* ─── PGEO Global CSS ─── */
 /* CSS Variables + Theming + Components */
 
@@ -142,7 +147,7 @@ a:hover { text-decoration: underline; }
   flex: 1 1 0;
   min-width: 0;
   justify-content: center;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .nav-link {
@@ -164,7 +169,78 @@ a:hover { text-decoration: underline; }
   background: var(--bg-navbar-hover);
   text-decoration: none;
 }
-.nav-link.active { color: #60a5fa; }
+.nav-link.active  { color: #60a5fa; }
+.nav-link.group-active { color: #60a5fa !important; }
+
+/* ── Dropdown menus ────────────────────────────────────────── */
+.nav-dropdown { position: relative; }
+
+.nav-dropdown-trigger {
+  cursor: pointer;
+  user-select: none;
+}
+.dd-arrow {
+  font-size: 9px; opacity: .6;
+  display: inline-block;
+  transition: transform .2s;
+}
+.nav-dropdown:hover .dd-arrow { transform: rotate(180deg); }
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 6px;
+  padding-top: 12px;
+  min-width: 210px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.22);
+  z-index: 2000;
+  opacity: 0;
+  transform: translateY(-6px);
+  pointer-events: none;
+  transition: opacity .18s ease, transform .18s ease;
+  /* invisible top area bridges the gap so hover doesn't break */
+  background-clip: padding-box;
+  margin-top: -6px;
+}
+.nav-dropdown:hover .dropdown-menu {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 13px;
+  white-space: nowrap;
+  transition: background .12s, color .12s;
+}
+.dropdown-item:hover {
+  background: var(--bg-table-hover);
+  color: var(--text);
+  text-decoration: none;
+}
+.dropdown-item.active {
+  color: var(--primary);
+  font-weight: 600;
+  background: var(--bg-table-hover);
+}
+.di-icon { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 5px 8px;
+}
 
 .navbar-right {
   display: flex;
@@ -721,7 +797,7 @@ input[type="date"].form-control::-webkit-calendar-picker-indicator {
 /* ── Grid helpers ─────────────────────────────────────────────────── */
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
 .col-span-2 { grid-column: span 2; }
 
 @media (max-width: 768px) {
@@ -743,10 +819,10 @@ input[type="date"].form-control::-webkit-calendar-picker-indicator {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 16px 20px;
+  padding: 24px 24px;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
 }
 .stat-icon {
   font-size: 28px;
@@ -758,12 +834,14 @@ input[type="date"].form-control::-webkit-calendar-picker-indicator {
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  margin-bottom: 8px;
 }
 .stat-value {
   font-size: 26px;
   font-weight: 700;
   color: var(--text);
   line-height: 1.2;
+  margin-bottom: 6px;
 }
 
 /* ── Empty state ──────────────────────────────────────────────────── */
@@ -982,15 +1060,22 @@ input[type="date"].form-control::-webkit-calendar-picker-indicator {
 body.no-navbar {
   padding-top: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
   min-height: 100vh;
   padding: 16px;
+}
+body.no-navbar > footer {
+  align-self: stretch;
+  margin-left: -16px;
+  margin-right: -16px;
+  width: calc(100% + 32px);
 }
 
 /* ── Login page ───────────────────────────────────────────────────── */
 .login-card {
   width: 100%; max-width: 380px;
+  margin: auto;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -1020,6 +1105,7 @@ body.no-navbar {
 /* ── Error page ───────────────────────────────────────────────────── */
 .error-card {
   width: 100%; max-width: 480px;
+  margin: auto;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);

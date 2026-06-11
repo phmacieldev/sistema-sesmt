@@ -1,4 +1,5 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
+<!-- Copyright (c) 2026 Pedro Henrique Maciel da Silva Faria. Sistema autoral protegido. -->
 <html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
 <head>
   <meta charset="UTF-8">
@@ -56,48 +57,12 @@
     </a>
   </div>
 
-  <!-- Filtros -->
-  <form th:action="@{/vencimentos}" method="GET" class="card mb-16">
-    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
-      <div class="form-group" style="flex:2;min-width:180px;margin:0;">
-        <label class="form-label">Buscar funcionário</label>
-        <input type="text" name="busca" class="form-control" placeholder="Nome..."
-               th:value="${buscaFiltro}">
-      </div>
-      <div class="form-group" style="flex:1;min-width:140px;margin:0;">
-        <label class="form-label">Estabelecimento</label>
-        <select name="estabelecimento" class="form-control">
-          <option value="todos" th:selected="${estFiltro == null or estFiltro == 'todos'}">Todos</option>
-          <option th:each="e : ${estabelecimentos}" th:value="${e}" th:text="${e}"
-                  th:selected="${e == estFiltro}"></option>
-        </select>
-      </div>
-      <div class="form-group" style="min-width:130px;margin:0;">
-        <label class="form-label">Status</label>
-        <select name="status" class="form-control">
-          <option value="todos"    th:selected="${statusFiltro == 'todos'}">Todos</option>
-          <option value="vencidos" th:selected="${statusFiltro == 'vencidos'}">Vencidos</option>
-          <option value="a_vencer" th:selected="${statusFiltro == 'a_vencer'}">A vencer</option>
-          <option value="em_dia"   th:selected="${statusFiltro == 'em_dia'}">Em dia</option>
-          <option value="sem_aso"  th:selected="${statusFiltro == 'sem_aso'}">Sem ASO</option>
-        </select>
-      </div>
-      <div class="form-group" style="min-width:120px;margin:0;">
-        <label class="form-label">Aviso antecipado</label>
-        <select name="diasAviso" class="form-control">
-          <option value="15"  th:selected="${diasAviso == 15}">15 dias</option>
-          <option value="30"  th:selected="${diasAviso == 30}">30 dias</option>
-          <option value="60"  th:selected="${diasAviso == 60}">60 dias</option>
-          <option value="90"  th:selected="${diasAviso == 90}">90 dias</option>
-        </select>
-      </div>
-      <div style="display:flex;gap:8px;align-items:flex-end;padding-bottom:1px;">
-        <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
-        <a th:href="@{/vencimentos}" class="btn btn-secondary btn-sm">Limpar</a>
-      </div>
-    </div>
-    <input type="hidden" name="pagina" value="0">
-  </form>
+  <!-- Busca por nome em tempo real -->
+  <div style="margin-bottom:16px;display:flex;gap:8px;align-items:center;">
+    <input type="text" id="buscaNome" class="form-control" style="max-width:300px;"
+           placeholder="🔍 Buscar por nome..." th:value="${buscaFiltro}">
+    <span id="buscaInfo" style="font-size:13px;color:var(--text-muted);"></span>
+  </div>
 
   <!-- Tabs de status rápido -->
   <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
@@ -114,7 +79,8 @@
   </div>
 
   <!-- Resultado -->
-  <div class="card p-0">
+  <div id="tabelaWrap" class="card p-0">
+    <div th:fragment="tabelaVencimentos">
     <div class="card-header" style="padding:12px 16px;">
       <span class="card-title">Funcionários</span>
       <span class="badge badge-gray" th:text="${totalItens} + ' resultado(s)'"></span>
@@ -199,8 +165,48 @@
       <a th:href="@{/vencimentos(pagina=${paginaAtual + 1},status=${statusFiltro},busca=${buscaFiltro},estabelecimento=${estFiltro},diasAviso=${diasAviso})}"
          th:class="${paginaAtual >= totalPaginas - 1} ? 'pg-btn disabled' : 'pg-btn'">Próx ›</a>
     </div>
+    </div><!-- fim fragment tabelaVencimentos -->
   </div>
 
 </div>
+
+<script th:attr="nonce=${cspNonce}">
+(function () {
+  var input = document.getElementById("buscaNome");
+  var wrap  = document.getElementById("tabelaWrap");
+  var info  = document.getElementById("buscaInfo");
+  var timer = null;
+
+  var params = new URLSearchParams(window.location.search);
+  var status = params.get("status") || "todos";
+  var est    = params.get("estabelecimento") || "todos";
+  var dias   = params.get("diasAviso") || "30";
+
+  function buscar(q) {
+    var p = new URLSearchParams({ busca: q, status: status, estabelecimento: est, diasAviso: dias });
+    info.textContent = "Buscando...";
+    fetch("/vencimentos/tabela?" + p)
+      .then(function (r) { return r.text(); })
+      .then(function (html) {
+        wrap.innerHTML = html;
+        var badge = wrap.querySelector(".badge-gray");
+        info.textContent = "";
+      })
+      .catch(function () { info.textContent = "Erro ao buscar."; });
+  }
+
+  input.addEventListener("input", function () {
+    clearTimeout(timer);
+    var q = this.value.trim();
+    if (q.length === 0) {
+      info.textContent = "";
+      location.href = "/vencimentos?" + new URLSearchParams({ status: status, estabelecimento: est, diasAviso: dias });
+      return;
+    }
+    timer = setTimeout(function () { buscar(q); }, 300);
+  });
+})();
+</script>
+<div th:replace="~{components/footer :: footer}"></div>
 </body>
 </html>

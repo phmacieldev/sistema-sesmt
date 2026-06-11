@@ -1,4 +1,5 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
+<!-- Copyright (c) 2026 Pedro Henrique Maciel da Silva Faria. Sistema autoral protegido. -->
 <html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
@@ -17,13 +18,45 @@
   <div class="page-header">
     <div>
       <div class="page-title">👤 Funcionários</div>
-      <div class="page-subtitle" id="subtitulo" th:text="${totalItens + ' funcionário(s)'}">—</div>
+      <div class="page-subtitle">Cadastro geral de colaboradores</div>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="grid-4" style="margin-bottom:28px;">
+    <div class="stat-card">
+      <div class="stat-icon">👥</div>
+      <div>
+        <div class="stat-label">Total</div>
+        <div class="stat-value" th:text="${qtdTotal}">0</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🟢</div>
+      <div>
+        <div class="stat-label">Ativos</div>
+        <div class="stat-value stat-value-success" th:text="${qtdAtivos}">0</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🔵</div>
+      <div>
+        <div class="stat-label">Pré-admissional</div>
+        <div class="stat-value" style="color:#3b82f6" th:text="${qtdPreAdmissional}">0</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">⚫</div>
+      <div>
+        <div class="stat-label">Desligados</div>
+        <div class="stat-value" style="color:var(--text-muted)" th:text="${qtdDesligados}">0</div>
+      </div>
     </div>
   </div>
 
   <!-- Busca live -->
   <div style="margin-bottom:20px;">
-    <input type="text" id="buscaNome" class="form-control" style="max-width:340px;"
+    <input type="text" id="buscaNome" class="form-control" style="max-width:480px;"
            placeholder="🔍 Buscar por nome..." th:value="${nomeFiltro}">
   </div>
 
@@ -121,5 +154,6 @@
   });
 })();
 </script>
+<div th:replace="~{components/footer :: footer}"></div>
 </body>
 </html>

@@ -1,4 +1,5 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
+<!-- Copyright (c) 2026 Pedro Henrique Maciel da Silva Faria. Sistema autoral protegido. -->
 <html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
 <head>
   <meta charset="UTF-8">
@@ -8,7 +9,7 @@
   <link rel="stylesheet" th:href="@{/css/global.css}">
   <link rel="stylesheet" th:href="@{/css/agenda.css}">
   <script th:src="@{/js/theme.js}"></script>
-  <script th:src="@{/webjars/fullcalendar/index.global.min.js}"></script>
+  <script th:src="@{/webjars/fullcalendar/6.1.8/index.global.min.js}"></script>
 </head>
 <body>
 <div th:replace="~{components/navbar :: navbar}"></div>
@@ -28,13 +29,14 @@
 <div th:replace="~{components/modal_agendamento :: modal}"></div>
 
 <script th:src="@{/js/agenda.js}"></script>
-<script th:src="@{/webjars/sockjs-client/dist/sockjs.min.js}"></script>
-<script th:src="@{/webjars/stomp-websocket/lib/stomp.min.js}"></script>
+<script th:src="@{/webjars/sockjs-client/sockjs.min.js}"></script>
+<script th:src="@{/webjars/stomp-websocket/stomp.min.js}"></script>
 <script th:attr="nonce=${cspNonce}">
   function carregarDados() {
     if (window.pgeoCalendar) window.pgeoCalendar.refetchEvents();
   }
 </script>
 <script th:src="@{/js/websocket.js}"></script>
+<div th:replace="~{components/footer :: footer}"></div>
 </body>
 </html>

@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 Pedro Henrique Maciel da Silva Faria. Todos os direitos reservados.
+ * Desenvolvido de forma independente como projeto de portfólio.
+ * Autorizado apenas para uso interno homologado.
+ */
 package com.sesmt.pgeo.controller;
 
 import com.sesmt.pgeo.exception.RecursoNaoEncontradoException;
@@ -90,12 +95,22 @@ public class AgendaController {
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
     public String agendar(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data,
+            @RequestParam(required = false) String matricula,
             Model model) {
         model.addAttribute("horarios",
             data != null ? agendamentoService.getHorariosDisponiveisPorData(data)
                          : agendamentoService.getHorariosDisponiveis());
         model.addAttribute("tiposExame", TipoExame.values());
         model.addAttribute("hoje", LocalDate.now().toString());
+        if (matricula != null && !matricula.isBlank()) {
+            funcionarioRepo.findByMatricula(matricula.strip()).ifPresent(f -> {
+                model.addAttribute("prefillMatricula",  f.getMatricula() != null ? f.getMatricula() : "");
+                model.addAttribute("prefillNome",       f.getNome() != null ? f.getNome() : "");
+                model.addAttribute("prefillSetor",      f.getSetor() != null ? f.getSetor() : "");
+                model.addAttribute("prefillFuncao",     f.getFuncao() != null ? f.getFuncao() : "");
+                model.addAttribute("prefillExigeSangue", f.isExigeSangue());
+            });
+        }
         return "agendar";
     }
 
@@ -342,6 +357,30 @@ public class AgendaController {
         String nomeArq = "guia_" + ag.getFuncionarioNome().replace(" ", "_") + ".pdf";
         return ResponseEntity.ok()
             .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nomeArq + "\"")
+            .contentType(MediaType.APPLICATION_PDF)
+            .body(pdf);
+    }
+
+    @GetMapping("/guia/sangue/{id}")
+    public ResponseEntity<byte[]> guiaSangue(@PathVariable Long id) {
+        Agendamento ag = agendamentoRepo.findById(id)
+            .orElseThrow(() -> new RecursoNaoEncontradoException("Agendamento", id));
+        byte[] pdf = pdfService.gerarGuiaSangue(ag);
+        String nomeArq = "guia_sangue_" + ag.getFuncionarioNome().replace(" ", "_") + ".pdf";
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + nomeArq + "\"")
+            .contentType(MediaType.APPLICATION_PDF)
+            .body(pdf);
+    }
+
+    @GetMapping("/guia/clinico/{id}")
+    public ResponseEntity<byte[]> guiaClinico(@PathVariable Long id) {
+        Agendamento ag = agendamentoRepo.findById(id)
+            .orElseThrow(() -> new RecursoNaoEncontradoException("Agendamento", id));
+        byte[] pdf = pdfService.gerarGuiaClinico(ag);
+        String nomeArq = "guia_clinico_" + ag.getFuncionarioNome().replace(" ", "_") + ".pdf";
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + nomeArq + "\"")
             .contentType(MediaType.APPLICATION_PDF)
             .body(pdf);
     }
