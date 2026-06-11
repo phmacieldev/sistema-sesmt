@@ -17,7 +17,8 @@
     <a th:href="@{/agenda}"                  class="nav-link" th:classappend="${currentUri == '/agenda'} ? ' active' : ''">📅 Agenda</a>
     <a th:href="@{/dashboard_sangue}"        class="nav-link" th:classappend="${currentUri == '/dashboard_sangue'} ? ' active' : ''">🩸 Sangue</a>
     <a th:href="@{/atestados}"               class="nav-link" th:classappend="${#strings.startsWith(currentUri, '/atestados')} ? ' active' : ''">📄 Atestados</a>
-    <a th:href="@{/indicadores}"             class="nav-link" th:classappend="${currentUri == '/indicadores'} ? ' active' : ''">📋 Indicadores de Atestados</a>
+    <a th:href="@{/vencimentos}"             class="nav-link" th:classappend="${currentUri == '/vencimentos'} ? ' active' : ''">🔔 Vencimentos ASO</a>
+    <a th:href="@{/indicadores}"             class="nav-link" th:classappend="${currentUri == '/indicadores'} ? ' active' : ''">📊 Indicadores SESMT</a>
     <a th:href="@{/funcionarios}"             class="nav-link" th:classappend="${#strings.startsWith(currentUri, '/funcionario')} ? ' active' : ''">👤 Funcionários</a>
     <a th:href="@{/dashboard_exames}"        class="nav-link" th:classappend="${currentUri == '/dashboard_exames'} ? ' active' : ''">💊 Exames</a>
     <a th:href="@{/dashboard_estatisticas}"  class="nav-link" th:classappend="${currentUri == '/dashboard_estatisticas'} ? ' active' : ''">📈 Estatísticas de Exames</a>

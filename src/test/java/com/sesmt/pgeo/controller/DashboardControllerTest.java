@@ -191,4 +191,39 @@ class DashboardControllerTest {
             .andExpect(model().attribute("paginaAtual", 0))
             .andExpect(model().attribute("totalPaginas", 1));
     }
+
+    // ── Vencimentos ASO ───────────────────────────────────────────────
+
+    @Test
+    void vencimentos_semAutenticacao_redirecionaParaLogin() throws Exception {
+        mvc.perform(get("/vencimentos"))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(redirectedUrlPattern("**/login"));
+    }
+
+    @Test
+    @WithMockUser
+    void vencimentos_autenticado_retorna200ComModelCompleto() throws Exception {
+        when(funcionarioRepo.findByAtivoTrue()).thenReturn(List.of());
+
+        mvc.perform(get("/vencimentos"))
+            .andExpect(status().isOk())
+            .andExpect(view().name("vencimentos"))
+            .andExpect(model().attributeExists("qtdVencidos"))
+            .andExpect(model().attributeExists("qtdAVencer"))
+            .andExpect(model().attributeExists("qtdEmDia"))
+            .andExpect(model().attributeExists("qtdSemAso"))
+            .andExpect(model().attributeExists("funcionarios"))
+            .andExpect(model().attributeExists("statusFiltro"));
+    }
+
+    @Test
+    @WithMockUser
+    void vencimentos_comFiltroStatus_filtraVencidos() throws Exception {
+        when(funcionarioRepo.findByAtivoTrue()).thenReturn(List.of());
+
+        mvc.perform(get("/vencimentos").param("status", "vencidos"))
+            .andExpect(status().isOk())
+            .andExpect(model().attribute("statusFiltro", "vencidos"));
+    }
 }

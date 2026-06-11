@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vencimentos ASO — PGEO</title>
+  <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
+  <link rel="stylesheet" th:href="@{/css/global.css}">
+  <script th:src="@{/js/theme.js}"></script>
+</head>
+<body>
+<div th:replace="~{components/navbar :: navbar}"></div>
+
+<div class="page-wrapper">
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">🔔 Vencimentos ASO</div>
+      <div class="page-subtitle">Controle de Atestados de Saúde Ocupacional por status</div>
+    </div>
+    <div class="header-actions">
+      <a th:href="@{/exportar_aso(status=${statusFiltro},busca=${buscaFiltro},estabelecimento=${estFiltro},diasAviso=${diasAviso})}"
+         class="btn btn-secondary btn-sm">📥 Exportar Excel</a>
+    </div>
+  </div>
+
+  <!-- KPI cards -->
+  <div class="grid-4 mb-16">
+    <a th:href="@{/vencimentos(status='vencidos',diasAviso=${diasAviso})}" class="stat-card stat-card-link" style="border-left:4px solid var(--danger);text-decoration:none;">
+      <span class="stat-icon">❌</span>
+      <div>
+        <div class="stat-label">Vencidos</div>
+        <div class="stat-value" style="color:var(--danger)" th:text="${qtdVencidos}">0</div>
+      </div>
+    </a>
+    <a th:href="@{/vencimentos(status='a_vencer',diasAviso=${diasAviso})}" class="stat-card stat-card-link" style="border-left:4px solid var(--warning);text-decoration:none;">
+      <span class="stat-icon">⚠️</span>
+      <div>
+        <div class="stat-label" th:text="'A vencer (' + ${diasAviso} + ' dias)'">A vencer</div>
+        <div class="stat-value" style="color:var(--warning)" th:text="${qtdAVencer}">0</div>
+      </div>
+    </a>
+    <a th:href="@{/vencimentos(status='em_dia',diasAviso=${diasAviso})}" class="stat-card stat-card-link" style="border-left:4px solid var(--success);text-decoration:none;">
+      <span class="stat-icon">✅</span>
+      <div>
+        <div class="stat-label">Em dia</div>
+        <div class="stat-value" style="color:var(--success)" th:text="${qtdEmDia}">0</div>
+      </div>
+    </a>
+    <a th:href="@{/vencimentos(status='sem_aso',diasAviso=${diasAviso})}" class="stat-card stat-card-link" style="border-left:4px solid var(--text-muted);text-decoration:none;">
+      <span class="stat-icon">❓</span>
+      <div>
+        <div class="stat-label">Sem ASO</div>
+        <div class="stat-value" style="color:var(--text-muted)" th:text="${qtdSemAso}">0</div>
+      </div>
+    </a>
+  </div>
+
+  <!-- Filtros -->
+  <form th:action="@{/vencimentos}" method="GET" class="card mb-16">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+      <div class="form-group" style="flex:2;min-width:180px;margin:0;">
+        <label class="form-label">Buscar funcionário</label>
+        <input type="text" name="busca" class="form-control" placeholder="Nome..."
+               th:value="${buscaFiltro}">
+      </div>
+      <div class="form-group" style="flex:1;min-width:140px;margin:0;">
+        <label class="form-label">Estabelecimento</label>
+        <select name="estabelecimento" class="form-control">
+          <option value="todos" th:selected="${estFiltro == null or estFiltro == 'todos'}">Todos</option>
+          <option th:each="e : ${estabelecimentos}" th:value="${e}" th:text="${e}"
+                  th:selected="${e == estFiltro}"></option>
+        </select>
+      </div>
+      <div class="form-group" style="min-width:130px;margin:0;">
+        <label class="form-label">Status</label>
+        <select name="status" class="form-control">
+          <option value="todos"    th:selected="${statusFiltro == 'todos'}">Todos</option>
+          <option value="vencidos" th:selected="${statusFiltro == 'vencidos'}">Vencidos</option>
+          <option value="a_vencer" th:selected="${statusFiltro == 'a_vencer'}">A vencer</option>
+          <option value="em_dia"   th:selected="${statusFiltro == 'em_dia'}">Em dia</option>
+          <option value="sem_aso"  th:selected="${statusFiltro == 'sem_aso'}">Sem ASO</option>
+        </select>
+      </div>
+      <div class="form-group" style="min-width:120px;margin:0;">
+        <label class="form-label">Aviso antecipado</label>
+        <select name="diasAviso" class="form-control">
+          <option value="15"  th:selected="${diasAviso == 15}">15 dias</option>
+          <option value="30"  th:selected="${diasAviso == 30}">30 dias</option>
+          <option value="60"  th:selected="${diasAviso == 60}">60 dias</option>
+          <option value="90"  th:selected="${diasAviso == 90}">90 dias</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;align-items:flex-end;padding-bottom:1px;">
+        <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
+        <a th:href="@{/vencimentos}" class="btn btn-secondary btn-sm">Limpar</a>
+      </div>
+    </div>
+    <input type="hidden" name="pagina" value="0">
+  </form>
+
+  <!-- Tabs de status rápido -->
+  <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
+    <a th:href="@{/vencimentos(diasAviso=${diasAviso},busca=${buscaFiltro},estabelecimento=${estFiltro})}"
+       th:class="${statusFiltro == 'todos'} ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'">Todos</a>
+    <a th:href="@{/vencimentos(status='vencidos',diasAviso=${diasAviso},busca=${buscaFiltro},estabelecimento=${estFiltro})}"
+       th:class="${statusFiltro == 'vencidos'} ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'">❌ Vencidos <span th:text="${qtdVencidos}"></span></a>
+    <a th:href="@{/vencimentos(status='a_vencer',diasAviso=${diasAviso},busca=${buscaFiltro},estabelecimento=${estFiltro})}"
+       th:class="${statusFiltro == 'a_vencer'} ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'">⚠️ A vencer <span th:text="${qtdAVencer}"></span></a>
+    <a th:href="@{/vencimentos(status='sem_aso',diasAviso=${diasAviso},busca=${buscaFiltro},estabelecimento=${estFiltro})}"
+       th:class="${statusFiltro == 'sem_aso'} ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'">❓ Sem ASO <span th:text="${qtdSemAso}"></span></a>
+    <a th:href="@{/vencimentos(status='em_dia',diasAviso=${diasAviso},busca=${buscaFiltro},estabelecimento=${estFiltro})}"
+       th:class="${statusFiltro == 'em_dia'} ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'">✅ Em dia <span th:text="${qtdEmDia}"></span></a>
+  </div>
+
+  <!-- Resultado -->
+  <div class="card p-0">
+    <div class="card-header" style="padding:12px 16px;">
+      <span class="card-title">Funcionários</span>
+      <span class="badge badge-gray" th:text="${totalItens} + ' resultado(s)'"></span>
+    </div>
+
+    <div th:if="${#lists.isEmpty(funcionarios)}" class="empty-state" style="padding:40px;">
+      <div class="empty-state-icon">🔔</div>
+      <div class="empty-state-title">Nenhum funcionário encontrado</div>
+    </div>
+
+    <div th:if="${!#lists.isEmpty(funcionarios)}" class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Funcionário</th>
+            <th>Matrícula</th>
+            <th>Setor / Função</th>
+            <th>Estabelecimento</th>
+            <th>Data ASO</th>
+            <th>Status</th>
+            <th>Dias</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr th:each="f : ${funcionarios}">
+            <td>
+              <a th:href="@{/funcionario/{id}(id=${f.id})}" class="link-text" th:text="${f.nome}">Nome</a>
+            </td>
+            <td class="text-muted" th:text="${f.matricula ?: '—'}">—</td>
+            <td>
+              <div th:text="${f.setor ?: '—'}">—</div>
+              <div class="text-muted" style="font-size:12px;" th:text="${f.funcao ?: ''}"></div>
+            </td>
+            <td>
+              <span class="badge badge-gray" th:if="${f.estabelecimentoEfetivo != null}" th:text="${f.estabelecimentoEfetivo}"></span>
+              <span th:if="${f.estabelecimentoEfetivo == null}" class="text-muted">—</span>
+            </td>
+            <td>
+              <span th:if="${f.aso != null}" th:text="${#temporals.format(f.aso, 'dd/MM/yyyy')}">—</span>
+              <span th:if="${f.aso == null}" class="text-muted">—</span>
+            </td>
+            <td>
+              <!-- Sem ASO -->
+              <span th:if="${f.aso == null}" class="badge badge-gray">Sem ASO</span>
+              <!-- Vencido -->
+              <span th:if="${f.aso != null and f.aso.isBefore(hoje)}" class="badge badge-danger">Vencido</span>
+              <!-- A vencer -->
+              <span th:if="${f.aso != null and !f.aso.isBefore(hoje) and f.aso.isBefore(limite)}" class="badge badge-warning">A vencer</span>
+              <!-- Em dia -->
+              <span th:if="${f.aso != null and !f.aso.isBefore(limite)}" class="badge badge-success">Em dia</span>
+            </td>
+            <td class="text-center">
+              <span th:if="${f.aso == null}" class="text-muted">—</span>
+              <span th:if="${f.aso != null and f.aso.isBefore(hoje)}"
+                    style="color:var(--danger);font-weight:600;"
+                    th:text="${'-' + T(java.time.temporal.ChronoUnit).DAYS.between(f.aso, hoje) + ' d'}"></span>
+              <span th:if="${f.aso != null and !f.aso.isBefore(hoje) and f.aso.isBefore(limite)}"
+                    style="color:var(--warning);font-weight:600;"
+                    th:text="${T(java.time.temporal.ChronoUnit).DAYS.between(hoje, f.aso) + ' d'}"></span>
+              <span th:if="${f.aso != null and !f.aso.isBefore(limite)}"
+                    class="text-muted"
+                    th:text="${T(java.time.temporal.ChronoUnit).DAYS.between(hoje, f.aso) + ' d'}"></span>
+            </td>
+            <td>
+              <a th:href="@{/agendar(matricula=${f.matricula})}" class="btn btn-primary btn-sm"
+                 title="Agendar exame">➕</a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginação -->
+    <div th:if="${totalPaginas > 1}" class="pg-bar" style="padding:12px 16px;">
+      <a th:href="@{/vencimentos(pagina=${paginaAtual - 1},status=${statusFiltro},busca=${buscaFiltro},estabelecimento=${estFiltro},diasAviso=${diasAviso})}"
+         th:class="${paginaAtual == 0} ? 'pg-btn disabled' : 'pg-btn'">‹ Ant</a>
+      <a th:each="i : ${#numbers.sequence(0, totalPaginas - 1)}"
+         th:href="@{/vencimentos(pagina=${i},status=${statusFiltro},busca=${buscaFiltro},estabelecimento=${estFiltro},diasAviso=${diasAviso})}"
+         th:text="${i + 1}"
+         th:class="${i == paginaAtual} ? 'pg-btn active' : 'pg-btn'"></a>
+      <a th:href="@{/vencimentos(pagina=${paginaAtual + 1},status=${statusFiltro},busca=${buscaFiltro},estabelecimento=${estFiltro},diasAviso=${diasAviso})}"
+         th:class="${paginaAtual >= totalPaginas - 1} ? 'pg-btn disabled' : 'pg-btn'">Próx ›</a>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

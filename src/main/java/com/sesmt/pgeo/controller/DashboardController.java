@@ -408,4 +408,85 @@ public class DashboardController {
         model.addAttribute("dias",          dias);
         return "indicadores";
     }
+
+    private static final int VENCIMENTOS_POR_PAGINA = 25;
+
+    @GetMapping("/vencimentos")
+    public String vencimentos(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String busca,
+            @RequestParam(required = false) String estabelecimento,
+            @RequestParam(defaultValue = "30") int diasAviso,
+            @RequestParam(defaultValue = "0")  int pagina,
+            Model model) {
+
+        LocalDate hoje   = LocalDate.now();
+        LocalDate limite = hoje.plusDays(diasAviso);
+
+        List<Funcionario> todos = funcionarioRepo.findByAtivoTrue();
+
+        if (busca != null && !busca.isBlank()) {
+            String b = busca.strip().toLowerCase();
+            todos = todos.stream()
+                .filter(f -> f.getNome() != null && f.getNome().toLowerCase().contains(b))
+                .toList();
+        }
+        if (estabelecimento != null && !estabelecimento.isBlank()
+                && !"todos".equalsIgnoreCase(estabelecimento)) {
+            String est = estabelecimento.strip().toUpperCase();
+            todos = todos.stream()
+                .filter(f -> est.equals(f.getEstabelecimentoEfetivo()))
+                .toList();
+        }
+
+        long qtdVencidos = todos.stream().filter(f -> f.getAso() != null && f.getAso().isBefore(hoje)).count();
+        long qtdAVencer  = todos.stream().filter(f -> f.getAso() != null && !f.getAso().isBefore(hoje) && f.getAso().isBefore(limite)).count();
+        long qtdEmDia    = todos.stream().filter(f -> f.getAso() != null && !f.getAso().isBefore(limite)).count();
+        long qtdSemAso   = todos.stream().filter(f -> f.getAso() == null).count();
+
+        List<Funcionario> lista = switch (status != null ? status : "todos") {
+            case "vencidos" -> todos.stream().filter(f -> f.getAso() != null && f.getAso().isBefore(hoje)).toList();
+            case "a_vencer" -> todos.stream().filter(f -> f.getAso() != null && !f.getAso().isBefore(hoje) && f.getAso().isBefore(limite)).toList();
+            case "em_dia"   -> todos.stream().filter(f -> f.getAso() != null && !f.getAso().isBefore(limite)).toList();
+            case "sem_aso"  -> todos.stream().filter(f -> f.getAso() == null).toList();
+            default         -> todos.stream()
+                .sorted(Comparator.comparing((Funcionario f) -> f.getAso() == null ? 0 : (f.getAso().isBefore(hoje) ? 1 : (f.getAso().isBefore(limite) ? 2 : 3)))
+                    .thenComparing(f -> f.getAso() != null ? f.getAso() : LocalDate.MAX))
+                .toList();
+        };
+
+        if (!"todos".equals(status != null ? status : "todos")) {
+            lista = lista.stream()
+                .sorted(Comparator.comparing(f -> f.getAso() != null ? f.getAso() : LocalDate.MAX))
+                .toList();
+        }
+
+        List<String> estabelecimentos = funcionarioRepo.findByAtivoTrue().stream()
+            .map(Funcionario::getEstabelecimentoEfetivo)
+            .filter(e -> e != null && !e.isBlank())
+            .distinct().sorted().toList();
+
+        int total     = lista.size();
+        int totalPag  = Math.max(1, (int) Math.ceil((double) total / VENCIMENTOS_POR_PAGINA));
+        int pag       = Math.max(0, Math.min(pagina, totalPag - 1));
+        int ini       = pag * VENCIMENTOS_POR_PAGINA;
+        List<Funcionario> paginado = lista.subList(ini, Math.min(ini + VENCIMENTOS_POR_PAGINA, total));
+
+        model.addAttribute("funcionarios",     paginado);
+        model.addAttribute("qtdVencidos",      qtdVencidos);
+        model.addAttribute("qtdAVencer",       qtdAVencer);
+        model.addAttribute("qtdEmDia",         qtdEmDia);
+        model.addAttribute("qtdSemAso",        qtdSemAso);
+        model.addAttribute("statusFiltro",     status != null ? status : "todos");
+        model.addAttribute("buscaFiltro",      busca);
+        model.addAttribute("estFiltro",        estabelecimento);
+        model.addAttribute("diasAviso",        diasAviso);
+        model.addAttribute("hoje",             hoje);
+        model.addAttribute("limite",           limite);
+        model.addAttribute("estabelecimentos", estabelecimentos);
+        model.addAttribute("totalItens",       total);
+        model.addAttribute("totalPaginas",     totalPag);
+        model.addAttribute("paginaAtual",      pag);
+        return "vencimentos";
+    }
 }
