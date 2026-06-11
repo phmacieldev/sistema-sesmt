@@ -1052,7 +1052,9 @@ body.no-navbar {
 .barra-fill[data-v="4"] { width: 80%; }
 .barra-fill[data-v="5"] { width: 100%; }
 .table-sangue { border: none; border-radius: 0; margin-top: 4px; }
-.sangue-dia-sep td { background: var(--bg-table-head); padding: 8px 16px; border-top: 2px solid var(--border); }
+.sangue-dia-head td { background: var(--bg-table-head); padding: 10px 16px; }
+.sangue-dia-sep  td { padding: 4px 16px; background: var(--bg-card); border-bottom: 2px solid var(--border); }
+.mes-nav-label { font-size: 15px; font-weight: 600; min-width: 90px; text-align: center; color: var(--text); }
 
 /* ── Funcionário — motivo tags ────────────────────────────────────── */
 .motivo-tag      { font-size: 11px; padding: 2px 9px; border-radius: 20px; font-weight: 600; }
