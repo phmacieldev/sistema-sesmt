@@ -18,14 +18,14 @@
   <div class="page-header">
     <div class="page-title">📅 Agenda de Exames Ocupacionais</div>
     <div class="ml-auto">
-      <a th:href="@{/agendar}" class="btn btn-success btn-sm">➕ Novo Agendamento</a>
+      <button type="button" class="btn btn-success btn-sm" onclick="abrirModalFormNovo()">➕ Novo Agendamento</button>
     </div>
   </div>
 
   <div id="calendar"></div>
 </div>
 
-<!-- Modal de agendamento -->
+<!-- Modal de detalhes -->
 <div th:replace="~{components/modal_agendamento :: modal}"></div>
 
 <script th:src="@{/js/agenda.js}"></script>

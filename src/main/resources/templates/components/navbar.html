@@ -18,9 +18,9 @@
        th:classappend="${currentUri == '/home'} ? ' active' : ''">🏠 Início</a>
 
     <!-- Agendar -->
-    <a th:href="@{/agendar}" class="nav-link"
+    <a href="#" class="nav-link"
        sec:authorize="hasAnyRole('ADMIN','OPERADOR')"
-       th:classappend="${currentUri == '/agendar'} ? ' active' : ''">➕ Agendar</a>
+       onclick="event.preventDefault(); abrirModalFormNovo()">➕ Agendar</a>
 
     <!-- ── ASOs ── -->
     <div class="nav-dropdown">

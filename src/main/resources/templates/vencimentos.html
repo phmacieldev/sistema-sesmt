@@ -146,8 +146,8 @@
                     th:text="${T(java.time.temporal.ChronoUnit).DAYS.between(hoje, f.aso) + ' d'}"></span>
             </td>
             <td>
-              <a th:href="@{/agendar(matricula=${f.matricula})}" class="btn btn-primary btn-sm"
-                 title="Agendar exame">➕</a>
+              <button type="button" class="btn btn-primary btn-sm" title="Agendar exame"
+                      th:onclick="|abrirModalFormNovo('${f.matricula}')|">➕</button>
             </td>
           </tr>
         </tbody>

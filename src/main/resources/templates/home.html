@@ -93,7 +93,7 @@
 
   <!-- ── Atalhos rápidos (7 itens numa linha) ── -->
   <div class="home-atalhos">
-    <a th:href="@{/agendar}"                class="quick-link"><span class="quick-link-icon">➕</span>Agendar Exame</a>
+    <a href="#" class="quick-link" onclick="event.preventDefault(); abrirModalFormNovo()"><span class="quick-link-icon">➕</span>Agendar Exame</a>
     <a th:href="@{/dashboard}"              class="quick-link"><span class="quick-link-icon">📋</span>Agendamentos</a>
     <a th:href="@{/agenda}"                 class="quick-link"><span class="quick-link-icon">📅</span>Agenda</a>
     <a th:href="@{/atestados}"              class="quick-link"><span class="quick-link-icon">📄</span>Atestados</a>
@@ -169,7 +169,8 @@
       <span style="color:var(--text-muted);font-size:12px" th:text="${f.estabelecimentoEfetivo ?: '—'}">—</span>
       <span style="color:var(--danger);font-size:12px;flex-shrink:0"
             th:text="'venceu ' + ${#temporals.format(f.aso, 'dd/MM/yyyy')}">—</span>
-      <a th:href="@{/agendar(matricula=${f.matricula})}" class="btn btn-primary btn-sm" style="padding:3px 10px;font-size:11px;flex-shrink:0">Agendar</a>
+      <button type="button" class="btn btn-primary btn-sm" style="padding:3px 10px;font-size:11px;flex-shrink:0"
+              th:onclick="|abrirModalFormNovo('${f.matricula}')|">Agendar</button>
     </div>
 
     <!-- Paginação dos ASOs -->

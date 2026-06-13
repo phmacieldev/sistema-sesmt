@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.Arrays;
 
 @Tag(name = "Agendamentos", description = "Criação, edição, calendário e APIs de suporte para agendamentos de exames")
 @Controller
@@ -45,7 +46,23 @@ public class AgendaController {
     @GetMapping("/agenda")
     public String agenda(Model model) {
         model.addAttribute("tiposExame", TipoExame.values());
+        model.addAttribute("horarios", agendamentoService.getHorariosDisponiveis());
+        model.addAttribute("hoje", LocalDate.now().toString());
         return "agenda";
+    }
+
+    @GetMapping("/api/tipos-exame")
+    @ResponseBody
+    public List<String> apiTiposExame() {
+        return Arrays.stream(TipoExame.values())
+            .map(TipoExame::getDescricao)
+            .toList();
+    }
+
+    @GetMapping("/api/horarios")
+    @ResponseBody
+    public List<String> apiHorarios() {
+        return agendamentoService.getHorariosDisponiveis();
     }
 
     @Operation(summary = "Lista eventos do calendário", description = "Retorna todos os agendamentos formatados para o FullCalendar")
@@ -168,6 +185,24 @@ public class AgendaController {
 
     // ── Edição ────────────────────────────────────────────────────────
 
+    @GetMapping("/agendamento/{id}/json")
+    @ResponseBody
+    public Map<String, Object> agendamentoJson(@PathVariable Long id) {
+        Agendamento ag = agendamentoRepo.findById(id)
+            .orElseThrow(() -> new RecursoNaoEncontradoException("Agendamento", id));
+        Map<String, Object> r = new LinkedHashMap<>();
+        r.put("id",          ag.getId());
+        r.put("nome",        ag.getFuncionarioNome());
+        r.put("setor",       ag.getFuncionarioSetor());
+        r.put("funcao",      ag.getFuncionarioFuncao());
+        r.put("tipoExame",   ag.getTipoExameDescricao());
+        r.put("dataSangue",  ag.getDataSangue() != null ? ag.getDataSangue().toString() : "");
+        r.put("dataClinico", ag.getDataClinico() != null ? ag.getDataClinico().toString() : "");
+        r.put("hora",        ag.getHoraClinico());
+        r.put("observacoes", ag.getObservacoes() != null ? ag.getObservacoes() : "");
+        return r;
+    }
+
     @GetMapping("/editar_agendamento/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
     public String editarForm(@PathVariable Long id,
@@ -184,7 +219,8 @@ public class AgendaController {
 
     @PostMapping("/editar_agendamento/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
-    public String editarPost(
+    @ResponseBody
+    public Map<String, Object> editarPost(
             @PathVariable Long id,
             @RequestParam String nome,
             @RequestParam String setor,
@@ -194,14 +230,13 @@ public class AgendaController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
                                             LocalDate data_sangue,
             @RequestParam String hora,
-            @RequestParam(required = false) String observacoes,
-            @RequestParam(defaultValue = "dashboard") String origem) {
+            @RequestParam(required = false) String observacoes) {
 
         TipoExame tipoEnum = TipoExame.fromDescricao(tipo_exame);
         if (tipoEnum == null) tipoEnum = TipoExame.PERIODICO;
 
         agendamentoService.editar(id, nome, setor, funcao, tipoEnum, data_clinico, data_sangue, hora, observacoes);
-        return "redirect:" + ("dashboard".equals(origem) ? "/dashboard" : "/agenda");
+        return Map.of("ok", true);
     }
 
     // ── Drag & drop ───────────────────────────────────────────────────

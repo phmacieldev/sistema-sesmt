@@ -193,7 +193,8 @@
               </th:block>
             </td>
             <td sec:authorize="hasAnyRole('ADMIN','OPERADOR')">
-              <a th:href="@{/agendar(matricula=${f.matricula})}" class="btn btn-primary btn-sm" title="Agendar exame">➕ Agendar</a>
+              <button type="button" class="btn btn-primary btn-sm" title="Agendar exame"
+                      th:onclick="|abrirModalFormNovo('${f.matricula}')|">➕ Agendar</button>
             </td>
           </tr>
           <tr th:if="${#lists.isEmpty(exames)}">

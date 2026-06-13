@@ -64,7 +64,19 @@ document.addEventListener('DOMContentLoaded', function() {
         },
 
         eventClick: function(info) {
-            window.location.href = '/editar_agendamento/' + info.event.id + '?origem=agenda';
+            var p = info.event.extendedProps;
+            var d = info.event.start;
+            var dataFmt = d ? d.toLocaleDateString('pt-BR') : '—';
+            var horaFmt = d ? d.toTimeString().slice(0,5) : '—';
+            abrirModal({
+                id:    info.event.id,
+                nome:  p.nome,
+                setor: p.setor,
+                funcao:p.funcao,
+                exame: p.tipo,
+                data:  dataFmt,
+                hora:  horaFmt
+            });
         },
 
         eventDrop: function(info) {
@@ -96,14 +108,17 @@ setTimeout(function() {
     document.querySelectorAll(".alerta").forEach(el => el.classList.add("sumir"));
 }, 3000);
 
+// ── Modal de detalhes ─────────────────────────────────────────────────────
+window._modalAgId = null;
+
 function abrirModal(ag) {
-    document.getElementById("modal-nome").innerText  = ag.nome;
-    document.getElementById("modal-setor").innerText = ag.setor;
-    document.getElementById("modal-funcao").innerText= ag.funcao;
-    document.getElementById("modal-exame").innerText = ag.exame;
-    document.getElementById("modal-data").innerText  = ag.data;
-    document.getElementById("modal-hora").innerText  = ag.hora;
-    document.getElementById("btn-editar-modal").href  = "/editar_agendamento/" + ag.id;
+    window._modalAgId = ag.id;
+    document.getElementById("modal-nome").innerText   = ag.nome  || '—';
+    document.getElementById("modal-setor").innerText  = ag.setor || '—';
+    document.getElementById("modal-funcao").innerText = ag.funcao|| '—';
+    document.getElementById("modal-exame").innerText  = ag.exame || '—';
+    document.getElementById("modal-data").innerText   = ag.data  || '—';
+    document.getElementById("modal-hora").innerText   = ag.hora  || '—';
     document.getElementById("btn-detalhe-modal").href = "/agendamento/" + ag.id;
     document.getElementById("modal-agendamento").classList.add("show");
 }
@@ -113,6 +128,9 @@ function fecharModal() {
 }
 
 window.addEventListener('click', function(e) {
-    let modal = document.getElementById("modal-agendamento");
-    if (modal && e.target === modal) modal.classList.remove("show");
+    var m1 = document.getElementById("modal-agendamento");
+    if (m1 && e.target === m1) m1.classList.remove("show");
+    var m2 = document.getElementById("modal-form-agendamento");
+    if (m2 && e.target === m2) m2.classList.remove("show");
 });
+

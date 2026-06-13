@@ -51,8 +51,8 @@
            class="btn btn-secondary btn-icon btn-sm" title="Guia de Sangue" target="_blank">🩸</a>
         <a th:href="@{/guia/clinico/{id}(id=${a.id})}"
            class="btn btn-secondary btn-icon btn-sm" title="Guia Clínico Proteus" target="_blank">📋</a>
-        <a th:href="@{/editar_agendamento/{id}(id=${a.id})}"
-           class="btn btn-primary btn-icon btn-sm" title="Editar">✏️</a>
+        <button type="button" class="btn btn-primary btn-icon btn-sm" title="Editar"
+                th:onclick="|abrirModalFormEditar(${a.id})|">✏️</button>
         <form th:action="@{/excluir_agendamento/{id}(id=${a.id})}"
               method="POST" onsubmit="return confirmarExclusao()">
           <button class="btn btn-danger btn-icon btn-sm" title="Excluir">🗑</button>

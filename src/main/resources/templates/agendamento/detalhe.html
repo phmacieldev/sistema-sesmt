@@ -20,8 +20,8 @@
            th:text="${agendamento.funcionarioNome}">Funcionário</div>
     </div>
     <div class="header-actions">
-      <a th:href="@{/editar_agendamento/{id}(id=${agendamento.id})}"
-         class="btn btn-primary">✏️ Editar</a>
+      <button type="button" class="btn btn-primary"
+              th:onclick="|abrirModalFormEditar(${agendamento.id})|">✏️ Editar</button>
       <a th:if="${agendamento.funcionario != null}"
          th:href="@{/funcionario/{id}(id=${agendamento.funcionario.id})}"
          class="btn btn-secondary">👤 Perfil</a>
