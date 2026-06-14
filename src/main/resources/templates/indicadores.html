@@ -7,7 +7,7 @@
   <title>Indicadores SESMT — PGEO</title>
   <link rel="stylesheet" th:href="@{/css/global.css}">
   <script th:src="@{/js/theme.js}"></script>
-  <script th:src="@{/webjars/chart.js/dist/chart.umd.js}"></script>
+  <script th:src="@{/webjars/chart.js/4.4.3/dist/chart.umd.js}"></script>
   <style th:attr="nonce=${cspNonce}">
     .kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px; }
     .kpi-card  { background:var(--bg-card); border:1px solid var(--border); border-radius:12px;
@@ -65,15 +65,15 @@
   <div class="grid-2 mb-24">
     <div class="card">
       <div class="card-header">
-        <span class="card-title">📊 Exames por Mês (últimos 12 meses)</span>
+        <span class="card-title">📋 Atestados por Mês (últimos 12 meses)</span>
       </div>
       <canvas id="graficoMeses" style="max-height:260px;"></canvas>
     </div>
     <div class="card">
       <div class="card-header">
-        <span class="card-title">🍩 Distribuição por Tipo de Exame</span>
+        <span class="card-title">📅 Status dos Agendamentos</span>
       </div>
-      <canvas id="graficoPizza" style="max-height:260px;"></canvas>
+      <canvas id="graficoStatus" style="max-height:260px;"></canvas>
     </div>
   </div>
 
@@ -148,50 +148,69 @@
 </div>
 
 <script th:inline="javascript" th:attr="nonce=${cspNonce}">
-var labelesMeses = /*[[${labelesMeses}]]*/ [];
-var examesPorMes = /*[[${examesPorMes}]]*/ [];
-var tiposLabels  = /*[[${tiposLabels}]]*/ [];
-var tiposTotal   = /*[[${tiposTotal}]]*/ [];
+var labelesMeses    = /*[[${labelesMeses}]]*/ [];
+var atestadosPorMes = /*[[${atestadosPorMes}]]*/ [];
+var agAgendados     = /*[[${agAgendados}]]*/ 0;
+var agEmDia         = /*[[${agEmDia}]]*/ 0;
+var agAtrasados     = /*[[${agAtrasados}]]*/ 0;
 
 function isDark() { return document.documentElement.getAttribute('data-theme') === 'dark'; }
 function tc() { return isDark() ? '#94a3b8' : '#64748b'; }
 function gc() { return isDark() ? '#334155' : '#e2e8f0'; }
 
-var barChart, pieChart;
+var barChart, statusChart;
 
 function buildCharts() {
-  if (barChart) barChart.destroy();
-  if (pieChart) pieChart.destroy();
+  if (typeof Chart === 'undefined') return;
+  if (barChart)    barChart.destroy();
+  if (statusChart) statusChart.destroy();
 
   barChart = new Chart(document.getElementById('graficoMeses'), {
     type: 'bar',
     data: {
       labels: labelesMeses,
-      datasets: [{ label: 'Exames', data: examesPorMes,
-                   backgroundColor: '#3b82f6', borderRadius: 6 }]
+      datasets: [{ label: 'Atestados', data: atestadosPorMes,
+                   backgroundColor: '#f59e0b', borderRadius: 6 }]
     },
     options: {
       responsive: true,
       plugins: { legend: { display: false } },
       scales: {
         x: { grid: { color: gc() }, ticks: { color: tc(), maxRotation: 45 } },
-        y: { grid: { color: gc() }, ticks: { color: tc(), stepSize: 1 } }
+        y: { grid: { color: gc() }, ticks: { color: tc(), stepSize: 1, precision: 0 } }
       }
     }
   });
 
-  pieChart = new Chart(document.getElementById('graficoPizza'), {
+  statusChart = new Chart(document.getElementById('graficoStatus'), {
     type: 'doughnut',
     data: {
-      labels: tiposLabels,
+      labels: ['Agendados', 'Em Dia (ASO recebido)', 'Pendentes (sem ASO)'],
       datasets: [{
-        data: tiposTotal,
-        backgroundColor: ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#ec4899']
+        data: [agAgendados, agEmDia, agAtrasados],
+        backgroundColor: ['#3b82f6', '#10b981', '#ef4444'],
+        borderWidth: 0,
+        hoverOffset: 8
       }]
     },
     options: {
       responsive: true,
-      plugins: { legend: { labels: { color: tc() } } }
+      cutout: '62%',
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { color: tc(), padding: 16, font: { size: 12 } }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              var total = ctx.dataset.data.reduce(function(a, b) { return a + b; }, 0);
+              var pct = total > 0 ? Math.round(ctx.parsed / total * 100) : 0;
+              return ' ' + ctx.label + ': ' + ctx.parsed + ' (' + pct + '%)';
+            }
+          }
+        }
+      }
     }
   });
 }

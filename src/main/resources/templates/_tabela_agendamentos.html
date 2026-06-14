@@ -52,7 +52,7 @@
         <a th:href="@{/guia/clinico/{id}(id=${a.id})}"
            class="btn btn-secondary btn-icon btn-sm" title="Guia Clínico Proteus" target="_blank">📋</a>
         <button type="button" class="btn btn-primary btn-icon btn-sm" title="Editar"
-                th:onclick="|abrirModalFormEditar(${a.id})|">✏️</button>
+                data-modal-editar th:attr="data-id=${a.id}">✏️</button>
         <form th:action="@{/excluir_agendamento/{id}(id=${a.id})}"
               method="POST" onsubmit="return confirmarExclusao()">
           <button class="btn btn-danger btn-icon btn-sm" title="Excluir">🗑</button>

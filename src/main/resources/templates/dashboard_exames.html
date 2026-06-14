@@ -194,7 +194,7 @@
             </td>
             <td sec:authorize="hasAnyRole('ADMIN','OPERADOR')">
               <button type="button" class="btn btn-primary btn-sm" title="Agendar exame"
-                      th:onclick="|abrirModalFormNovo('${f.matricula}')|">➕ Agendar</button>
+                      data-modal-novo th:attr="data-matricula=${f.matricula}">➕ Agendar</button>
             </td>
           </tr>
           <tr th:if="${#lists.isEmpty(exames)}">

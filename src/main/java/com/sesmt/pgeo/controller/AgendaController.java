@@ -192,13 +192,14 @@ public class AgendaController {
             .orElseThrow(() -> new RecursoNaoEncontradoException("Agendamento", id));
         Map<String, Object> r = new LinkedHashMap<>();
         r.put("id",          ag.getId());
+        r.put("matricula",   ag.getFuncionarioMatricula() != null ? ag.getFuncionarioMatricula() : "");
         r.put("nome",        ag.getFuncionarioNome());
         r.put("setor",       ag.getFuncionarioSetor());
         r.put("funcao",      ag.getFuncionarioFuncao());
         r.put("tipoExame",   ag.getTipoExameDescricao());
         r.put("dataSangue",  ag.getDataSangue() != null ? ag.getDataSangue().toString() : "");
         r.put("dataClinico", ag.getDataClinico() != null ? ag.getDataClinico().toString() : "");
-        r.put("hora",        ag.getHoraClinico());
+        r.put("hora",        ag.getHoraClinico() != null ? ag.getHoraClinico() : "");
         r.put("observacoes", ag.getObservacoes() != null ? ag.getObservacoes() : "");
         return r;
     }

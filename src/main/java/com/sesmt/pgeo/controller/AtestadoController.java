@@ -21,6 +21,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -202,6 +203,92 @@ public class AtestadoController {
         model.addAttribute("totalAtestados",  todos.size());
         model.addAttribute("limite",          limite);
         return "atestados/indicadores";
+    }
+
+    // ── API JSON para o modal ─────────────────────────────────────────
+
+    @GetMapping("/api/tipos")
+    @ResponseBody
+    public List<Map<String, String>> apiTipos() {
+        return Arrays.stream(TipoAtestado.values())
+            .map(t -> Map.of("value", t.name(), "label", t.getDescricao()))
+            .toList();
+    }
+
+    @GetMapping("/{id}/json")
+    @ResponseBody
+    public Map<String, Object> atestadoJson(@PathVariable Long id) {
+        MedicalLeave ml = repo.findById(id)
+            .orElseThrow(() -> new RecursoNaoEncontradoException("Atestado", id));
+        java.util.LinkedHashMap<String, Object> m = new java.util.LinkedHashMap<>();
+        m.put("id",               ml.getId());
+        m.put("funcionarioId",    ml.getFuncionario() != null ? ml.getFuncionario().getId() : null);
+        m.put("funcionarioNome",  ml.getFuncionario() != null ? ml.getFuncionario().getNome() : "");
+        m.put("dataAfastamento",  ml.getDataAfastamento() != null ? ml.getDataAfastamento().toString() : "");
+        m.put("diasAfastamento",  ml.getDiasAfastamento());
+        m.put("tipo",             ml.getTipo() != null ? ml.getTipo().name() : "");
+        m.put("cid",              ml.getCid() != null ? ml.getCid() : "");
+        m.put("medicoNome",       ml.getMedicoNome() != null ? ml.getMedicoNome() : "");
+        m.put("medicoCrm",        ml.getMedicoCrm() != null ? ml.getMedicoCrm() : "");
+        return m;
+    }
+
+    @PostMapping("/novo/modal")
+    @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
+    @ResponseBody
+    public Map<String, Object> novoModal(
+            @RequestParam Long funcionarioId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataAfastamento,
+            @RequestParam Integer diasAfastamento,
+            @RequestParam(required = false) String cid,
+            @RequestParam(required = false) String medicoNome,
+            @RequestParam(required = false) String medicoCrm,
+            @RequestParam TipoAtestado tipo) {
+        try {
+            MedicalLeave ml = new MedicalLeave();
+            ml.setFuncionario(funcRepo.findById(funcionarioId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Funcionario", funcionarioId)));
+            ml.setDataAfastamento(dataAfastamento);
+            ml.setDiasAfastamento(diasAfastamento);
+            ml.setCid(cid != null ? cid.toUpperCase().strip() : null);
+            ml.setMedicoNome(medicoNome);
+            ml.setMedicoCrm(medicoCrm);
+            ml.setTipo(tipo);
+            repo.save(ml);
+            return Map.of("ok", true);
+        } catch (Exception e) {
+            return Map.of("ok", false, "mensagem", e.getMessage());
+        }
+    }
+
+    @PostMapping("/{id}/editar/modal")
+    @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
+    @ResponseBody
+    public Map<String, Object> editarModal(
+            @PathVariable Long id,
+            @RequestParam Long funcionarioId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataAfastamento,
+            @RequestParam Integer diasAfastamento,
+            @RequestParam(required = false) String cid,
+            @RequestParam(required = false) String medicoNome,
+            @RequestParam(required = false) String medicoCrm,
+            @RequestParam TipoAtestado tipo) {
+        try {
+            MedicalLeave ml = repo.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Atestado", id));
+            ml.setFuncionario(funcRepo.findById(funcionarioId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Funcionario", funcionarioId)));
+            ml.setDataAfastamento(dataAfastamento);
+            ml.setDiasAfastamento(diasAfastamento);
+            ml.setCid(cid != null ? cid.toUpperCase().strip() : null);
+            ml.setMedicoNome(medicoNome);
+            ml.setMedicoCrm(medicoCrm);
+            ml.setTipo(tipo);
+            repo.save(ml);
+            return Map.of("ok", true);
+        } catch (Exception e) {
+            return Map.of("ok", false, "mensagem", e.getMessage());
+        }
     }
 
     // ── PDF ───────────────────────────────────────────────────────────

@@ -130,7 +130,12 @@ function fecharModal() {
 window.addEventListener('click', function(e) {
     var m1 = document.getElementById("modal-agendamento");
     if (m1 && e.target === m1) m1.classList.remove("show");
-    var m2 = document.getElementById("modal-form-agendamento");
-    if (m2 && e.target === m2) m2.classList.remove("show");
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    var btnX      = document.getElementById("btn-fechar-detalhe-x");
+    var btnFechar = document.getElementById("btn-fechar-detalhe");
+    if (btnX)      btnX.addEventListener("click", fecharModal);
+    if (btnFechar) btnFechar.addEventListener("click", fecharModal);
 });
 

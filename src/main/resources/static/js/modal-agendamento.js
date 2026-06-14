@@ -1,10 +1,11 @@
 /*
  * Copyright (c) 2026 Pedro Henrique Maciel da Silva Faria. Todos os direitos reservados.
  * modal-agendamento.js — Modal global de novo agendamento / edição.
- * Disponível em todas as páginas via footer.
  */
 (function () {
     var _cache = { tipos: null, horarios: null };
+    var _fpSangue  = null;
+    var _fpClinico = null;
 
     function escH(s) {
         return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;")
@@ -46,43 +47,85 @@
             fetch("/api/tipos-exame").then(function (r) { return r.json(); }),
             fetch("/api/horarios").then(function (r) { return r.json(); })
         ]).then(function (results) {
-            _cache.tipos = results[0];
+            _cache.tipos    = results[0];
             _cache.horarios = results[1];
             cb();
         }).catch(function () { toast("Erro ao carregar dados.", "danger"); });
     }
 
+    function inicializarFlatpickr() {
+        if (typeof flatpickr === "undefined") return;
+        var fds = function (d) { return d.getDay() === 0 || d.getDay() === 6; };
+
+        if (!_fpSangue) {
+            var sangueEl = document.getElementById("mf-sangue");
+            if (sangueEl) {
+                _fpSangue = flatpickr(sangueEl, {
+                    dateFormat: "Y-m-d",
+                    minDate: "today",
+                    disable: [fds],
+                    locale: { firstDayOfWeek: 1 }
+                });
+            }
+        }
+        if (!_fpClinico) {
+            var clinicoEl = document.getElementById("mf-clinico");
+            if (clinicoEl) {
+                _fpClinico = flatpickr(clinicoEl, {
+                    dateFormat: "Y-m-d",
+                    minDate: "today",
+                    disable: [fds],
+                    locale: { firstDayOfWeek: 1 }
+                });
+            }
+        }
+    }
+
+    function setData(fpInstance, inputId, valor) {
+        if (fpInstance) {
+            fpInstance.setDate(valor || null);
+        } else {
+            val(inputId, valor || "");
+        }
+    }
+
     function abrirModal(modoEdicao, dados) {
+        inicializarFlatpickr(); // garante inicialização mesmo se DOMContentLoaded já disparou
         carregarDados(function () {
             var form = document.getElementById("mf-form");
             if (!form) return;
             form.reset();
+            if (_fpSangue)  _fpSangue.clear();
+            if (_fpClinico) _fpClinico.clear();
 
-            preencherSelect("mf-tipo", _cache.tipos, dados && dados.tipoExame || "");
-            preencherSelect("mf-hora", _cache.horarios, dados && dados.hora || "");
+            preencherSelect("mf-tipo",  _cache.tipos,    dados && dados.tipoExame || "");
+            preencherSelect("mf-hora",  _cache.horarios, dados && dados.hora      || "");
 
-            val("mf-id", dados && dados.id || "");
-            val("mf-matricula", dados && dados.matricula || "");
-            val("mf-nome", dados && dados.nome || "");
-            val("mf-setor", dados && dados.setor || "");
-            val("mf-funcao", dados && dados.funcao || "");
-            val("mf-sangue", dados && dados.dataSangue || "");
-            val("mf-clinico", dados && dados.dataClinico || "");
-            val("mf-obs", dados && dados.observacoes || "");
+            val("mf-id",       dados && dados.id        || "");
+            val("mf-matricula",dados && dados.matricula  || "");
+            val("mf-nome",     dados && dados.nome       || "");
+            val("mf-setor",    dados && dados.setor      || "");
+            val("mf-funcao",   dados && dados.funcao     || "");
+            val("mf-obs",      dados && dados.observacoes|| "");
 
-            var minDate = hoje();
-            var sangueEl = document.getElementById("mf-sangue");
-            var clinicoEl = document.getElementById("mf-clinico");
-            if (sangueEl) sangueEl.min = minDate;
-            if (clinicoEl) clinicoEl.min = minDate;
+            setData(_fpSangue,  "mf-sangue",  dados && dados.dataSangue  || "");
+            setData(_fpClinico, "mf-clinico", dados && dados.dataClinico || "");
 
-            document.getElementById("mf-titulo").textContent = modoEdicao ? "Editar Agendamento" : "Novo Agendamento";
-            document.getElementById("mf-btn-salvar").textContent = modoEdicao ? "Salvar Alterações" : "Agendar";
+            // fallback min para quando flatpickr não carregou
+            // Em edição, libera datas passadas para exibir o valor existente
+            if (_fpSangue)  _fpSangue.set("minDate",  modoEdicao ? null : "today");
+            if (_fpClinico) _fpClinico.set("minDate", modoEdicao ? null : "today");
 
+            if (!_fpClinico) {
+                var clinicoEl = document.getElementById("mf-clinico");
+                if (clinicoEl) clinicoEl.min = modoEdicao ? "" : hoje();
+            }
+
+            document.getElementById("mf-titulo").textContent    = modoEdicao ? "Editar Agendamento" : "Novo Agendamento";
+            document.getElementById("mf-btn-salvar").textContent = modoEdicao ? "Salvar Alterações"  : "Agendar";
             document.getElementById("mf-aviso-sangue").classList.add("d-none");
             document.getElementById("mf-sugestoes").innerHTML = "";
             document.getElementById("mf-sugestoes-matricula").innerHTML = "";
-
             document.getElementById("modal-form-ag").classList.add("show");
         });
     }
@@ -94,9 +137,9 @@
                 .then(function (f) {
                     abrirModal(false, f.encontrado ? {
                         matricula: matricula,
-                        nome: f.nome,
-                        setor: f.setor,
-                        funcao: f.funcao
+                        nome:      f.nome,
+                        setor:     f.setor,
+                        funcao:    f.funcao
                     } : { matricula: matricula });
                 })
                 .catch(function () { abrirModal(false, { matricula: matricula }); });
@@ -117,11 +160,31 @@
         if (m) m.classList.remove("show");
     };
 
-    document.addEventListener("DOMContentLoaded", function () {
-        var form = document.getElementById("mf-form");
-        if (!form) return;
+    // Event delegation
+    document.addEventListener("click", function (e) {
+        var btnNovo = e.target.closest("[data-modal-novo]");
+        if (btnNovo) {
+            e.preventDefault();
+            window.abrirModalFormNovo(btnNovo.dataset.matricula || null);
+            return;
+        }
+        var btnEditar = e.target.closest("[data-modal-editar]");
+        if (btnEditar) {
+            e.preventDefault();
+            var id = btnEditar.dataset.id || window._modalAgId;
+            if (id) window.abrirModalFormEditar(id);
+            return;
+        }
+        var btnFechar = e.target.closest("[data-modal-fechar]");
+        if (btnFechar) {
+            e.preventDefault();
+            window.fecharModalForm();
+        }
+    });
 
-        // Fechar ao clicar fora
+    document.addEventListener("DOMContentLoaded", function () {
+        inicializarFlatpickr();
+
         var overlay = document.getElementById("modal-form-ag");
         if (overlay) {
             overlay.addEventListener("click", function (e) {
@@ -129,13 +192,31 @@
             });
         }
 
+        var btnConfirmCancelar = document.getElementById("mf-btn-confirm-cancelar");
+        if (btnConfirmCancelar) {
+            btnConfirmCancelar.addEventListener("click", function () {
+                document.getElementById("mf-modal-confirm").classList.remove("show");
+            });
+        }
+
+        // Modal de duplicado
+        var btnDupCancelar = document.getElementById("mf-btn-dup-cancelar");
+        if (btnDupCancelar) {
+            btnDupCancelar.addEventListener("click", function () {
+                document.getElementById("mf-modal-dup").classList.remove("show");
+            });
+        }
+
+        var form = document.getElementById("mf-form");
+        if (!form) return;
+
         // Autocomplete nome
         var inputNome = document.getElementById("mf-nome");
         var debNome;
         if (inputNome) {
             inputNome.addEventListener("input", function () {
                 clearTimeout(debNome);
-                var q = this.value.trim();
+                var q   = this.value.trim();
                 var box = document.getElementById("mf-sugestoes");
                 if (q.length < 2) { if (box) { box.innerHTML = ""; box.style.display = "none"; } return; }
                 debNome = setTimeout(function () {
@@ -165,7 +246,7 @@
             inputMat.addEventListener("input", function () {
                 this.value = this.value.replace(/\D/g, "");
                 clearTimeout(debMat);
-                var q = this.value.trim();
+                var q   = this.value.trim();
                 var box = document.getElementById("mf-sugestoes-matricula");
                 if (q.length < 1) { if (box) { box.innerHTML = ""; box.style.display = "none"; } return; }
                 debMat = setTimeout(function () {
@@ -191,9 +272,9 @@
             var item = e.target.closest("#modal-form-ag .suggestion-item");
             if (item) {
                 val("mf-matricula", item.dataset.matricula);
-                val("mf-nome", item.dataset.nome);
-                val("mf-setor", item.dataset.setor);
-                val("mf-funcao", item.dataset.funcao);
+                val("mf-nome",      item.dataset.nome);
+                val("mf-setor",     item.dataset.setor);
+                val("mf-funcao",    item.dataset.funcao);
                 ["mf-sugestoes", "mf-sugestoes-matricula"].forEach(function (id) {
                     var b = document.getElementById(id);
                     if (b) { b.innerHTML = ""; b.style.display = "none"; }
@@ -210,51 +291,50 @@
             }
         });
 
-        // Validação fim de semana e limite sangue
+        // Validação limite de sangue (flatpickr já impede fins de semana visualmente)
         var sangueEl = document.getElementById("mf-sangue");
-        var clinicoEl = document.getElementById("mf-clinico");
         if (sangueEl) {
             sangueEl.addEventListener("change", function () {
-                if (isWeekend(this.value)) {
-                    toast("Exame de sangue não pode ser em fim de semana.", "danger");
-                    this.value = ""; return;
-                }
-                if (this.value) {
-                    fetch("/verificar_limite_sangue?data=" + this.value)
-                        .then(function (r) { return r.json(); })
-                        .then(function (resp) {
-                            document.getElementById("mf-aviso-sangue").classList.toggle("d-none", !resp.atingido);
-                        });
-                }
-            });
-        }
-        if (clinicoEl) {
-            clinicoEl.addEventListener("change", function () {
-                if (isWeekend(this.value)) {
-                    toast("Exame clínico não pode ser em fim de semana.", "danger");
-                    this.value = "";
-                }
+                if (!this.value) return;
+                fetch("/verificar_limite_sangue?data=" + this.value)
+                    .then(function (r) { return r.json(); })
+                    .then(function (resp) {
+                        document.getElementById("mf-aviso-sangue").classList.toggle("d-none", !resp.atingido);
+                    });
             });
         }
 
         // Submit
         form.addEventListener("submit", function (e) {
             e.preventDefault();
-            var id = document.getElementById("mf-id").value;
-            var nome = (document.getElementById("mf-nome").value || "").trim();
-            var tipo = document.getElementById("mf-tipo").value;
+            var id      = document.getElementById("mf-id").value;
+            var nome    = (document.getElementById("mf-nome").value    || "").trim();
+            var tipo    = document.getElementById("mf-tipo").value;
             var clinico = (document.getElementById("mf-clinico").value || "").trim();
-            var hora = document.getElementById("mf-hora").value;
-            var sangue = (document.getElementById("mf-sangue").value || "").trim();
+            var hora    = document.getElementById("mf-hora").value;
+            var sangue  = (document.getElementById("mf-sangue").value  || "").trim();
 
             if (!nome || !tipo || !clinico || !hora) {
                 toast("Preencha todos os campos obrigatórios.", "danger");
                 return;
             }
+            // Segurança extra caso flatpickr não tenha carregado
+            if (clinico < hoje()) {
+                toast("A data do exame clínico não pode ser anterior a hoje.", "danger");
+                return;
+            }
+            if (isWeekend(clinico)) {
+                toast("Exame clínico não pode ser em fim de semana.", "danger");
+                return;
+            }
+            if (sangue && isWeekend(sangue)) {
+                toast("Exame de sangue não pode ser em fim de semana.", "danger");
+                return;
+            }
 
             var txt = "Funcionário: " + nome
                 + "\nExame: " + tipo
-                + (sangue ? "\nSangue: " + fmtData(sangue) : "")
+                + (sangue  ? "\nSangue: "  + fmtData(sangue)  : "")
                 + "\nClínico: " + fmtData(clinico)
                 + "\nHorário: " + hora;
 
@@ -263,9 +343,9 @@
 
             document.getElementById("mf-btn-confirm").onclick = function () {
                 document.getElementById("mf-modal-confirm").classList.remove("show");
-                var fd = new FormData(form);
+                var fd   = new FormData(form);
                 var csrf = document.querySelector("[name=_csrf]");
-                var url = id ? "/editar_agendamento/" + id : "/agendar";
+                var url  = id ? "/editar_agendamento/" + id : "/agendar";
 
                 fetch(url, {
                     method: "POST",
@@ -275,22 +355,31 @@
                         "X-CSRF-TOKEN": csrf ? csrf.value : ""
                     }
                 })
-                    .then(function (r) { return r.json(); })
-                    .then(function (resp) {
-                        if (resp.duplicado) {
-                            fecharModalForm();
-                            toast(resp.mensagem || "Já existe agendamento para este funcionário.", "danger");
-                            return;
-                        }
-                        if (resp.erro) { toast(resp.mensagem, "danger"); return; }
-                        fecharModalForm();
-                        toast(id ? "Agendamento atualizado!" : "Agendamento realizado!", "success");
-                        if (window.pgeoCalendar) window.pgeoCalendar.refetchEvents();
-                        // Recarrega tabelas que existam na página
-                        if (typeof carregarDashboard === "function") carregarDashboard();
-                        else if (typeof carregarDados === "function") carregarDados();
-                    })
-                    .catch(function () { toast("Erro ao comunicar com o servidor.", "danger"); });
+                .then(function (r) { return r.json(); })
+                .then(function (resp) {
+                    if (resp.duplicado) {
+                        // Mostra modal de duplicado POR CIMA do modal atual
+                        var dupTexto = document.getElementById("mf-dup-texto");
+                        if (dupTexto) dupTexto.textContent = resp.mensagem || "Já existe um agendamento para este funcionário.";
+                        document.getElementById("mf-modal-dup").classList.add("show");
+
+                        document.getElementById("mf-btn-dup-editar").onclick = function () {
+                            document.getElementById("mf-modal-dup").classList.remove("show");
+                            // Transforma o modal atual em modo de edição
+                            fetch("/agendamento/" + resp.id + "/json")
+                                .then(function (r) { return r.json(); })
+                                .then(function (ag) { abrirModal(true, ag); })
+                                .catch(function () { toast("Erro ao carregar agendamento.", "danger"); });
+                        };
+                        return;
+                    }
+                    if (resp.erro) { toast(resp.mensagem, "danger"); return; }
+                    window.fecharModalForm();
+                    toast(id ? "Agendamento atualizado!" : "Agendamento realizado!", "success");
+                    if (window.pgeoCalendar) window.pgeoCalendar.refetchEvents();
+                    if (typeof carregarDashboard === "function") carregarDashboard();
+                })
+                .catch(function () { toast("Erro ao comunicar com o servidor.", "danger"); });
             };
         });
     });

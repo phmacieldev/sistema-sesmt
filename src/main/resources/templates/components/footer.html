@@ -13,11 +13,12 @@
     <div class="modal-box" style="max-width:560px;max-height:90vh;overflow-y:auto;">
       <div class="modal-header-row">
         <div class="modal-title mb-0" id="mf-titulo">Novo Agendamento</div>
-        <button type="button" onclick="fecharModalForm()" class="btn btn-ghost btn-icon btn-sm btn-close">✕</button>
+        <button type="button" class="btn btn-ghost btn-icon btn-sm btn-close" data-modal-fechar>✕</button>
       </div>
 
       <form id="mf-form" novalidate>
         <input type="hidden" id="mf-id" name="_agId" value="">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
 
         <div class="form-group">
           <label class="form-label" for="mf-tipo">Tipo de exame</label>
@@ -83,26 +84,109 @@
 
         <div class="modal-footer mt-20" style="gap:8px;">
           <button type="submit" id="mf-btn-salvar" class="btn btn-success btn-sm">Agendar</button>
-          <button type="button" class="btn btn-secondary btn-sm" onclick="fecharModalForm()">Cancelar</button>
+          <button type="button" class="btn btn-secondary btn-sm" data-modal-fechar>Cancelar</button>
         </div>
       </form>
     </div>
   </div>
 
   <!-- Modal de confirmação do agendamento -->
-  <div id="mf-modal-confirm" class="modal-overlay" style="z-index:1100;">
+  <div id="mf-modal-confirm" class="modal-overlay" style="z-index:3500;">
     <div class="modal-box">
       <div class="modal-title">Confirma o agendamento?</div>
       <div class="modal-body pre-line line-h-17" id="mf-confirm-text"></div>
       <div class="modal-footer">
         <button id="mf-btn-confirm" class="btn btn-success">Confirmar</button>
-        <button class="btn btn-secondary"
-                onclick="document.getElementById('mf-modal-confirm').classList.remove('show')">Cancelar</button>
+        <button class="btn btn-secondary" id="mf-btn-confirm-cancelar">Cancelar</button>
       </div>
     </div>
   </div>
 
-  <script th:src="@{/js/modal-agendamento.js}"></script>
+  <!-- Modal de agendamento duplicado (z-index acima dos demais) -->
+  <div id="mf-modal-dup" class="modal-overlay" style="z-index:4000;">
+    <div class="modal-box" style="max-width:420px;">
+      <div class="modal-title">⚠️ Agendamento já existe</div>
+      <div class="modal-body" id="mf-dup-texto" style="margin:12px 0;color:var(--text-secondary);font-size:14px;">
+        Já existe um agendamento para este funcionário.
+      </div>
+      <div class="modal-footer" style="gap:8px;">
+        <button id="mf-btn-dup-editar" class="btn btn-primary btn-sm">✏️ Editar agendamento existente</button>
+        <button id="mf-btn-dup-cancelar" class="btn btn-secondary btn-sm">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <link rel="stylesheet" th:href="@{/webjars/flatpickr/4.6.13/dist/flatpickr.min.css}">
+  <script th:src="@{/webjars/flatpickr/4.6.13/dist/flatpickr.min.js}"></script>
+  <script th:src="@{/js/modal-agendamento.js}" th:attr="nonce=${cspNonce}"></script>
+
+  <!-- ── Modal global de atestado (novo / editar) ── -->
+  <div id="modal-form-atestado" class="modal-overlay">
+    <div class="modal-box" style="max-width:520px;max-height:90vh;overflow-y:auto;">
+      <div class="modal-header-row">
+        <div class="modal-title mb-0" id="mat-titulo">Lançar Atestado</div>
+        <button type="button" class="btn btn-ghost btn-icon btn-sm btn-close" data-atestado-fechar>✕</button>
+      </div>
+
+      <form id="mat-form" novalidate>
+        <input type="hidden" id="mat-id" name="_atId" value="">
+
+        <div class="form-group">
+          <label class="form-label">Funcionário <span style="color:var(--danger)">*</span></label>
+          <input type="hidden" id="mat-funcionario-id" name="funcionarioId">
+          <div class="autocomplete-wrapper">
+            <input type="text" id="mat-funcionario-nome" class="form-control"
+                   autocomplete="off" placeholder="Digite nome do funcionário...">
+            <div id="mat-sugestoes" class="suggestions"></div>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Data do Atestado <span style="color:var(--danger)">*</span></label>
+            <input type="date" id="mat-data" name="dataAfastamento" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Dias de Afastamento <span style="color:var(--danger)">*</span></label>
+            <input type="number" id="mat-dias" name="diasAfastamento" class="form-control" min="1" max="365" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Tipo <span style="color:var(--danger)">*</span></label>
+          <select id="mat-tipo" name="tipo" class="form-control" required>
+            <option value="">Selecione</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">CID <small>(opcional)</small></label>
+          <input type="text" id="mat-cid" name="cid" class="form-control"
+                 maxlength="10" placeholder="Ex: J11, M54.5">
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Nome do Médico <small>(opcional)</small></label>
+            <input type="text" id="mat-medico-nome" name="medicoNome" class="form-control"
+                   placeholder="Dr. Nome Sobrenome">
+          </div>
+          <div class="form-group">
+            <label class="form-label">CRM <small>(opcional)</small></label>
+            <input type="text" id="mat-medico-crm" name="medicoCrm" class="form-control"
+                   placeholder="CRM 12345">
+          </div>
+        </div>
+
+        <div class="modal-footer mt-20" style="gap:8px;">
+          <button type="submit" id="mat-btn-salvar" class="btn btn-success btn-sm">Lançar</button>
+          <button type="button" class="btn btn-secondary btn-sm" data-atestado-fechar>Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script th:src="@{/js/modal-atestado.js}" th:attr="nonce=${cspNonce}"></script>
 
 </th:block>
 </body>

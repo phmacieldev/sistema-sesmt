@@ -418,31 +418,38 @@ public class DashboardController {
         long qtdEmDia    = ativos.stream().filter(f -> f.getAso() != null && !f.getAso().isBefore(limite30)).count();
         long qtdSemAso   = ativos.stream().filter(f -> f.getAso() == null).count();
 
-        // ── Exames por mês (últimos 12 meses) ───────────────────────────
+        // ── Atestados por mês (últimos 12 meses) ────────────────────────
         LocalDate inicioPeriodo = hoje.minusMonths(11).withDayOfMonth(1);
-        List<Agendamento> agRecentes = agendamentoRepo.findAll().stream()
-            .filter(a -> a.getDataClinico() != null && !a.getDataClinico().isBefore(inicioPeriodo))
+        List<MedicalLeave> mlRecentes = medicalLeaveRepo.findAll().stream()
+            .filter(ml -> ml.getDataAfastamento() != null && !ml.getDataAfastamento().isBefore(inicioPeriodo))
             .toList();
 
-        List<String>  labelesMeses = new ArrayList<>();
-        List<Integer> examesPorMes = new ArrayList<>();
+        List<String>  labelesMeses    = new ArrayList<>();
+        List<Integer> atestadosPorMes = new ArrayList<>();
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MMM/yy", new java.util.Locale("pt", "BR"));
         for (int i = 11; i >= 0; i--) {
             LocalDate m = hoje.minusMonths(i).withDayOfMonth(1);
             labelesMeses.add(m.format(fmt));
             int anoM = m.getYear(), mesM = m.getMonthValue();
-            examesPorMes.add((int) agRecentes.stream()
-                .filter(a -> a.getDataClinico().getYear() == anoM && a.getDataClinico().getMonthValue() == mesM)
+            atestadosPorMes.add((int) mlRecentes.stream()
+                .filter(ml -> ml.getDataAfastamento().getYear() == anoM
+                           && ml.getDataAfastamento().getMonthValue() == mesM)
                 .count());
         }
 
-        // ── Distribuição por tipo ────────────────────────────────────────
-        Map<String, Long> tiposDist = agRecentes.stream()
-            .collect(Collectors.groupingBy(Agendamento::getTipoExameDescricao, Collectors.counting()));
-        Map<String, Long> tiposOrdenados = tiposDist.entrySet().stream()
-            .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
-                                      (a, b) -> a, LinkedHashMap::new));
+        // ── Status dos agendamentos futuros ──────────────────────────────
+        List<Agendamento> todosAg = agendamentoRepo.findAll();
+        long agAgendados = todosAg.stream()
+            .filter(a -> a.getDataClinico() != null && a.getDataClinico().isAfter(hoje))
+            .count();
+        long agEmDia = todosAg.stream()
+            .filter(a -> a.getDataClinico() != null && !a.getDataClinico().isAfter(hoje)
+                      && a.isAsoRecebido())
+            .count();
+        long agAtrasados = todosAg.stream()
+            .filter(a -> a.getDataClinico() != null && a.getDataClinico().isBefore(hoje)
+                      && !a.isAsoRecebido())
+            .count();
 
         // ── Ranking de atestados (paginado) ─────────────────────────────
         LocalDate limiteDias = hoje.minusDays(dias);
@@ -467,10 +474,11 @@ public class DashboardController {
         model.addAttribute("qtdEmDia",      qtdEmDia);
         model.addAttribute("qtdSemAso",     qtdSemAso);
         model.addAttribute("totalAtivos",   ativos.size());
-        model.addAttribute("labelesMeses",  labelesMeses);
-        model.addAttribute("examesPorMes",  examesPorMes);
-        model.addAttribute("tiposLabels",   new ArrayList<>(tiposOrdenados.keySet()));
-        model.addAttribute("tiposTotal",    new ArrayList<>(tiposOrdenados.values()));
+        model.addAttribute("labelesMeses",    labelesMeses);
+        model.addAttribute("atestadosPorMes", atestadosPorMes);
+        model.addAttribute("agAgendados",     agAgendados);
+        model.addAttribute("agEmDia",         agEmDia);
+        model.addAttribute("agAtrasados",     agAtrasados);
         model.addAttribute("resultados",    pagina_);
         model.addAttribute("totalItens",    totalItens);
         model.addAttribute("totalPaginas",  totalPaginas);

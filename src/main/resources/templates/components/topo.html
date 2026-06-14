@@ -13,7 +13,7 @@
 <div th:fragment="topo" class="topo">
     <div class="titulo">📅 Agenda de Exames Ocupacionais</div>
     <div class="botoes">
-        <a href="#" class="botao" onclick="event.preventDefault(); abrirModalFormNovo()">Novo Agendamento</a>
+        <a href="#" class="botao" data-modal-novo>Novo Agendamento</a>
         <a th:href="@{/dashboard}"         class="botao">Dashboard</a>
         <a th:href="@{/dashboard_exames}"  class="botao">Exames</a>
         <a th:href="@{/dashboard_estatisticas}" class="botao">Estatísticas</a>

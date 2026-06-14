@@ -26,8 +26,8 @@
       <a th:href="@{/atestados(semana=${semanaProxima})}"  class="btn btn-secondary">Próxima semana ▶</a>
       <a th:href="@{/atestados(semana=${semanaAtualInicio})}" class="btn btn-ghost">Semana atual</a>
       <a th:href="@{/atestados/indicadores}"               class="btn btn-secondary">📊 Indicadores</a>
-      <a sec:authorize="hasAnyRole('ADMIN','OPERADOR')"
-         th:href="@{/atestados/novo(semana=${semanaInicio})}" class="btn btn-success">➕ Lançar</a>
+      <button sec:authorize="hasAnyRole('ADMIN','OPERADOR')"
+              type="button" class="btn btn-success" data-atestado-novo>➕ Lançar</button>
       <a th:href="@{/atestados/pdf(semana=${semanaInicio})}"  class="btn btn-primary">⬇ PDF</a>
     </div>
   </div>
@@ -82,7 +82,8 @@
             <td th:text="${ml.medicoCrm != null ? ml.medicoCrm : '—'}">—</td>
             <td class="text-center" sec:authorize="hasAnyRole('ADMIN','OPERADOR')">
               <div class="actions-cell" style="justify-content:center">
-                <a th:href="@{/atestados/{id}/editar(id=${ml.id})}" class="btn btn-primary btn-icon btn-sm" title="Editar">✏️</a>
+                <button type="button" class="btn btn-primary btn-icon btn-sm" title="Editar"
+                        data-atestado-editar th:attr="data-id=${ml.id}">✏️</button>
                 <form th:action="@{/atestados/{id}/excluir(id=${ml.id})}" method="POST"
                       onsubmit="return confirm('Excluir este atestado?')">
                   <button class="btn btn-danger btn-icon btn-sm" title="Excluir">🗑</button>
@@ -147,6 +148,19 @@
 </div>
 
 <script th:attr="nonce=${cspNonce}">
+window.recarregarTabelaAtestados = function() {
+  var wrap = document.getElementById("tabelaWrap");
+  if (!wrap) { window.location.reload(); return; }
+  fetch(window.location.href)
+    .then(function(r) { return r.text(); })
+    .then(function(html) {
+      var tmp = document.createElement("div");
+      tmp.innerHTML = html;
+      var nova = tmp.querySelector("#tabelaWrap .table-wrapper");
+      if (nova) wrap.innerHTML = nova.outerHTML;
+    });
+};
+
 (function() {
   var input      = document.getElementById("buscaNome");
   var wrap       = document.getElementById("tabelaWrap");

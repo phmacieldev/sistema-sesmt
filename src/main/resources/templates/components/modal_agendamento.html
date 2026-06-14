@@ -9,7 +9,7 @@
   <div class="modal-box">
     <div class="modal-header-row">
       <div class="modal-title mb-0">Detalhes do Agendamento</div>
-      <button onclick="fecharModal()" class="btn btn-ghost btn-icon btn-sm btn-close">✕</button>
+      <button class="btn btn-ghost btn-icon btn-sm btn-close" id="btn-fechar-detalhe-x">✕</button>
     </div>
 
     <div class="info-row">
@@ -38,9 +38,9 @@
     </div>
 
     <div class="modal-footer mt-20">
-      <button id="btn-editar-modal" onclick="abrirModalFormEditar(window._modalAgId)" class="btn btn-primary btn-sm">✏️ Editar</button>
+      <button id="btn-editar-modal" class="btn btn-primary btn-sm" data-modal-editar>✏️ Editar</button>
       <a id="btn-detalhe-modal" href="#" class="btn btn-secondary btn-sm">📋 Detalhes</a>
-      <button class="btn btn-secondary btn-sm" onclick="fecharModal()">Fechar</button>
+      <button class="btn btn-secondary btn-sm" id="btn-fechar-detalhe">Fechar</button>
     </div>
   </div>
 </div>
