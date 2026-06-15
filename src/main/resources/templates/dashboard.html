@@ -274,7 +274,26 @@
     div.appendChild(info);
   }
 
-  function confirmarExclusao() { return confirm("Deseja realmente excluir este agendamento?"); }
+  // ── Delegação de eventos na tabela (evita onclick= bloqueado por CSP) ──
+  document.getElementById('corpoTabela').addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    var action = btn.dataset.action;
+    if (action === 'open-pop') {
+      abrirPopover(btn.dataset.popId);
+    } else if (action === 'close-pop') {
+      fecharPopover(btn.dataset.popId);
+    } else if (action === 'confirm-status') {
+      confirmarStatus(btn.dataset.popId, btn.dataset.btnId, +btn.dataset.agId, btn.dataset.campo);
+    } else if (action === 'confirm-recebido') {
+      confirmarRecebido(btn.dataset.popId, btn.dataset.btnId, +btn.dataset.agId);
+    }
+  });
+  document.getElementById('corpoTabela').addEventListener('submit', function(e) {
+    if (e.target.closest('[data-confirm-excluir]')) {
+      if (!confirm('Deseja realmente excluir este agendamento?')) e.preventDefault();
+    }
+  });
 
   function toggleStatusAso(agId, campo, valor) {
     fetch('/atualizar_status_aso', {
