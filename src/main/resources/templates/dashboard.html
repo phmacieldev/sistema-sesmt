@@ -24,6 +24,47 @@
   </div>
 </div>
 
+<!-- Modal Guias da Semana -->
+<div id="modalGuiasSemana" class="modal-overlay" onclick="if(event.target===this)fecharModalGuias()">
+  <div class="modal-box" style="max-width:680px;max-height:90vh;overflow-y:auto;">
+    <div class="modal-title" id="guias-titulo">📧 Guias da Semana</div>
+
+    <!-- Sangue -->
+    <div style="margin-bottom:20px;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px;">
+        🩸 Exames de Sangue
+        <span id="guias-sangue-count" style="font-size:12px;font-weight:400;color:var(--text-muted);margin-left:6px;"></span>
+      </div>
+      <div id="guias-sangue-lista" style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:10px;"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <span style="font-size:12px;color:var(--text-muted);">📨 laboratório</span>
+        <button class="btn btn-primary btn-sm" onclick="enviarGuiasSemana('sangue')">📧 Enviar Guias de Sangue</button>
+      </div>
+      <div id="guias-sangue-fb" style="display:none;margin-top:8px;padding:8px 12px;background:var(--success-light);color:#166534;border-radius:var(--radius-sm);font-size:13px;"></div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
+
+    <!-- Clínico -->
+    <div style="margin-bottom:20px;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:8px;">
+        💊 Exames Clínicos
+        <span id="guias-clinico-count" style="font-size:12px;font-weight:400;color:var(--text-muted);margin-left:6px;"></span>
+      </div>
+      <div id="guias-clinico-lista" style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:10px;"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <span style="font-size:12px;color:var(--text-muted);">📨 clínica</span>
+        <button class="btn btn-primary btn-sm" onclick="enviarGuiasSemana('clinico')">📧 Enviar Guias Clínicas</button>
+      </div>
+      <div id="guias-clinico-fb" style="display:none;margin-top:8px;padding:8px 12px;background:var(--success-light);color:#166534;border-radius:var(--radius-sm);font-size:13px;"></div>
+    </div>
+
+    <div class="modal-footer" style="padding-top:0;">
+      <button class="btn btn-secondary" onclick="fecharModalGuias()">Fechar</button>
+    </div>
+  </div>
+</div>
+
 <div class="page-wrapper-wide">
 
   <div class="page-header">
@@ -31,6 +72,7 @@
       <div class="page-title">📋 Agendamentos</div>
     </div>
     <div class="header-actions">
+      <button type="button" class="btn btn-secondary" onclick="abrirModalGuiasSemana()">📧 Guias da Semana</button>
       <button type="button" class="btn btn-success" data-modal-novo>➕ Novo Agendamento</button>
       <a th:href="@{/agenda}"  class="btn btn-secondary">📅 Agenda</a>
     </div>
@@ -82,7 +124,11 @@
           <tr>
             <th>Nome / ASO</th><th>Setor</th><th>Função</th><th>Exame</th>
             <th>Proteus</th><th>Hora</th><th>Sangue</th>
-            <th class="col-center">Envio</th><th class="col-center">Receb.</th><th class="col-center">Ações</th>
+            <th class="col-center" title="ASO enviado">Env.</th>
+            <th class="col-center" title="ASO recebido">Rec.</th>
+            <th class="col-center" title="Guia de sangue enviada">🩸</th>
+            <th class="col-center" title="Guia clínica enviada">💊</th>
+            <th class="col-center">Ações</th>
           </tr>
         </thead>
         <tbody id="corpoTabela"></tbody>
@@ -206,37 +252,148 @@
 
   function confirmarExclusao() { return confirm("Deseja realmente excluir este agendamento?"); }
 
-  function toggleStatusAso(agendamentoId, campo, valor, checkbox) {
+  function toggleStatusAso(agId, campo, valor) {
     fetch('/atualizar_status_aso', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({agendamento_id: agendamentoId, campo, valor})
+      body: JSON.stringify({agendamento_id: agId, campo, valor})
     })
     .then(r => r.json())
     .then(data => {
-      if (!data.sucesso) {
-        window.showToast("Erro: " + data.erro, 'danger');
-        if (checkbox) checkbox.checked = !valor;
-      }
+      if (!data.sucesso) window.showToast && window.showToast("Erro: " + data.erro, 'danger');
     });
   }
 
-  function handleRecebimento(agendamentoId, valor, checkbox) {
-    const modal = document.getElementById("modalConfirmacao");
-    document.getElementById("modalMensagem").textContent = valor
-      ? "Deseja atualizar a data do ASO do funcionário para a data deste exame?"
-      : "Deseja restaurar a data anterior do ASO?";
-    modal.classList.add("show");
-    document.getElementById("btnConfirmarModal").onclick = () => {
-      toggleStatusAso(agendamentoId, 'recebido', valor, checkbox);
-      modal.classList.remove("show");
-    };
-    document.getElementById("btnCancelarModal").onclick = () => {
-      checkbox.checked = !valor; modal.classList.remove("show");
-    };
+  // ── Popover helpers ───────────────────────────────────────────────────
+  function abrirPopover(id) {
+    document.querySelectorAll('.mini-pop.show').forEach(function(p) {
+      if (p.id !== id) p.classList.remove('show');
+    });
+    document.getElementById(id).classList.toggle('show');
+  }
+  function fecharPopover(id) {
+    document.getElementById(id).classList.remove('show');
+  }
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.popover-wrap')) {
+      document.querySelectorAll('.mini-pop.show').forEach(function(p) { p.classList.remove('show'); });
+    }
+  });
+
+  function confirmarStatus(popId, btnId, agId, campo) {
+    var btn = document.getElementById(btnId);
+    var novoValor = btn.classList.contains('pill-pend');
+    fecharPopover(popId);
+    toggleStatusAso(agId, campo, novoValor);
+    btn.textContent = novoValor ? '✅' : '⏳';
+    if (novoValor) { btn.classList.replace('pill-pend', 'pill-ok'); }
+    else           { btn.classList.replace('pill-ok',   'pill-pend'); }
   }
 
-  carregarDados();
+  function confirmarRecebido(popId, btnId, agId) {
+    var btn = document.getElementById(btnId);
+    var novoValor = btn.classList.contains('pill-pend');
+    fecharPopover(popId);
+    if (novoValor) {
+      var modal = document.getElementById("modalConfirmacao");
+      document.getElementById("modalMensagem").textContent =
+        "Deseja atualizar a data do ASO do funcionário para a data deste exame?";
+      modal.classList.add("show");
+      document.getElementById("btnConfirmarModal").onclick = function() {
+        toggleStatusAso(agId, 'recebido', true);
+        btn.textContent = '✅';
+        btn.classList.replace('pill-pend', 'pill-ok');
+        modal.classList.remove("show");
+      };
+      document.getElementById("btnCancelarModal").onclick = function() {
+        modal.classList.remove("show");
+      };
+    } else {
+      toggleStatusAso(agId, 'recebido', false);
+      btn.textContent = '⏳';
+      btn.classList.replace('pill-ok', 'pill-pend');
+    }
+  }
+
+  // ── Modal Guias da Semana ─────────────────────────────────────────────
+  var _guiasSangue  = [];
+  var _guiasClinico = [];
+
+  function abrirModalGuiasSemana() {
+    document.getElementById('modalGuiasSemana').classList.add('show');
+    fetch('/guias-semana')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        document.getElementById('guias-titulo').textContent = '📧 Guias da Semana — ' + data.semana;
+        _guiasSangue  = data.sangue.map(function(a) { return Object.assign({}, a, {removido: false}); });
+        _guiasClinico = data.clinico.map(function(a) { return Object.assign({}, a, {removido: false}); });
+        renderGuiasLista('sangue');
+        renderGuiasLista('clinico');
+      })
+      .catch(function() {
+        document.getElementById('guias-titulo').textContent = '📧 Guias da Semana';
+      });
+  }
+
+  function fecharModalGuias() {
+    document.getElementById('modalGuiasSemana').classList.remove('show');
+  }
+
+  function renderGuiasLista(tipo) {
+    var items = tipo === 'sangue' ? _guiasSangue : _guiasClinico;
+    var lista  = document.getElementById('guias-' + tipo + '-lista');
+    var count  = document.getElementById('guias-' + tipo + '-count');
+    var ativos = items.filter(function(a) { return !a.removido; }).length;
+    var extra  = tipo === 'sangue' ? ' · 1 PDF mesclado' : ' · ' + ativos + ' PDF(s)';
+    count.textContent = ativos + ' agendamento(s)' + extra;
+
+    if (items.length === 0) {
+      lista.innerHTML = '<div style="padding:16px 14px;font-size:13px;color:var(--text-muted);">Nenhum agendamento na próxima semana.</div>';
+      return;
+    }
+    lista.innerHTML = items.map(function(a, i) {
+      var style = a.removido ? 'opacity:.35;text-decoration:line-through;' : '';
+      var examesSpan = (tipo === 'sangue' && a.exames)
+        ? '<span style="font-size:11px;color:var(--text-muted);margin-left:4px;">' + escapeHtml(a.exames) + '</span>' : '';
+      var tipoSpan = (tipo === 'clinico' && a.tipo)
+        ? '<span style="font-size:11px;background:var(--bg-table-head);padding:1px 6px;border-radius:10px;margin-left:4px;">' + escapeHtml(a.tipo) + '</span>' : '';
+      return '<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);font-size:13px;' + style + '">'
+        + '<span style="min-width:72px;color:var(--text-muted);font-size:12px;">' + escapeHtml(a.data) + '</span>'
+        + '<span style="flex:1;font-weight:500;">' + escapeHtml(a.nome) + examesSpan + tipoSpan + '</span>'
+        + '<span style="color:var(--text-secondary);font-size:12px;min-width:80px;">' + escapeHtml(a.setor) + '</span>'
+        + '<span style="color:var(--text-secondary);font-size:12px;min-width:44px;">' + escapeHtml(a.hora) + '</span>'
+        + (a.removido
+          ? '<button onclick="restaurarGuia(\'' + tipo + '\',' + i + ')" style="background:none;border:none;color:var(--primary);cursor:pointer;font-size:12px;">desfazer</button>'
+          : '<button onclick="removerGuia(\'' + tipo + '\',' + i + ')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;line-height:1;">✕</button>')
+        + '</div>';
+    }).join('');
+    // remove last border
+    var divs = lista.querySelectorAll('div');
+    if (divs.length) divs[divs.length - 1].style.borderBottom = 'none';
+  }
+
+  function removerGuia(tipo, idx) {
+    if (tipo === 'sangue') _guiasSangue[idx].removido = true;
+    else _guiasClinico[idx].removido = true;
+    renderGuiasLista(tipo);
+  }
+  function restaurarGuia(tipo, idx) {
+    if (tipo === 'sangue') _guiasSangue[idx].removido = false;
+    else _guiasClinico[idx].removido = false;
+    renderGuiasLista(tipo);
+  }
+
+  function enviarGuiasSemana(tipo) {
+    var fb = document.getElementById('guias-' + tipo + '-fb');
+    var ativos = (tipo === 'sangue' ? _guiasSangue : _guiasClinico).filter(function(a) { return !a.removido; });
+    if (ativos.length === 0) { window.showToast && window.showToast('Nenhuma guia selecionada.', 'warning'); return; }
+    fb.textContent = '⏳ Em breve: envio automático por e-mail será implementado. (' + ativos.length + ' guia(s) selecionadas)';
+    fb.style.display = 'block';
+  }
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
 </script>
 
 <script th:src="@{/webjars/sockjs-client/dist/sockjs.min.js}"></script>

@@ -98,8 +98,10 @@ public class PdfService {
             doc.add(Chunk.NEWLINE);
             doc.add(new Paragraph("INFORMAÇÕES DO EXAME DE SANGUE", label));
             doc.add(Chunk.NEWLINE);
-            addLinha(doc, "Tipo de Exame:",   ag.getTipoExameDescricao(), label, normal);
-            addLinha(doc, "Data do Sangue:",  ag.getDataSangue() != null ? ag.getDataSangue().format(BR) : "—", label, normal);
+            addLinha(doc, "Tipo de Exame:",      ag.getTipoExameDescricao(), label, normal);
+            addLinha(doc, "Data do Sangue:",     ag.getDataSangue() != null ? ag.getDataSangue().format(BR) : "—", label, normal);
+            addLinha(doc, "Exames Solicitados:", ag.getExamesSangue() != null && !ag.getExamesSangue().isBlank()
+                ? ag.getExamesSangue() : "—", label, normal);
             doc.add(Chunk.NEWLINE);
 
             doc.add(new Paragraph("─".repeat(60), normal));

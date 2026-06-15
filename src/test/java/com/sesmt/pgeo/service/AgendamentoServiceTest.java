@@ -93,7 +93,7 @@ class AgendamentoServiceTest {
 
         Agendamento resultado = agendamentoService.criar(
             "99999", "Ana Lima", "TI", "Analista",
-            TipoExame.PERIODICO, segunda, "09:00", segunda, null);
+            TipoExame.PERIODICO, segunda, "09:00", segunda, null, null);
 
         assertThat(resultado.getTipoExame()).isEqualTo(TipoExame.PERIODICO);
         verify(agendamentoRepo).save(any(Agendamento.class));
@@ -106,7 +106,7 @@ class AgendamentoServiceTest {
 
         assertThatThrownBy(() -> agendamentoService.criar(
             "12345", "João", "TI", "Dev",
-            TipoExame.PERIODICO, sabado, "09:00", null, null))
+            TipoExame.PERIODICO, sabado, "09:00", null, null, null))
             .isInstanceOf(RegraDeNegocioException.class)
             .hasMessageContaining("fim de semana");
     }
@@ -117,7 +117,7 @@ class AgendamentoServiceTest {
 
         assertThatThrownBy(() -> agendamentoService.criar(
             "12345", "João", "TI", "Dev",
-            TipoExame.PERIODICO, domingo, "09:00", null, null))
+            TipoExame.PERIODICO, domingo, "09:00", null, null, null))
             .isInstanceOf(RegraDeNegocioException.class)
             .hasMessageContaining("fim de semana");
     }
@@ -129,7 +129,7 @@ class AgendamentoServiceTest {
 
         assertThatThrownBy(() -> agendamentoService.criar(
             "12345", "Maria", "RH", "Analista",
-            TipoExame.PERIODICO, terca, "09:00", terca, null))
+            TipoExame.PERIODICO, terca, "09:00", terca, null, null))
             .isInstanceOf(RegraDeNegocioException.class)
             .hasMessageContaining("Limite");
     }
@@ -149,7 +149,7 @@ class AgendamentoServiceTest {
 
         assertThatThrownBy(() -> agendamentoService.criar(
             "55555", "Carlos", "Eng", "Engenheiro",
-            TipoExame.PERIODICO, quarta, "09:00", null, null))
+            TipoExame.PERIODICO, quarta, "09:00", null, null, null))
             .isInstanceOf(RegraDeNegocioException.class)
             .hasMessageContaining("DUPLICADO");
     }
@@ -160,7 +160,7 @@ class AgendamentoServiceTest {
 
         assertThatThrownBy(() -> agendamentoService.criar(
             "", "Sem Matrícula", "RH", "Aux",
-            TipoExame.PERIODICO, segunda, "08:00", null, null))
+            TipoExame.PERIODICO, segunda, "08:00", null, null, null))
             .isInstanceOf(RegraDeNegocioException.class)
             .hasMessageContaining("Matrícula é obrigatória");
     }
