@@ -1,4 +1,4 @@
-﻿<!-- Copyright (c) 2026 Pedro Henrique Maciel da Silva Faria. Sistema autoral protegido. -->
+<!-- Copyright (c) 2026 Pedro Henrique Maciel da Silva Faria. Sistema autoral protegido. -->
 <!--
     _tabela_agendamentos.html — Fragmento de <tr> retornado via AJAX pelo dashboard.
     O controller retorna "_tabela_agendamentos :: tbody".
@@ -40,15 +40,15 @@
       <div class="popover-wrap">
         <button th:id="|btn-env-${a.id}|"
                 th:class="${a.asoEnviado} ? 'status-pill pill-ok' : 'status-pill pill-pend'"
-                th:attr="onclick=|abrirPopover('pop-env-${a.id}')|"
+                data-action="open-pop" th:attr="data-pop-id=|pop-env-${a.id}|"
                 th:text="${a.asoEnviado} ? '✅' : '⏳'">⏳</button>
         <div th:id="|pop-env-${a.id}|" class="mini-pop">
           <p th:text="${a.asoEnviado} ? 'Desmarcar envio do ASO?' : 'Marcar ASO como enviado?'">?</p>
           <div class="pop-btns">
-            <button class="btn btn-primary btn-sm"
-                    th:attr="onclick=|confirmarStatus('pop-env-${a.id}','btn-env-${a.id}',${a.id},'enviado')|">Sim</button>
-            <button class="btn btn-ghost btn-sm"
-                    th:attr="onclick=|fecharPopover('pop-env-${a.id}')|">✕</button>
+            <button class="btn btn-primary btn-sm" data-action="confirm-status"
+                    th:attr="data-pop-id=|pop-env-${a.id}|,data-btn-id=|btn-env-${a.id}|,data-ag-id=${a.id},data-campo='enviado'">Sim</button>
+            <button class="btn btn-ghost btn-sm" data-action="close-pop"
+                    th:attr="data-pop-id=|pop-env-${a.id}|">✕</button>
           </div>
         </div>
       </div>
@@ -58,15 +58,15 @@
       <div class="popover-wrap">
         <button th:id="|btn-rec-${a.id}|"
                 th:class="${a.asoRecebido} ? 'status-pill pill-ok' : 'status-pill pill-pend'"
-                th:attr="onclick=|abrirPopover('pop-rec-${a.id}')|"
+                data-action="open-pop" th:attr="data-pop-id=|pop-rec-${a.id}|"
                 th:text="${a.asoRecebido} ? '✅' : '⏳'">⏳</button>
         <div th:id="|pop-rec-${a.id}|" class="mini-pop">
           <p th:text="${a.asoRecebido} ? 'Reverter recebimento do ASO?' : 'Confirmar recebimento do ASO?'">?</p>
           <div class="pop-btns">
-            <button class="btn btn-primary btn-sm"
-                    th:attr="onclick=|confirmarRecebido('pop-rec-${a.id}','btn-rec-${a.id}',${a.id})|">Sim</button>
-            <button class="btn btn-ghost btn-sm"
-                    th:attr="onclick=|fecharPopover('pop-rec-${a.id}')|">✕</button>
+            <button class="btn btn-primary btn-sm" data-action="confirm-recebido"
+                    th:attr="data-pop-id=|pop-rec-${a.id}|,data-btn-id=|btn-rec-${a.id}|,data-ag-id=${a.id}">Sim</button>
+            <button class="btn btn-ghost btn-sm" data-action="close-pop"
+                    th:attr="data-pop-id=|pop-rec-${a.id}|">✕</button>
           </div>
         </div>
       </div>
@@ -76,15 +76,15 @@
       <div class="popover-wrap">
         <button th:id="|btn-gs-${a.id}|"
                 th:class="${a.guiaSangueEnviada} ? 'status-pill pill-ok' : 'status-pill pill-pend'"
-                th:attr="onclick=|abrirPopover('pop-gs-${a.id}')|"
+                data-action="open-pop" th:attr="data-pop-id=|pop-gs-${a.id}|"
                 th:text="${a.guiaSangueEnviada} ? '✅' : '⏳'">⏳</button>
         <div th:id="|pop-gs-${a.id}|" class="mini-pop">
           <p th:text="${a.guiaSangueEnviada} ? 'Desmarcar envio da guia de sangue?' : 'Marcar guia de sangue como enviada?'">?</p>
           <div class="pop-btns">
-            <button class="btn btn-primary btn-sm"
-                    th:attr="onclick=|confirmarStatus('pop-gs-${a.id}','btn-gs-${a.id}',${a.id},'guia_sangue')|">Sim</button>
-            <button class="btn btn-ghost btn-sm"
-                    th:attr="onclick=|fecharPopover('pop-gs-${a.id}')|">✕</button>
+            <button class="btn btn-primary btn-sm" data-action="confirm-status"
+                    th:attr="data-pop-id=|pop-gs-${a.id}|,data-btn-id=|btn-gs-${a.id}|,data-ag-id=${a.id},data-campo='guia_sangue'">Sim</button>
+            <button class="btn btn-ghost btn-sm" data-action="close-pop"
+                    th:attr="data-pop-id=|pop-gs-${a.id}|">✕</button>
           </div>
         </div>
       </div>
@@ -94,15 +94,15 @@
       <div class="popover-wrap">
         <button th:id="|btn-gc-${a.id}|"
                 th:class="${a.guiaClinicoEnviada} ? 'status-pill pill-ok' : 'status-pill pill-pend'"
-                th:attr="onclick=|abrirPopover('pop-gc-${a.id}')|"
+                data-action="open-pop" th:attr="data-pop-id=|pop-gc-${a.id}|"
                 th:text="${a.guiaClinicoEnviada} ? '✅' : '⏳'">⏳</button>
         <div th:id="|pop-gc-${a.id}|" class="mini-pop">
           <p th:text="${a.guiaClinicoEnviada} ? 'Desmarcar envio da guia clínica?' : 'Marcar guia clínica como enviada?'">?</p>
           <div class="pop-btns">
-            <button class="btn btn-primary btn-sm"
-                    th:attr="onclick=|confirmarStatus('pop-gc-${a.id}','btn-gc-${a.id}',${a.id},'guia_clinico')|">Sim</button>
-            <button class="btn btn-ghost btn-sm"
-                    th:attr="onclick=|fecharPopover('pop-gc-${a.id}')|">✕</button>
+            <button class="btn btn-primary btn-sm" data-action="confirm-status"
+                    th:attr="data-pop-id=|pop-gc-${a.id}|,data-btn-id=|btn-gc-${a.id}|,data-ag-id=${a.id},data-campo='guia_clinico'">Sim</button>
+            <button class="btn btn-ghost btn-sm" data-action="close-pop"
+                    th:attr="data-pop-id=|pop-gc-${a.id}|">✕</button>
           </div>
         </div>
       </div>
@@ -116,7 +116,7 @@
         <button type="button" class="btn btn-primary btn-icon btn-sm" title="Editar"
                 data-modal-editar th:attr="data-id=${a.id}">✏️</button>
         <form th:action="@{/excluir_agendamento/{id}(id=${a.id})}"
-              method="POST" onsubmit="return confirmarExclusao()">
+              method="POST" data-confirm-excluir>
           <button class="btn btn-danger btn-icon btn-sm" title="Excluir">🗑</button>
         </form>
       </div>
