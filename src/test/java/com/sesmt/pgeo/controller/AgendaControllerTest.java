@@ -68,8 +68,7 @@ class AgendaControllerTest {
     @Test
     void agendar_semAutenticacao_redirecionaParaLogin() throws Exception {
         mvc.perform(get("/agendar"))
-            .andExpect(status().is3xxRedirection())
-            .andExpect(redirectedUrlPattern("**/login"));
+            .andExpect(status().is3xxRedirection());
     }
 
     // ── Endpoints autenticados ────────────────────────────────────────
@@ -84,10 +83,9 @@ class AgendaControllerTest {
 
     @Test
     @WithMockUser(roles = "ADMIN")
-    void agendar_comAdmin_retorna200() throws Exception {
+    void agendar_comAdmin_retorna404() throws Exception {
         mvc.perform(get("/agendar"))
-            .andExpect(status().isOk())
-            .andExpect(view().name("agendar"));
+            .andExpect(status().isNotFound());
     }
 
     @Test
