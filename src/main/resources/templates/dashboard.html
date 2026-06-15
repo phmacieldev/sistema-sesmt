@@ -25,7 +25,7 @@
 </div>
 
 <!-- Modal Guias da Semana -->
-<div id="modalGuiasSemana" class="modal-overlay" onclick="if(event.target===this)fecharModalGuias()">
+<div id="modalGuiasSemana" class="modal-overlay">
   <div class="modal-box" style="max-width:680px;max-height:90vh;overflow-y:auto;">
     <div class="modal-title" id="guias-titulo">📧 Guias da Semana</div>
 
@@ -38,7 +38,7 @@
       <div id="guias-sangue-lista" style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:10px;"></div>
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
         <span style="font-size:12px;color:var(--text-muted);">📨 laboratório</span>
-        <button class="btn btn-primary btn-sm" onclick="enviarGuiasSemana('sangue')">📧 Enviar Guias de Sangue</button>
+        <button class="btn btn-primary btn-sm" id="btn-enviar-sangue">📧 Enviar Guias de Sangue</button>
       </div>
       <div id="guias-sangue-fb" style="display:none;margin-top:8px;padding:8px 12px;background:var(--success-light);color:#166534;border-radius:var(--radius-sm);font-size:13px;"></div>
     </div>
@@ -54,13 +54,13 @@
       <div id="guias-clinico-lista" style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:10px;"></div>
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
         <span style="font-size:12px;color:var(--text-muted);">📨 clínica</span>
-        <button class="btn btn-primary btn-sm" onclick="enviarGuiasSemana('clinico')">📧 Enviar Guias Clínicas</button>
+        <button class="btn btn-primary btn-sm" id="btn-enviar-clinico">📧 Enviar Guias Clínicas</button>
       </div>
       <div id="guias-clinico-fb" style="display:none;margin-top:8px;padding:8px 12px;background:var(--success-light);color:#166534;border-radius:var(--radius-sm);font-size:13px;"></div>
     </div>
 
     <div class="modal-footer" style="padding-top:0;">
-      <button class="btn btn-secondary" onclick="fecharModalGuias()">Fechar</button>
+      <button class="btn btn-secondary" id="btn-fechar-guias">Fechar</button>
     </div>
   </div>
 </div>
@@ -72,7 +72,7 @@
       <div class="page-title">📋 Agendamentos</div>
     </div>
     <div class="header-actions">
-      <button type="button" class="btn btn-secondary" onclick="abrirModalGuiasSemana()">📧 Guias da Semana</button>
+      <button type="button" class="btn btn-secondary" id="btn-guias-semana">📧 Guias da Semana</button>
       <button type="button" class="btn btn-success" data-modal-novo>➕ Novo Agendamento</button>
       <a th:href="@{/agenda}"  class="btn btn-secondary">📅 Agenda</a>
     </div>
@@ -204,6 +204,30 @@
     mesSelect.value = mes; anoSelect.value = ano; carregarDados();
   });
 
+  document.getElementById('btn-guias-semana').addEventListener('click', abrirModalGuiasSemana);
+  document.getElementById('btn-fechar-guias').addEventListener('click', fecharModalGuias);
+  document.getElementById('btn-enviar-sangue').addEventListener('click', function() { enviarGuiasSemana('sangue'); });
+  document.getElementById('btn-enviar-clinico').addEventListener('click', function() { enviarGuiasSemana('clinico'); });
+  document.getElementById('modalGuiasSemana').addEventListener('click', function(e) {
+    if (e.target === this) fecharModalGuias();
+  });
+  document.getElementById('guias-sangue-lista').addEventListener('click', function(e) {
+    var btn = e.target.closest('button[data-acao]');
+    if (!btn) return;
+    var idx  = +btn.dataset.idx;
+    var acao = btn.dataset.acao;
+    if (acao === 'remover')   removerGuia('sangue', idx);
+    if (acao === 'restaurar') restaurarGuia('sangue', idx);
+  });
+  document.getElementById('guias-clinico-lista').addEventListener('click', function(e) {
+    var btn = e.target.closest('button[data-acao]');
+    if (!btn) return;
+    var idx  = +btn.dataset.idx;
+    var acao = btn.dataset.acao;
+    if (acao === 'remover')   removerGuia('clinico', idx);
+    if (acao === 'restaurar') restaurarGuia('clinico', idx);
+  });
+
   carregarDados();
 
   function criarPaginacao(totalPaginas, paginaAtual) {
@@ -320,9 +344,16 @@
   var _guiasClinico = [];
 
   function abrirModalGuiasSemana() {
-    document.getElementById('modalGuiasSemana').classList.add('show');
+    var modal = document.getElementById('modalGuiasSemana');
+    modal.classList.add('show');
+    document.getElementById('guias-titulo').textContent = '⏳ Carregando…';
+    document.getElementById('guias-sangue-lista').innerHTML  = '';
+    document.getElementById('guias-clinico-lista').innerHTML = '';
     fetch('/guias-semana')
-      .then(function(r) { return r.json(); })
+      .then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
       .then(function(data) {
         document.getElementById('guias-titulo').textContent = '📧 Guias da Semana — ' + data.semana;
         _guiasSangue  = data.sangue.map(function(a) { return Object.assign({}, a, {removido: false}); });
@@ -330,8 +361,12 @@
         renderGuiasLista('sangue');
         renderGuiasLista('clinico');
       })
-      .catch(function() {
+      .catch(function(err) {
         document.getElementById('guias-titulo').textContent = '📧 Guias da Semana';
+        document.getElementById('guias-sangue-lista').innerHTML  =
+          '<div style="padding:16px 14px;font-size:13px;color:var(--danger);">Erro ao carregar guias. Tente novamente.</div>';
+        document.getElementById('guias-clinico-lista').innerHTML = '';
+        console.error('guias-semana:', err);
       });
   }
 
@@ -363,8 +398,8 @@
         + '<span style="color:var(--text-secondary);font-size:12px;min-width:80px;">' + escapeHtml(a.setor) + '</span>'
         + '<span style="color:var(--text-secondary);font-size:12px;min-width:44px;">' + escapeHtml(a.hora) + '</span>'
         + (a.removido
-          ? '<button onclick="restaurarGuia(\'' + tipo + '\',' + i + ')" style="background:none;border:none;color:var(--primary);cursor:pointer;font-size:12px;">desfazer</button>'
-          : '<button onclick="removerGuia(\'' + tipo + '\',' + i + ')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;line-height:1;">✕</button>')
+          ? '<button data-acao="restaurar" data-idx="' + i + '" style="background:none;border:none;color:var(--primary);cursor:pointer;font-size:12px;">desfazer</button>'
+          : '<button data-acao="remover"   data-idx="' + i + '" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;line-height:1;">✕</button>')
         + '</div>';
     }).join('');
     // remove last border
