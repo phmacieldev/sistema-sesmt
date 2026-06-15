@@ -106,31 +106,6 @@ public class AgendaController {
         return ev;
     }
 
-    // ── Formulário de agendamento ─────────────────────────────────────
-
-    @GetMapping("/agendar")
-    @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
-    public String agendar(
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data,
-            @RequestParam(required = false) String matricula,
-            Model model) {
-        model.addAttribute("horarios",
-            data != null ? agendamentoService.getHorariosDisponiveisPorData(data)
-                         : agendamentoService.getHorariosDisponiveis());
-        model.addAttribute("tiposExame", TipoExame.values());
-        model.addAttribute("hoje", LocalDate.now().toString());
-        if (matricula != null && !matricula.isBlank()) {
-            funcionarioRepo.findByMatricula(matricula.strip()).ifPresent(f -> {
-                model.addAttribute("prefillMatricula",  f.getMatricula() != null ? f.getMatricula() : "");
-                model.addAttribute("prefillNome",       f.getNome() != null ? f.getNome() : "");
-                model.addAttribute("prefillSetor",      f.getSetor() != null ? f.getSetor() : "");
-                model.addAttribute("prefillFuncao",     f.getFuncao() != null ? f.getFuncao() : "");
-                model.addAttribute("prefillExigeSangue", f.isExigeSangue());
-            });
-        }
-        return "agendar";
-    }
-
     /**
      * POST /agendar — retorna JSON.
      *
@@ -205,20 +180,6 @@ public class AgendaController {
         r.put("observacoes",  ag.getObservacoes() != null ? ag.getObservacoes() : "");
         r.put("examesSangue", ag.getExamesSangue() != null ? ag.getExamesSangue() : "");
         return r;
-    }
-
-    @GetMapping("/editar_agendamento/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
-    public String editarForm(@PathVariable Long id,
-                             @RequestParam(required = false) String origem,
-                             Model model) {
-        Agendamento ag = agendamentoRepo.findById(id)
-            .orElseThrow(() -> new RecursoNaoEncontradoException("Agendamento", id));
-        model.addAttribute("agendamento", ag);
-        model.addAttribute("horarios", agendamentoService.getHorariosDisponiveis());
-        model.addAttribute("tiposExame", TipoExame.values());
-        model.addAttribute("origem", origem != null ? origem : "dashboard");
-        return "editar_agendamento";
     }
 
     @PostMapping("/editar_agendamento/{id}")
