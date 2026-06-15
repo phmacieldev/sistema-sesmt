@@ -77,9 +77,9 @@ public class AsoService {
                 if (!ag.isAsoRecebido() && func != null) {
                     ag.setDataAsoAnterior(func.getAso());
                 }
-                // Atualiza o ASO do funcionário para a data do exame clínico
+                // Atualiza o ASO do funcionário: vencimento = data do exame + 12 meses (NR-7)
                 if (func != null && ag.getDataClinico() != null) {
-                    func.setAso(ag.getDataClinico());
+                    func.setAso(ag.getDataClinico().plusMonths(12));
                     funcionarioRepo.save(func);
                 }
                 ag.setAsoRecebido(true);
