@@ -24,10 +24,12 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 @Controller
@@ -490,6 +492,54 @@ public class DashboardController {
     @GetMapping("/vencimentos")
     public String vencimentosRedirect() {
         return "redirect:/dashboard_exames";
+    }
+
+    @GetMapping("/guias-semana")
+    @ResponseBody
+    public Map<String, Object> guiasSemana() {
+        LocalDate hoje = LocalDate.now();
+        LocalDate proxSegunda = hoje.with(DayOfWeek.MONDAY).plusWeeks(1);
+        LocalDate proxSexta   = proxSegunda.plusDays(4);
+
+        List<Agendamento> todos = agendamentoRepo
+            .findByDataClinicoBetweenOrderByDataClinicoAsc(proxSegunda, proxSexta);
+
+        DateTimeFormatter dayFmt   = DateTimeFormatter.ofPattern("EEE dd/MM", Locale.of("pt", "BR"));
+        DateTimeFormatter startFmt = DateTimeFormatter.ofPattern("dd/MM");
+        DateTimeFormatter endFmt   = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+        List<Map<String, Object>> sangueList = todos.stream()
+            .filter(a -> a.getDataSangue() != null)
+            .map(a -> {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("id",     a.getId());
+                m.put("nome",   a.getFuncionarioNome()  != null ? a.getFuncionarioNome()  : "");
+                m.put("setor",  a.getFuncionarioSetor() != null ? a.getFuncionarioSetor() : "");
+                m.put("data",   a.getDataSangue().format(dayFmt));
+                m.put("hora",   a.getHoraClinico()      != null ? a.getHoraClinico()      : "");
+                m.put("exames", a.getExamesSangue()     != null ? a.getExamesSangue()     : "");
+                return m;
+            })
+            .toList();
+
+        List<Map<String, Object>> clinicoList = todos.stream()
+            .map(a -> {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("id",    a.getId());
+                m.put("nome",  a.getFuncionarioNome()  != null ? a.getFuncionarioNome()  : "");
+                m.put("setor", a.getFuncionarioSetor() != null ? a.getFuncionarioSetor() : "");
+                m.put("data",  a.getDataClinico().format(dayFmt));
+                m.put("hora",  a.getHoraClinico()      != null ? a.getHoraClinico()      : "");
+                m.put("tipo",  a.getTipoExameDescricao());
+                return m;
+            })
+            .toList();
+
+        return Map.of(
+            "semana",   proxSegunda.format(startFmt) + " a " + proxSexta.format(endFmt),
+            "sangue",   sangueList,
+            "clinico",  clinicoList
+        );
     }
 
 }

@@ -1208,3 +1208,27 @@ body.no-navbar > footer {
 .pg-btn:hover  { background:var(--bg-table-hover); }
 .pg-btn.active { background:var(--primary); color:#fff; border-color:var(--primary); }
 .pg-btn.disabled { pointer-events:none; opacity:.4; }
+
+/* ── Status pills (popovers de confirmação) ─────────────────── */
+.status-pill {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 50%; border: none;
+  cursor: pointer; font-size: 14px; line-height: 1;
+  transition: opacity .15s; background: transparent;
+}
+.status-pill:hover { opacity: .75; }
+.pill-ok   { background: var(--success-light); }
+.pill-pend { background: var(--bg-table-head); border: 1px dashed var(--border); }
+
+/* ── Mini popover ─────────────────────────────────────────────── */
+.popover-wrap { position: relative; display: inline-block; }
+.mini-pop {
+  display: none; position: absolute; z-index: 300;
+  top: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); box-shadow: 0 8px 24px rgba(0,0,0,.14);
+  padding: 10px 12px; min-width: 190px; white-space: nowrap;
+}
+.mini-pop.show { display: block; }
+.mini-pop p { font-size: 12px; color: var(--text-secondary); margin: 0 0 8px; }
+.pop-btns { display: flex; gap: 6px; }

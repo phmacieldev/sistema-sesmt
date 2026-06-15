@@ -148,7 +148,7 @@ class AgendaControllerTest {
         Agendamento ag = new Agendamento();
         ag.setId(42L);
         when(agendamentoService.criar(any(), any(), any(), any(),
-                any(TipoExame.class), any(LocalDate.class), any(), any(), any()))
+                any(TipoExame.class), any(LocalDate.class), any(), any(), any(), any()))
             .thenReturn(ag);
 
         mvc.perform(post("/agendar").with(csrf())

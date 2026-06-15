@@ -72,7 +72,7 @@ public class AgendamentoService {
     public Agendamento criar(
             String matricula, String nome, String setor, String funcao,
             TipoExame tipoExame, LocalDate dataClinico, String hora,
-            LocalDate dataSangue, String observacoes) {
+            LocalDate dataSangue, String observacoes, String examesSangue) {
 
         validarDiaUtil(dataClinico, "exame clínico");
         if (dataSangue != null) validarDiaUtil(dataSangue, "exame de sangue");
@@ -120,6 +120,7 @@ public class AgendamentoService {
         ag.setAsoEnviado(false);
         ag.setAsoRecebido(false);
         ag.setObservacoes(observacoes);
+        ag.setExamesSangue(examesSangue);
         ag.setCriadoPor(getUsuarioAtual());
         ag.syncCacheDoFuncionario();
 
@@ -156,7 +157,8 @@ public class AgendamentoService {
     @Transactional
     public Agendamento editar(Long id, String nome, String setor, String funcao,
                               TipoExame tipoExame, LocalDate dataClinico,
-                              LocalDate dataSangue, String hora, String observacoes) {
+                              LocalDate dataSangue, String hora, String observacoes,
+                              String examesSangue) {
 
         Agendamento ag = agendamentoRepo.findById(id)
             .orElseThrow(() -> new RecursoNaoEncontradoException("Agendamento", id));
@@ -180,6 +182,7 @@ public class AgendamentoService {
         ag.setDataSangue(dataSangue);
         ag.setHoraClinico(hora);
         ag.setObservacoes(observacoes);
+        ag.setExamesSangue(examesSangue);
         ag.setAtualizadoPor(getUsuarioAtual());
 
         Agendamento salvo = agendamentoRepo.save(ag);

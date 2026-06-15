@@ -55,6 +55,22 @@ public class AsoService {
                 "ASO " + (valor ? "marcado como enviado" : "desmarcado") +
                 " para " + ag.getFuncionarioNome());
 
+        } else if ("guia_sangue".equals(campo)) {
+            ag.setGuiaSangueEnviada(valor);
+            agendamentoRepo.save(ag);
+            auditService.registrar(
+                "GUIA_SANGUE", "Agendamento", agendamentoId,
+                "Guia de sangue " + (valor ? "marcada como enviada" : "desmarcada") +
+                " para " + ag.getFuncionarioNome());
+
+        } else if ("guia_clinico".equals(campo)) {
+            ag.setGuiaClinicoEnviada(valor);
+            agendamentoRepo.save(ag);
+            auditService.registrar(
+                "GUIA_CLINICO", "Agendamento", agendamentoId,
+                "Guia clínico " + (valor ? "marcada como enviada" : "desmarcada") +
+                " para " + ag.getFuncionarioNome());
+
         } else if ("recebido".equals(campo)) {
             if (valor) {
                 // Guarda a data anterior para possível reversão

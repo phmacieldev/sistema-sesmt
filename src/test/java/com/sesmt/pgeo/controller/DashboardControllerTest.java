@@ -56,6 +56,8 @@ class DashboardControllerTest {
             .thenReturn(Page.empty());
         when(agendamentoRepo.findByMesEAnoPaginado(anyInt(), anyInt(), any(), any(), any(Pageable.class)))
             .thenReturn(Page.empty());
+        when(agendamentoRepo.findByDataClinicoBetweenOrderByDataClinicoAsc(any(), any()))
+            .thenReturn(List.of());
         when(excelService.gerarPlanilha(any())).thenReturn(new byte[]{});
     }
 
@@ -168,7 +170,7 @@ class DashboardControllerTest {
             .andExpect(model().attributeExists("qtdEmDia"))
             .andExpect(model().attributeExists("qtdSemAso"))
             .andExpect(model().attributeExists("labelesMeses"))
-            .andExpect(model().attributeExists("examesPorMes"))
+            .andExpect(model().attributeExists("atestadosPorMes"))
             .andExpect(model().attributeExists("resultados"));
     }
 

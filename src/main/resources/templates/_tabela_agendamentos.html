@@ -35,15 +35,77 @@
     <td th:text="${a.dataClinico != null ? #temporals.format(a.dataClinico, 'dd/MM/yyyy') : '—'}">—</td>
     <td th:text="${a.horaClinico}">—</td>
     <td th:text="${a.dataSangue != null ? #temporals.format(a.dataSangue, 'dd/MM/yyyy') : '—'}">—</td>
+    <!-- ASO Enviado -->
     <td class="text-center">
-      <input type="checkbox" class="check-toggle"
-             th:checked="${a.asoEnviado}"
-             th:attr="onchange=|toggleStatusAso(${a.id}, 'enviado', this.checked, this)|">
+      <div class="popover-wrap">
+        <button th:id="|btn-env-${a.id}|"
+                th:class="${a.asoEnviado} ? 'status-pill pill-ok' : 'status-pill pill-pend'"
+                th:attr="onclick=|abrirPopover('pop-env-${a.id}')|"
+                th:text="${a.asoEnviado} ? '✅' : '⏳'">⏳</button>
+        <div th:id="|pop-env-${a.id}|" class="mini-pop">
+          <p th:text="${a.asoEnviado} ? 'Desmarcar envio do ASO?' : 'Marcar ASO como enviado?'">?</p>
+          <div class="pop-btns">
+            <button class="btn btn-primary btn-sm"
+                    th:attr="onclick=|confirmarStatus('pop-env-${a.id}','btn-env-${a.id}',${a.id},'enviado')|">Sim</button>
+            <button class="btn btn-ghost btn-sm"
+                    th:attr="onclick=|fecharPopover('pop-env-${a.id}')|">✕</button>
+          </div>
+        </div>
+      </div>
     </td>
+    <!-- ASO Recebido -->
     <td class="text-center">
-      <input type="checkbox" class="check-toggle"
-             th:checked="${a.asoRecebido}"
-             th:attr="onchange=|handleRecebimento(${a.id}, this.checked, this)|">
+      <div class="popover-wrap">
+        <button th:id="|btn-rec-${a.id}|"
+                th:class="${a.asoRecebido} ? 'status-pill pill-ok' : 'status-pill pill-pend'"
+                th:attr="onclick=|abrirPopover('pop-rec-${a.id}')|"
+                th:text="${a.asoRecebido} ? '✅' : '⏳'">⏳</button>
+        <div th:id="|pop-rec-${a.id}|" class="mini-pop">
+          <p th:text="${a.asoRecebido} ? 'Reverter recebimento do ASO?' : 'Confirmar recebimento do ASO?'">?</p>
+          <div class="pop-btns">
+            <button class="btn btn-primary btn-sm"
+                    th:attr="onclick=|confirmarRecebido('pop-rec-${a.id}','btn-rec-${a.id}',${a.id})|">Sim</button>
+            <button class="btn btn-ghost btn-sm"
+                    th:attr="onclick=|fecharPopover('pop-rec-${a.id}')|">✕</button>
+          </div>
+        </div>
+      </div>
+    </td>
+    <!-- Guia Sangue -->
+    <td class="text-center">
+      <div class="popover-wrap">
+        <button th:id="|btn-gs-${a.id}|"
+                th:class="${a.guiaSangueEnviada} ? 'status-pill pill-ok' : 'status-pill pill-pend'"
+                th:attr="onclick=|abrirPopover('pop-gs-${a.id}')|"
+                th:text="${a.guiaSangueEnviada} ? '✅' : '⏳'">⏳</button>
+        <div th:id="|pop-gs-${a.id}|" class="mini-pop">
+          <p th:text="${a.guiaSangueEnviada} ? 'Desmarcar envio da guia de sangue?' : 'Marcar guia de sangue como enviada?'">?</p>
+          <div class="pop-btns">
+            <button class="btn btn-primary btn-sm"
+                    th:attr="onclick=|confirmarStatus('pop-gs-${a.id}','btn-gs-${a.id}',${a.id},'guia_sangue')|">Sim</button>
+            <button class="btn btn-ghost btn-sm"
+                    th:attr="onclick=|fecharPopover('pop-gs-${a.id}')|">✕</button>
+          </div>
+        </div>
+      </div>
+    </td>
+    <!-- Guia Clínico -->
+    <td class="text-center">
+      <div class="popover-wrap">
+        <button th:id="|btn-gc-${a.id}|"
+                th:class="${a.guiaClinicoEnviada} ? 'status-pill pill-ok' : 'status-pill pill-pend'"
+                th:attr="onclick=|abrirPopover('pop-gc-${a.id}')|"
+                th:text="${a.guiaClinicoEnviada} ? '✅' : '⏳'">⏳</button>
+        <div th:id="|pop-gc-${a.id}|" class="mini-pop">
+          <p th:text="${a.guiaClinicoEnviada} ? 'Desmarcar envio da guia clínica?' : 'Marcar guia clínica como enviada?'">?</p>
+          <div class="pop-btns">
+            <button class="btn btn-primary btn-sm"
+                    th:attr="onclick=|confirmarStatus('pop-gc-${a.id}','btn-gc-${a.id}',${a.id},'guia_clinico')|">Sim</button>
+            <button class="btn btn-ghost btn-sm"
+                    th:attr="onclick=|fecharPopover('pop-gc-${a.id}')|">✕</button>
+          </div>
+        </div>
+      </div>
     </td>
     <td>
       <div class="actions-cell">
@@ -61,7 +123,7 @@
     </td>
   </tr>
   <tr th:if="${#lists.isEmpty(agendamentos)}">
-    <td colspan="10">
+    <td colspan="12">
       <div class="empty-state">
         <div class="empty-state-icon">📭</div>
         <div class="empty-state-title">Nenhum agendamento encontrado</div>

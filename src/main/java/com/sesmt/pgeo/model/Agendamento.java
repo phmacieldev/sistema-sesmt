@@ -110,6 +110,17 @@ public class Agendamento {
     @Column(name = "data_aso_anterior")
     private LocalDate dataAsoAnterior;
 
+    // ── Status de envio das guias ─────────────────────────────
+    @Column(name = "guia_sangue_enviada", nullable = false)
+    private boolean guiaSangueEnviada = false;
+
+    @Column(name = "guia_clinico_enviada", nullable = false)
+    private boolean guiaClinicoEnviada = false;
+
+    /** Exames laboratoriais solicitados (ex: "Hemograma, Glicemia, TGO, TGP") */
+    @Column(name = "exames_sangue", columnDefinition = "TEXT")
+    private String examesSangue;
+
     // ── Auditoria ─────────────────────────────────────────────
     @Column(name = "criado_em", updatable = false)
     private LocalDateTime criadoEm;

@@ -152,7 +152,8 @@ public class AgendaController {
             // Bug fix: required=false — cargos sem exame de sangue
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
                                               LocalDate data_sangue,
-            @RequestParam(required = false) String observacoes) {
+            @RequestParam(required = false) String observacoes,
+            @RequestParam(required = false) String exames_sangue) {
 
         if (data_clinico == null) {
             return Map.of("erro", true, "mensagem", "Data do exame clínico é obrigatória.");
@@ -164,7 +165,8 @@ public class AgendaController {
 
         try {
             Agendamento ag = agendamentoService.criar(
-                matricula, nome, setor, funcao, tipoEnum, data_clinico, hora, data_sangue, observacoes);
+                matricula, nome, setor, funcao, tipoEnum, data_clinico, hora, data_sangue,
+                observacoes, exames_sangue);
             return Map.of("ok", true, "id", ag.getId());
 
         } catch (RegraDeNegocioException ex) {
@@ -200,7 +202,8 @@ public class AgendaController {
         r.put("dataSangue",  ag.getDataSangue() != null ? ag.getDataSangue().toString() : "");
         r.put("dataClinico", ag.getDataClinico() != null ? ag.getDataClinico().toString() : "");
         r.put("hora",        ag.getHoraClinico() != null ? ag.getHoraClinico() : "");
-        r.put("observacoes", ag.getObservacoes() != null ? ag.getObservacoes() : "");
+        r.put("observacoes",  ag.getObservacoes() != null ? ag.getObservacoes() : "");
+        r.put("examesSangue", ag.getExamesSangue() != null ? ag.getExamesSangue() : "");
         return r;
     }
 
@@ -231,12 +234,14 @@ public class AgendaController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
                                             LocalDate data_sangue,
             @RequestParam String hora,
-            @RequestParam(required = false) String observacoes) {
+            @RequestParam(required = false) String observacoes,
+            @RequestParam(required = false) String exames_sangue) {
 
         TipoExame tipoEnum = TipoExame.fromDescricao(tipo_exame);
         if (tipoEnum == null) tipoEnum = TipoExame.PERIODICO;
 
-        agendamentoService.editar(id, nome, setor, funcao, tipoEnum, data_clinico, data_sangue, hora, observacoes);
+        agendamentoService.editar(id, nome, setor, funcao, tipoEnum, data_clinico, data_sangue, hora,
+            observacoes, exames_sangue);
         return Map.of("ok", true);
     }
 

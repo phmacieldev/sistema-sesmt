@@ -79,6 +79,16 @@
         </select>
       </div>
 
+      <div class="form-group" th:if="${agendamento.dataSangue != null}">
+        <label class="form-label">
+          Exames de sangue solicitados
+          <small>(opcional — ex: Hemograma, Glicemia, TGO, TGP)</small>
+        </label>
+        <textarea name="exames_sangue" class="form-control" rows="2"
+                  placeholder="Ex: Hemograma completo, Glicemia, TGO, TGP, Creatinina"
+                  th:text="${agendamento.examesSangue}"></textarea>
+      </div>
+
       <div class="form-group">
         <label class="form-label">Observações <small>(opcional)</small></label>
         <textarea name="observacoes" class="form-control"
