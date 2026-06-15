@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Preview — Guias da Semana</title>
+<style>
+  :root {
+    --bg: #f8fafc; --bg-card: #ffffff; --bg-table-head: #f1f5f9;
+    --bg-table-hover: #f8fafc; --border: #e2e8f0; --text: #0f172a;
+    --text-secondary: #475569; --text-muted: #94a3b8;
+    --primary: #3b82f6; --primary-hover: #2563eb;
+    --success: #22c55e; --success-light: #dcfce7;
+    --warning: #f59e0b; --warning-light: #fef3c7;
+    --danger: #ef4444; --danger-light: #fee2e2;
+    --radius: 10px; --radius-sm: 6px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+         background: var(--bg); color: var(--text); font-size: 14px; }
+
+  /* ── Layout ── */
+  .page { max-width: 1100px; margin: 32px auto; padding: 0 24px; }
+  h2 { font-size: 13px; font-weight: 600; text-transform: uppercase;
+       letter-spacing: .5px; color: var(--text-muted); margin: 32px 0 12px; }
+
+  /* ── Card ── */
+  .card { background: var(--bg-card); border: 1px solid var(--border);
+          border-radius: var(--radius); overflow: hidden; }
+
+  /* ── Table ── */
+  table { width: 100%; border-collapse: collapse; }
+  thead th { background: var(--bg-table-head); padding: 10px 14px;
+             text-align: left; font-size: 12px; font-weight: 600;
+             color: var(--text-secondary); border-bottom: 1px solid var(--border); }
+  tbody td { padding: 11px 14px; border-bottom: 1px solid var(--border);
+             color: var(--text); vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: var(--bg-table-hover); }
+
+  /* ── Status buttons ── */
+  .status-btn { display: inline-flex; align-items: center; gap: 5px;
+                padding: 4px 10px; border-radius: 20px; font-size: 12px;
+                font-weight: 500; border: none; cursor: pointer;
+                position: relative; transition: opacity .15s; }
+  .status-btn:hover { opacity: .85; }
+  .status-enviada  { background: var(--success-light); color: #166534; }
+  .status-pendente { background: var(--bg-table-head); color: var(--text-secondary);
+                     border: 1px dashed var(--border); }
+
+  /* ── Popover ── */
+  .popover-wrap { position: relative; display: inline-block; }
+  .popover { display: none; position: absolute; z-index: 100; top: calc(100% + 8px);
+             left: 50%; transform: translateX(-50%);
+             background: var(--bg-card); border: 1px solid var(--border);
+             border-radius: var(--radius-sm); box-shadow: 0 8px 24px rgba(0,0,0,.12);
+             padding: 12px 14px; min-width: 200px; white-space: nowrap; }
+  .popover::before { content: ''; position: absolute; top: -6px; left: 50%;
+                     transform: translateX(-50%); border-width: 0 6px 6px;
+                     border-style: solid; border-color: transparent transparent var(--border); }
+  .popover-show { display: block; }
+  .popover p { font-size: 13px; color: var(--text-secondary); margin-bottom: 10px; }
+  .popover-btns { display: flex; gap: 8px; }
+  .btn-confirm { padding: 5px 12px; background: var(--primary); color: #fff;
+                 border: none; border-radius: var(--radius-sm); font-size: 12px;
+                 font-weight: 600; cursor: pointer; }
+  .btn-cancel  { padding: 5px 10px; background: transparent; color: var(--text-muted);
+                 border: 1px solid var(--border); border-radius: var(--radius-sm);
+                 font-size: 12px; cursor: pointer; }
+
+  /* ── Badge tipo ── */
+  .badge-tipo { padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+  .exame-periodico   { background: #d1fae5; color: #065f46; }
+  .exame-admissional { background: #dbeafe; color: #1d4ed8; }
+  .exame-demissional { background: #fef3c7; color: #92400e; }
+
+  /* ── Botão principal ── */
+  .btn { padding: 7px 14px; border-radius: var(--radius-sm); font-size: 13px;
+         font-weight: 500; cursor: pointer; border: none; transition: background .15s; }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-hover); }
+  .btn-sm { padding: 5px 11px; font-size: 12px; }
+  .btn-secondary { background: var(--bg-table-head); color: var(--text-secondary);
+                   border: 1px solid var(--border); }
+
+  /* ── Overlay / Modal ── */
+  .overlay { display: none; position: fixed; inset: 0;
+             background: rgba(0,0,0,.4); z-index: 200; align-items: center;
+             justify-content: center; padding: 24px; }
+  .overlay.show { display: flex; }
+  .modal { background: var(--bg-card); border-radius: var(--radius);
+           width: 100%; max-width: 680px; max-height: 90vh; overflow-y: auto;
+           box-shadow: 0 24px 64px rgba(0,0,0,.2); }
+  .modal-header { display: flex; justify-content: space-between; align-items: center;
+                  padding: 18px 22px; border-bottom: 1px solid var(--border); }
+  .modal-header h3 { font-size: 16px; font-weight: 700; }
+  .modal-close { background: none; border: none; font-size: 20px;
+                 color: var(--text-muted); cursor: pointer; line-height: 1; }
+  .modal-body { padding: 20px 22px; }
+  .modal-section { margin-bottom: 24px; }
+  .modal-section:last-child { margin-bottom: 0; }
+  .section-title { font-size: 13px; font-weight: 700; margin-bottom: 10px;
+                   display: flex; align-items: center; gap: 8px; }
+  .section-meta { font-size: 12px; color: var(--text-muted); font-weight: 400; }
+  .guia-list { border: 1px solid var(--border); border-radius: var(--radius-sm);
+               overflow: hidden; margin-bottom: 12px; }
+  .guia-item { display: flex; align-items: center; gap: 12px;
+               padding: 10px 14px; border-bottom: 1px solid var(--border);
+               font-size: 13px; }
+  .guia-item:last-child { border-bottom: none; }
+  .guia-item.removed { opacity: .35; text-decoration: line-through; }
+  .guia-data { min-width: 70px; color: var(--text-muted); font-size: 12px; }
+  .guia-nome { flex: 1; font-weight: 500; }
+  .guia-setor { color: var(--text-secondary); font-size: 12px; min-width: 80px; }
+  .guia-hora  { color: var(--text-secondary); font-size: 12px; min-width: 48px; }
+  .btn-remove { background: none; border: none; color: var(--text-muted);
+                cursor: pointer; font-size: 16px; padding: 2px 4px;
+                border-radius: 4px; line-height: 1; }
+  .btn-remove:hover { background: var(--danger-light); color: var(--danger); }
+  .btn-remove.undo { font-size: 12px; color: var(--primary); }
+  .modal-divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+  .send-row { display: flex; align-items: center; justify-content: space-between;
+              flex-wrap: wrap; gap: 8px; }
+  .send-dest { font-size: 12px; color: var(--text-muted); }
+
+  /* ── Feedback de envio ── */
+  .sent-feedback { display: none; background: var(--success-light); color: #166534;
+                   border: 1px solid #bbf7d0; border-radius: var(--radius-sm);
+                   padding: 10px 14px; font-size: 13px; margin-top: 10px; }
+  .sent-feedback.show { display: block; }
+
+  /* ── Trigger bar ── */
+  .trigger-bar { display: flex; gap: 10px; margin-bottom: 8px; align-items: center; }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- ══════════════════════════════════════════════════
+       SEÇÃO 1 — Dashboard com botões de status
+  ═══════════════════════════════════════════════════ -->
+  <h2>1 · Dashboard — botões de status (substituem os checkboxes)</h2>
+
+  <div class="trigger-bar">
+    <button class="btn btn-primary btn-sm" onclick="document.getElementById('overlay').classList.add('show')">
+      📧 Enviar Guias da Semana (16/06 – 20/06)
+    </button>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>Funcionário</th>
+          <th>Setor</th>
+          <th>Tipo de Exame</th>
+          <th>Data</th>
+          <th>Hora</th>
+          <th style="text-align:center">Guia Sangue</th>
+          <th style="text-align:center">Guia Clínico</th>
+          <th style="text-align:center">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        <tr>
+          <td><strong>João Silva</strong><br><small style="color:var(--text-muted)">ASO: 10/03/2025</small></td>
+          <td>UTI</td>
+          <td><span class="badge-tipo exame-periodico">Periódico</span></td>
+          <td>16/06/2026</td>
+          <td>08:00</td>
+          <td style="text-align:center">
+            <div class="popover-wrap">
+              <button class="status-btn status-enviada" onclick="togglePopover('p1')">✅ Enviada</button>
+              <div class="popover" id="p1">
+                <p>Marcar como <strong>"Não enviada"</strong>?</p>
+                <div class="popover-btns">
+                  <button class="btn-confirm" onclick="toggleStatus('p1','s1','sangue')">Confirmar</button>
+                  <button class="btn-cancel" onclick="closePopover('p1')">✕</button>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td style="text-align:center">
+            <div class="popover-wrap">
+              <button class="status-btn status-pendente" id="s1-clinico" onclick="togglePopover('p1c')">⏳ Pendente</button>
+              <div class="popover" id="p1c">
+                <p>Marcar como <strong>"Enviada"</strong>?</p>
+                <div class="popover-btns">
+                  <button class="btn-confirm" onclick="toggleStatus('p1c','s1-clinico','clinico')">Confirmar</button>
+                  <button class="btn-cancel" onclick="closePopover('p1c')">✕</button>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td style="text-align:center">
+            <button class="btn btn-secondary btn-sm">🩸 Guia</button>
+            <button class="btn btn-secondary btn-sm">📋 Clínico</button>
+          </td>
+        </tr>
+
+        <tr>
+          <td><strong>Maria Souza</strong><br><small style="color:var(--text-muted)">ASO: 20/01/2025</small></td>
+          <td>Lavanderia</td>
+          <td><span class="badge-tipo exame-admissional">Admissional</span></td>
+          <td>17/06/2026</td>
+          <td>09:00</td>
+          <td style="text-align:center">
+            <div class="popover-wrap">
+              <button class="status-btn status-pendente" onclick="togglePopover('p2')">⏳ Pendente</button>
+              <div class="popover" id="p2">
+                <p>Marcar como <strong>"Enviada"</strong>?</p>
+                <div class="popover-btns">
+                  <button class="btn-confirm" onclick="closePopover('p2')">Confirmar</button>
+                  <button class="btn-cancel" onclick="closePopover('p2')">✕</button>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td style="text-align:center">
+            <div class="popover-wrap">
+              <button class="status-btn status-pendente" onclick="togglePopover('p2c')">⏳ Pendente</button>
+              <div class="popover" id="p2c">
+                <p>Marcar como <strong>"Enviada"</strong>?</p>
+                <div class="popover-btns">
+                  <button class="btn-confirm" onclick="closePopover('p2c')">Confirmar</button>
+                  <button class="btn-cancel" onclick="closePopover('p2c')">✕</button>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td style="text-align:center">
+            <button class="btn btn-secondary btn-sm">🩸 Guia</button>
+            <button class="btn btn-secondary btn-sm">📋 Clínico</button>
+          </td>
+        </tr>
+
+        <tr>
+          <td><strong>Pedro Lima</strong><br><small style="color:var(--text-muted)">Sem ASO</small></td>
+          <td>Recepção</td>
+          <td><span class="badge-tipo exame-demissional">Demissional</span></td>
+          <td>18/06/2026</td>
+          <td>10:30</td>
+          <td style="text-align:center">
+            <div class="popover-wrap">
+              <button class="status-btn status-enviada" onclick="togglePopover('p3')">✅ Enviada</button>
+              <div class="popover" id="p3">
+                <p>Marcar como <strong>"Não enviada"</strong>?</p>
+                <div class="popover-btns">
+                  <button class="btn-confirm" onclick="closePopover('p3')">Confirmar</button>
+                  <button class="btn-cancel" onclick="closePopover('p3')">✕</button>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td style="text-align:center">
+            <div class="popover-wrap">
+              <button class="status-btn status-enviada" onclick="togglePopover('p3c')">✅ Enviada</button>
+              <div class="popover" id="p3c">
+                <p>Marcar como <strong>"Não enviada"</strong>?</p>
+                <div class="popover-btns">
+                  <button class="btn-confirm" onclick="closePopover('p3c')">Confirmar</button>
+                  <button class="btn-cancel" onclick="closePopover('p3c')">✕</button>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td style="text-align:center">
+            <button class="btn btn-secondary btn-sm">📋 Clínico</button>
+          </td>
+        </tr>
+
+      </tbody>
+    </table>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════
+       MODAL — Enviar Guias da Semana
+  ═══════════════════════════════════════════════════ -->
+  <div class="overlay" id="overlay" onclick="if(event.target===this)this.classList.remove('show')">
+    <div class="modal">
+
+      <div class="modal-header">
+        <h3>📧 Guias da Semana — 16/06 a 20/06/2026</h3>
+        <button class="modal-close" onclick="document.getElementById('overlay').classList.remove('show')">×</button>
+      </div>
+
+      <div class="modal-body">
+
+        <!-- Sangue -->
+        <div class="modal-section">
+          <div class="section-title">
+            🩸 Exames de Sangue
+            <span class="section-meta" id="sangue-count">4 agendamentos · 1 PDF mesclado</span>
+          </div>
+          <div class="guia-list" id="sangue-list">
+            <div class="guia-item" id="sg1">
+              <span class="guia-data">Seg 16/06</span>
+              <span class="guia-nome">João Silva</span>
+              <span class="guia-setor">UTI</span>
+              <span class="guia-hora">08:00</span>
+              <button class="btn-remove" onclick="removeItem('sg1','sangue-count','sangue-list')">✕</button>
+            </div>
+            <div class="guia-item" id="sg2">
+              <span class="guia-data">Seg 16/06</span>
+              <span class="guia-nome">Maria Souza</span>
+              <span class="guia-setor">Lavanderia</span>
+              <span class="guia-hora">08:30</span>
+              <button class="btn-remove" onclick="removeItem('sg2','sangue-count','sangue-list')">✕</button>
+            </div>
+            <div class="guia-item" id="sg3">
+              <span class="guia-data">Ter 17/06</span>
+              <span class="guia-nome">Pedro Lima</span>
+              <span class="guia-setor">Recepção</span>
+              <span class="guia-hora">09:00</span>
+              <button class="btn-remove" onclick="removeItem('sg3','sangue-count','sangue-list')">✕</button>
+            </div>
+            <div class="guia-item" id="sg4">
+              <span class="guia-data">Qua 18/06</span>
+              <span class="guia-nome">Ana Costa</span>
+              <span class="guia-setor">FMC</span>
+              <span class="guia-hora">08:00</span>
+              <button class="btn-remove" onclick="removeItem('sg4','sangue-count','sangue-list')">✕</button>
+            </div>
+          </div>
+          <div class="send-row">
+            <span class="send-dest">📨 laboratorio@hospital.com</span>
+            <button class="btn btn-primary btn-sm" onclick="simularEnvio('sangue-feedback','Sangue','laboratorio@hospital.com')">
+              📧 Enviar Guias de Sangue
+            </button>
+          </div>
+          <div class="sent-feedback" id="sangue-feedback"></div>
+        </div>
+
+        <hr class="modal-divider">
+
+        <!-- Clínico -->
+        <div class="modal-section">
+          <div class="section-title">
+            🏥 Exames Clínicos
+            <span class="section-meta" id="clinico-count">3 agendamentos · 3 PDFs separados</span>
+          </div>
+          <div class="guia-list" id="clinico-list">
+            <div class="guia-item" id="cl1">
+              <span class="guia-data">Seg 16/06</span>
+              <span class="guia-nome">João Silva</span>
+              <span class="guia-setor">UTI</span>
+              <span class="badge-tipo exame-periodico" style="font-size:11px">Periódico</span>
+              <span class="guia-hora">09:30</span>
+              <button class="btn-remove" onclick="removeItem('cl1','clinico-count','clinico-list')">✕</button>
+            </div>
+            <div class="guia-item" id="cl2">
+              <span class="guia-data">Ter 17/06</span>
+              <span class="guia-nome">Maria Souza</span>
+              <span class="guia-setor">Lavanderia</span>
+              <span class="badge-tipo exame-admissional" style="font-size:11px">Admissional</span>
+              <span class="guia-hora">10:00</span>
+              <button class="btn-remove" onclick="removeItem('cl2','clinico-count','clinico-list')">✕</button>
+            </div>
+            <div class="guia-item" id="cl3">
+              <span class="guia-data">Sex 20/06</span>
+              <span class="guia-nome">Pedro Lima</span>
+              <span class="guia-setor">Recepção</span>
+              <span class="badge-tipo exame-demissional" style="font-size:11px">Demissional</span>
+              <span class="guia-hora">14:00</span>
+              <button class="btn-remove" onclick="removeItem('cl3','clinico-count','clinico-list')">✕</button>
+            </div>
+          </div>
+          <div class="send-row">
+            <span class="send-dest">📨 clinica@parceira.com</span>
+            <button class="btn btn-primary btn-sm" onclick="simularEnvio('clinico-feedback','Clínico','clinica@parceira.com')">
+              📧 Enviar Guias Clínicas
+            </button>
+          </div>
+          <div class="sent-feedback" id="clinico-feedback"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function togglePopover(id) {
+    document.querySelectorAll('.popover').forEach(p => { if(p.id !== id) p.classList.remove('popover-show'); });
+    document.getElementById(id).classList.toggle('popover-show');
+  }
+  function closePopover(id) { document.getElementById(id).classList.remove('popover-show'); }
+
+  function toggleStatus(popoverId, btnId, tipo) {
+    const btn = document.getElementById(btnId);
+    if (!btn) { closePopover(popoverId); return; }
+    if (btn.classList.contains('status-enviada')) {
+      btn.classList.replace('status-enviada','status-pendente');
+      btn.textContent = '⏳ Pendente';
+    } else {
+      btn.classList.replace('status-pendente','status-enviada');
+      btn.textContent = '✅ Enviada';
+    }
+    closePopover(popoverId);
+  }
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.popover-wrap'))
+      document.querySelectorAll('.popover').forEach(p => p.classList.remove('popover-show'));
+  });
+
+  function removeItem(id, countId, listId) {
+    const item = document.getElementById(id);
+    item.classList.add('removed');
+    item.querySelector('.btn-remove').textContent = '↩';
+    item.querySelector('.btn-remove').classList.add('undo');
+    item.querySelector('.btn-remove').onclick = () => undoItem(id, countId, listId);
+    updateCount(listId, countId);
+  }
+  function undoItem(id, countId, listId) {
+    const item = document.getElementById(id);
+    item.classList.remove('removed');
+    const btn = item.querySelector('.btn-remove');
+    btn.textContent = '✕';
+    btn.classList.remove('undo');
+    btn.onclick = () => removeItem(id, countId, listId);
+    updateCount(listId, countId);
+  }
+  function updateCount(listId, countId) {
+    const total   = document.querySelectorAll(`#${listId} .guia-item`).length;
+    const removed = document.querySelectorAll(`#${listId} .guia-item.removed`).length;
+    const active  = total - removed;
+    const tipo    = listId === 'sangue-list' ? '1 PDF mesclado' : `${active} PDF${active !== 1 ? 's' : ''} separado${active !== 1 ? 's' : ''}`;
+    document.getElementById(countId).textContent = `${active} agendamento${active !== 1 ? 's' : ''} · ${tipo}`;
+  }
+
+  function simularEnvio(feedbackId, tipo, email) {
+    const fb = document.getElementById(feedbackId);
+    fb.textContent = `⏳ Gerando PDFs e enviando…`;
+    fb.classList.add('show');
+    setTimeout(() => {
+      const listId  = tipo === 'Sangue' ? 'sangue-list' : 'clinico-list';
+      const active  = document.querySelectorAll(`#${listId} .guia-item:not(.removed)`).length;
+      fb.textContent = `✅ Enviado para ${email} · ${active} guia${active !== 1 ? 's' : ''} · guias marcadas como "Enviada"`;
+    }, 1400);
+  }
+</script>
+</body>
+</html>
