@@ -52,7 +52,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/static/**", "/css/**", "/js/**", "/webjars/**", "/error").permitAll()
                 .requestMatchers("/login", "/login/**").permitAll()
-                .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
+                .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").hasRole("ADMIN")
                 .requestMatchers("/ws/**").authenticated()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
@@ -74,12 +74,7 @@ public class SecurityConfig {
                 .permitAll()
             )
             .csrf(csrf -> csrf
-                .ignoringRequestMatchers(
-                    "/mover_agendamento",
-                    "/atualizar_status_aso",
-                    "/atualizar_aso",
-                    "/ws/**"
-                )
+                .ignoringRequestMatchers("/ws/**")
             )
             // ── Headers de segurança HTTP ─────────────────────────────────
             .headers(headers -> headers

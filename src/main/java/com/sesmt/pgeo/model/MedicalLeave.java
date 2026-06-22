@@ -24,7 +24,10 @@ import java.time.LocalDateTime;
  *       ...
  */
 @Entity
-@Table(name = "medical_leaves")
+@Table(name = "medical_leaves", indexes = {
+    @Index(name = "idx_ml_funcionario_id", columnList = "funcionario_id"),
+    @Index(name = "idx_ml_data_afastamento", columnList = "data_afastamento")
+})
 @Data
 @ToString(exclude = "funcionario")
 @NoArgsConstructor

@@ -296,9 +296,14 @@
   });
 
   function toggleStatusAso(agId, campo, valor) {
+    var csrfToken = document.querySelector('meta[name="_csrf"]');
+    var csrfHeader = document.querySelector('meta[name="_csrf_header"]');
+    var headers = {'Content-Type': 'application/json'};
+    if (csrfToken && csrfHeader) headers[csrfHeader.content] = csrfToken.content;
+
     fetch('/atualizar_status_aso', {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+      headers: headers,
       body: JSON.stringify({agendamento_id: agId, campo, valor})
     })
     .then(r => r.json())

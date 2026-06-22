@@ -20,6 +20,7 @@ import com.sesmt.pgeo.service.FuncionarioService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -112,6 +113,7 @@ public class FuncionarioController {
     // ── Editar dados básicos do funcionário (somente ADMIN) ──────────
 
     @PostMapping("/funcionario/{id}/editar")
+    @Transactional
     @PreAuthorize("hasRole('ADMIN')")
     public String editar(
             @PathVariable Long id,

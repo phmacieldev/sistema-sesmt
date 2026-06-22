@@ -20,6 +20,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
@@ -96,6 +98,7 @@ public class AtestadoController {
     }
 
     @PostMapping("/novo")
+    @Transactional
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
     public String novoPost(
             @RequestParam Long funcionarioId,
@@ -136,6 +139,7 @@ public class AtestadoController {
     }
 
     @PostMapping("/{id}/editar")
+    @Transactional
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
     public String editarPost(
             @PathVariable Long id,
@@ -165,6 +169,7 @@ public class AtestadoController {
     }
 
     @PostMapping("/{id}/excluir")
+    @Transactional
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
     public String excluir(@PathVariable Long id,
                           @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate semana) {
@@ -234,6 +239,7 @@ public class AtestadoController {
     }
 
     @PostMapping("/novo/modal")
+    @Transactional
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
     @ResponseBody
     public Map<String, Object> novoModal(
@@ -262,6 +268,7 @@ public class AtestadoController {
     }
 
     @PostMapping("/{id}/editar/modal")
+    @Transactional
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
     @ResponseBody
     public Map<String, Object> editarModal(

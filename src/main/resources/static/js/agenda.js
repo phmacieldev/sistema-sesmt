@@ -80,9 +80,14 @@ document.addEventListener('DOMContentLoaded', function() {
         },
 
         eventDrop: function(info) {
+            var csrfToken = document.querySelector('meta[name="_csrf"]');
+            var csrfHeader = document.querySelector('meta[name="_csrf_header"]');
+            var headers = {"Content-Type": "application/json"};
+            if (csrfToken && csrfHeader) headers[csrfHeader.content] = csrfToken.content;
+
             fetch("/mover_agendamento", {
                 method: "POST",
-                headers: {"Content-Type": "application/json"},
+                headers: headers,
                 body: JSON.stringify({
                     id:   info.event.id,
                     data: info.event.start.toISOString().slice(0, 10),
