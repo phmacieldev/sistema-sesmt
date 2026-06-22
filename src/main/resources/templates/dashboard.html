@@ -193,15 +193,32 @@
     window.location.href = `/exportar?${params}`;
   });
 
+  function setAno(ano) {
+    if (![...anoSelect.options].some(o => o.value == ano)) {
+      var opt = document.createElement("option");
+      opt.value = ano; opt.textContent = ano;
+      // Insere na posição correta (ordem decrescente)
+      var inserido = false;
+      for (var i = 0; i < anoSelect.options.length; i++) {
+        if (parseInt(anoSelect.options[i].value) < ano) {
+          anoSelect.insertBefore(opt, anoSelect.options[i]);
+          inserido = true; break;
+        }
+      }
+      if (!inserido) anoSelect.appendChild(opt);
+    }
+    anoSelect.value = ano;
+  }
+
   document.getElementById("prevMes").addEventListener("click", () => {
     let mes = parseInt(mesSelect.value), ano = parseInt(anoSelect.value);
     if (--mes < 1) { mes = 12; ano--; }
-    mesSelect.value = mes; anoSelect.value = ano; carregarDados();
+    mesSelect.value = mes; setAno(ano); carregarDados();
   });
   document.getElementById("nextMes").addEventListener("click", () => {
     let mes = parseInt(mesSelect.value), ano = parseInt(anoSelect.value);
     if (++mes > 12) { mes = 1; ano++; }
-    mesSelect.value = mes; anoSelect.value = ano; carregarDados();
+    mesSelect.value = mes; setAno(ano); carregarDados();
   });
 
   document.getElementById('btn-guias-semana').addEventListener('click', abrirModalGuiasSemana);
