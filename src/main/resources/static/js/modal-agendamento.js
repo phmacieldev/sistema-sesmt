@@ -349,18 +349,10 @@
                 btnConfirm.classList.add("btn-loading");
                 btnConfirm.disabled = true;
 
-                var fd   = new FormData(form);
-                var csrf = document.querySelector("[name=_csrf]");
-                var url  = id ? "/editar_agendamento/" + id : "/agendar";
+                var fd  = new FormData(form);
+                var url = id ? "/editar_agendamento/" + id : "/agendar";
 
-                fetch(url, {
-                    method: "POST",
-                    body: new URLSearchParams(fd),
-                    headers: {
-                        "Content-Type": "application/x-www-form-urlencoded",
-                        "X-CSRF-TOKEN": csrf ? csrf.value : ""
-                    }
-                })
+                pgeoPost(url, new URLSearchParams(fd))
                 .then(function (r) { return r.json(); })
                 .then(function (resp) {
                     btnConfirm.classList.remove("btn-loading");

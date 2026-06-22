@@ -185,18 +185,10 @@
             btnSalvar.classList.add("btn-loading");
             btnSalvar.disabled = true;
 
-            var url  = id ? "/atestados/" + id + "/editar/modal" : "/atestados/novo/modal";
-            var fd   = new FormData(form);
-            var csrf = document.querySelector("[name=_csrf]");
+            var url = id ? "/atestados/" + id + "/editar/modal" : "/atestados/novo/modal";
+            var fd  = new FormData(form);
 
-            fetch(url, {
-                method: "POST",
-                body: new URLSearchParams(fd),
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded",
-                    "X-CSRF-TOKEN": csrf ? csrf.value : ""
-                }
-            })
+            pgeoPost(url, new URLSearchParams(fd))
             .then(function (r) { return r.json(); })
             .then(function (resp) {
                 btnSalvar.classList.remove("btn-loading");

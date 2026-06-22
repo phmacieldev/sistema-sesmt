@@ -80,19 +80,10 @@ document.addEventListener('DOMContentLoaded', function() {
         },
 
         eventDrop: function(info) {
-            var csrfToken = document.querySelector('meta[name="_csrf"]');
-            var csrfHeader = document.querySelector('meta[name="_csrf_header"]');
-            var headers = {"Content-Type": "application/json"};
-            if (csrfToken && csrfHeader) headers[csrfHeader.content] = csrfToken.content;
-
-            fetch("/mover_agendamento", {
-                method: "POST",
-                headers: headers,
-                body: JSON.stringify({
-                    id:   info.event.id,
-                    data: info.event.start.toISOString().slice(0, 10),
-                    hora: info.event.start.toTimeString().slice(0, 5)
-                })
+            pgeoPostJson("/mover_agendamento", {
+                id:   info.event.id,
+                data: info.event.start.toISOString().slice(0, 10),
+                hora: info.event.start.toTimeString().slice(0, 5)
             })
             .then(r => r.json())
             .then(data => {

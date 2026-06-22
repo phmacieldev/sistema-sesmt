@@ -296,16 +296,7 @@
   });
 
   function toggleStatusAso(agId, campo, valor) {
-    var csrfToken = document.querySelector('meta[name="_csrf"]');
-    var csrfHeader = document.querySelector('meta[name="_csrf_header"]');
-    var headers = {'Content-Type': 'application/json'};
-    if (csrfToken && csrfHeader) headers[csrfHeader.content] = csrfToken.content;
-
-    fetch('/atualizar_status_aso', {
-      method: 'POST',
-      headers: headers,
-      body: JSON.stringify({agendamento_id: agId, campo, valor})
-    })
+    pgeoPostJson('/atualizar_status_aso', {agendamento_id: agId, campo: campo, valor: valor})
     .then(r => r.json())
     .then(data => {
       if (!data.sucesso) window.showToast && window.showToast("Erro: " + data.erro, 'danger');

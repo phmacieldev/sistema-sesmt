@@ -147,7 +147,6 @@ public class AgendaController {
 
         } catch (RegraDeNegocioException ex) {
             String msg = ex.getMessage();
-            // Duplicado: a mensagem começa com "DUPLICADO:{id}"
             if (msg.startsWith("DUPLICADO:")) {
                 String[] partes = msg.split(" — ", 2);
                 Long idExistente = Long.valueOf(partes[0].replace("DUPLICADO:", ""));
@@ -158,6 +157,8 @@ public class AgendaController {
                 );
             }
             return Map.of("erro", true, "mensagem", msg);
+        } catch (Exception ex) {
+            return Map.of("erro", true, "mensagem", "Erro interno ao criar agendamento.");
         }
     }
 
@@ -202,9 +203,13 @@ public class AgendaController {
         TipoExame tipoEnum = TipoExame.fromDescricao(tipo_exame);
         if (tipoEnum == null) tipoEnum = TipoExame.PERIODICO;
 
-        agendamentoService.editar(id, nome, setor, funcao, tipoEnum, data_clinico, data_sangue, hora,
-            observacoes, exames_sangue);
-        return Map.of("ok", true);
+        try {
+            agendamentoService.editar(id, nome, setor, funcao, tipoEnum, data_clinico, data_sangue, hora,
+                observacoes, exames_sangue);
+            return Map.of("ok", true);
+        } catch (Exception ex) {
+            return Map.of("erro", true, "mensagem", "Erro ao atualizar agendamento.");
+        }
     }
 
     // ── Drag & drop ───────────────────────────────────────────────────
