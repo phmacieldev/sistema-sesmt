@@ -56,8 +56,11 @@
             var sugestoes = document.getElementById("mat-sugestoes");
             if (sugestoes) { sugestoes.innerHTML = ""; sugestoes.style.display = "none"; }
 
-            document.getElementById("mat-titulo").textContent    = modoEdicao ? "Editar Atestado" : "Lançar Atestado";
-            document.getElementById("mat-btn-salvar").textContent = modoEdicao ? "Salvar Alterações" : "Lançar";
+            document.getElementById("mat-titulo").textContent = modoEdicao ? "Editar Atestado" : "Lançar Atestado";
+            var btnSalvar = document.getElementById("mat-btn-salvar");
+            btnSalvar.querySelector(".btn-text").textContent = modoEdicao ? "Salvar Alterações" : "Lançar";
+            btnSalvar.classList.remove("btn-loading");
+            btnSalvar.disabled = false;
             document.getElementById("modal-form-atestado").classList.add("show");
         });
     }
@@ -178,6 +181,10 @@
                 return;
             }
 
+            var btnSalvar = document.getElementById("mat-btn-salvar");
+            btnSalvar.classList.add("btn-loading");
+            btnSalvar.disabled = true;
+
             var url  = id ? "/atestados/" + id + "/editar/modal" : "/atestados/novo/modal";
             var fd   = new FormData(form);
             var csrf = document.querySelector("[name=_csrf]");
@@ -192,12 +199,18 @@
             })
             .then(function (r) { return r.json(); })
             .then(function (resp) {
+                btnSalvar.classList.remove("btn-loading");
+                btnSalvar.disabled = false;
                 if (!resp.ok) { toast(resp.mensagem || "Erro ao salvar.", "danger"); return; }
                 window.fecharModalAtestado();
                 toast(id ? "Atestado atualizado!" : "Atestado lançado!", "success");
                 recarregarPagina();
             })
-            .catch(function () { toast("Erro ao comunicar com o servidor.", "danger"); });
+            .catch(function () {
+                btnSalvar.classList.remove("btn-loading");
+                btnSalvar.disabled = false;
+                toast("Erro ao comunicar com o servidor.", "danger");
+            });
         });
     });
 

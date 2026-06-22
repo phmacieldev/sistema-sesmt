@@ -121,8 +121,11 @@
                 if (clinicoEl) clinicoEl.min = modoEdicao ? "" : hoje();
             }
 
-            document.getElementById("mf-titulo").textContent    = modoEdicao ? "Editar Agendamento" : "Novo Agendamento";
-            document.getElementById("mf-btn-salvar").textContent = modoEdicao ? "Salvar Alterações"  : "Agendar";
+            document.getElementById("mf-titulo").textContent = modoEdicao ? "Editar Agendamento" : "Novo Agendamento";
+            var btnSalvar = document.getElementById("mf-btn-salvar");
+            btnSalvar.querySelector(".btn-text").textContent = modoEdicao ? "Salvar Alterações" : "Agendar";
+            btnSalvar.classList.remove("btn-loading");
+            btnSalvar.disabled = false;
             document.getElementById("mf-aviso-sangue").classList.add("d-none");
             document.getElementById("mf-sugestoes").innerHTML = "";
             document.getElementById("mf-sugestoes-matricula").innerHTML = "";
@@ -342,7 +345,10 @@
             document.getElementById("mf-modal-confirm").classList.add("show");
 
             document.getElementById("mf-btn-confirm").onclick = function () {
-                document.getElementById("mf-modal-confirm").classList.remove("show");
+                var btnConfirm = document.getElementById("mf-btn-confirm");
+                btnConfirm.classList.add("btn-loading");
+                btnConfirm.disabled = true;
+
                 var fd   = new FormData(form);
                 var csrf = document.querySelector("[name=_csrf]");
                 var url  = id ? "/editar_agendamento/" + id : "/agendar";
@@ -357,15 +363,17 @@
                 })
                 .then(function (r) { return r.json(); })
                 .then(function (resp) {
+                    btnConfirm.classList.remove("btn-loading");
+                    btnConfirm.disabled = false;
+                    document.getElementById("mf-modal-confirm").classList.remove("show");
+
                     if (resp.duplicado) {
-                        // Mostra modal de duplicado POR CIMA do modal atual
                         var dupTexto = document.getElementById("mf-dup-texto");
                         if (dupTexto) dupTexto.textContent = resp.mensagem || "Já existe um agendamento para este funcionário.";
                         document.getElementById("mf-modal-dup").classList.add("show");
 
                         document.getElementById("mf-btn-dup-editar").onclick = function () {
                             document.getElementById("mf-modal-dup").classList.remove("show");
-                            // Transforma o modal atual em modo de edição
                             fetch("/agendamento/" + resp.id + "/json")
                                 .then(function (r) { return r.json(); })
                                 .then(function (ag) { abrirModal(true, ag); })
@@ -379,7 +387,12 @@
                     if (window.pgeoCalendar) window.pgeoCalendar.refetchEvents();
                     if (typeof carregarDashboard === "function") carregarDashboard();
                 })
-                .catch(function () { toast("Erro ao comunicar com o servidor.", "danger"); });
+                .catch(function () {
+                    btnConfirm.classList.remove("btn-loading");
+                    btnConfirm.disabled = false;
+                    document.getElementById("mf-modal-confirm").classList.remove("show");
+                    toast("Erro ao comunicar com o servidor.", "danger");
+                });
             };
         });
     });
