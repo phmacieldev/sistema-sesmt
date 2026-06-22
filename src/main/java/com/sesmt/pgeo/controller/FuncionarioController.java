@@ -224,7 +224,7 @@ public class FuncionarioController {
             var resultado = importService.importar(arquivo);
             redirect.addFlashAttribute("resultado", resultado);
         } catch (Exception e) {
-            redirect.addFlashAttribute("erro", "Erro ao processar arquivo: " + e.getMessage());
+            redirect.addFlashAttribute("erro", "Erro ao processar o arquivo. Verifique o formato e tente novamente.");
         }
         return "redirect:/admin/funcionarios/importar";
     }

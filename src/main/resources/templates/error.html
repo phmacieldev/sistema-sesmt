@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<!-- Copyright (c) 2026 Pedro Henrique Maciel da Silva Faria. Sistema autoral protegido. -->
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title th:text="${status + ' — PGEO'}">Erro — PGEO</title>
+  <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
+  <link rel="stylesheet" th:href="@{/css/global.css}">
+  <script th:src="@{/js/theme.js}"></script>
+</head>
+<body class="no-navbar">
+
+<div class="error-card">
+  <div th:class="${status == 403 ? 'error-code error-403' :
+                  status == 404 ? 'error-code error-404' : 'error-code error-500'}"
+       th:text="${status ?: 500}">500</div>
+  <div class="error-title"
+       th:text="${status == 403 ? 'Acesso negado' :
+                 status == 404 ? 'Não encontrado' : 'Erro interno'}">Erro</div>
+  <p class="error-msg"
+     th:text="${status == 403 ? 'Você não tem permissão para acessar esta página.' :
+               status == 404 ? 'A página solicitada não existe.' :
+               'Ocorreu um erro inesperado. Tente novamente em instantes.'}">
+    Ocorreu um erro inesperado.
+  </p>
+  <a sec:authorize="isAuthenticated()" th:href="@{/dashboard}" class="btn btn-primary mt-24">← Voltar ao Dashboard</a>
+  <a sec:authorize="!isAuthenticated()" th:href="@{/login}" class="btn btn-primary mt-24">← Ir para o Login</a>
+</div>
+
+<div th:replace="~{components/footer :: footer}"></div>
+</body>
+</html>

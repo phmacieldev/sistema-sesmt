@@ -35,7 +35,7 @@ public class AsoController {
             return Map.of("sucesso", true);
 
         } catch (Exception e) {
-            return Map.of("sucesso", false, "erro", e.getMessage());
+            return Map.of("sucesso", false, "erro", "Erro ao atualizar status do ASO.");
         }
     }
 }
