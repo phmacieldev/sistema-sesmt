@@ -343,20 +343,17 @@ public class DashboardController {
     public String dashboardEstatisticas(
             @RequestParam(required = false) Integer ano, Model model) {
 
-        List<Agendamento> todos = agendamentoRepo.findAll();
+        List<Integer> anosDisp = agendamentoRepo.findAnosDisponiveis();
+        Set<Integer> anosDisponiveis = new TreeSet<>(anosDisp);
+        List<Agendamento> filtrados = agendamentoRepo.findByAnoOptional(ano);
+
         Map<String, Integer> contadorTipo  = new LinkedHashMap<>();
         Map<String, Integer> contadorSetor = new LinkedHashMap<>();
         Map<String, Integer> contadorEstab = new LinkedHashMap<>();
         int[] contadorMes = new int[12];
-        Set<Integer> anosDisponiveis = new TreeSet<>();
-        int totalFiltrado = 0;
+        int totalFiltrado = filtrados.size();
 
-        for (Agendamento a : todos) {
-            if (a.getDataClinico() == null) continue;
-            int anoAg = a.getDataClinico().getYear();
-            anosDisponiveis.add(anoAg);
-            if (ano != null && ano != anoAg) continue;
-            totalFiltrado++;
+        for (Agendamento a : filtrados) {
             int mes = a.getDataClinico().getMonthValue() - 1;
             String tipo  = a.getTipoExameDescricao();
             String setor = a.getFuncionarioSetor() != null && !a.getFuncionarioSetor().isBlank() ? a.getFuncionarioSetor() : "Não informado";
@@ -413,18 +410,16 @@ public class DashboardController {
         LocalDate hoje     = LocalDate.now();
         LocalDate limite30 = hoje.plusDays(30);
 
-        // ── Status dos ASOs ─────────────────────────────────────────────
-        List<Funcionario> ativos = funcionarioRepo.findByAtivoTrue();
-        long qtdVencidos = ativos.stream().filter(f -> f.getAso() != null && f.getAso().isBefore(hoje)).count();
-        long qtdAVencer  = ativos.stream().filter(f -> f.getAso() != null && !f.getAso().isBefore(hoje) && f.getAso().isBefore(limite30)).count();
-        long qtdEmDia    = ativos.stream().filter(f -> f.getAso() != null && !f.getAso().isBefore(limite30)).count();
-        long qtdSemAso   = ativos.stream().filter(f -> f.getAso() == null).count();
+        // ── Status dos ASOs (queries COUNT, sem carregar entidades) ──────
+        long qtdVencidos = funcionarioRepo.countAsoVencidos(hoje);
+        long qtdAVencer  = funcionarioRepo.countAsoAVencer(hoje, limite30);
+        long qtdEmDia    = funcionarioRepo.countAsoEmDia(limite30);
+        long qtdSemAso   = funcionarioRepo.countSemAso();
+        long totalAtivosCount = funcionarioRepo.countAtivos();
 
-        // ── Atestados por mês (últimos 12 meses) ────────────────────────
+        // ── Atestados por mês (últimos 12 meses, query filtrada) ────────
         LocalDate inicioPeriodo = hoje.minusMonths(11).withDayOfMonth(1);
-        List<MedicalLeave> mlRecentes = medicalLeaveRepo.findAll().stream()
-            .filter(ml -> ml.getDataAfastamento() != null && !ml.getDataAfastamento().isBefore(inicioPeriodo))
-            .toList();
+        List<MedicalLeave> mlRecentes = medicalLeaveRepo.findDesde(inicioPeriodo);
 
         List<String>  labelesMeses    = new ArrayList<>();
         List<Integer> atestadosPorMes = new ArrayList<>();
@@ -439,19 +434,10 @@ public class DashboardController {
                 .count());
         }
 
-        // ── Status dos agendamentos futuros ──────────────────────────────
-        List<Agendamento> todosAg = agendamentoRepo.findAll();
-        long agAgendados = todosAg.stream()
-            .filter(a -> a.getDataClinico() != null && a.getDataClinico().isAfter(hoje))
-            .count();
-        long agEmDia = todosAg.stream()
-            .filter(a -> a.getDataClinico() != null && !a.getDataClinico().isAfter(hoje)
-                      && a.isAsoRecebido())
-            .count();
-        long agAtrasados = todosAg.stream()
-            .filter(a -> a.getDataClinico() != null && a.getDataClinico().isBefore(hoje)
-                      && !a.isAsoRecebido())
-            .count();
+        // ── Status dos agendamentos (queries COUNT, sem carregar entidades)
+        long agAgendados = agendamentoRepo.countAgendados(hoje);
+        long agEmDia     = agendamentoRepo.countEmDia(hoje);
+        long agAtrasados = agendamentoRepo.countAtrasados(hoje);
 
         // ── Ranking de atestados (paginado) ─────────────────────────────
         LocalDate limiteDias = hoje.minusDays(dias);
@@ -475,7 +461,7 @@ public class DashboardController {
         model.addAttribute("qtdAVencer",    qtdAVencer);
         model.addAttribute("qtdEmDia",      qtdEmDia);
         model.addAttribute("qtdSemAso",     qtdSemAso);
-        model.addAttribute("totalAtivos",   ativos.size());
+        model.addAttribute("totalAtivos",   totalAtivosCount);
         model.addAttribute("labelesMeses",    labelesMeses);
         model.addAttribute("atestadosPorMes", atestadosPorMes);
         model.addAttribute("agAgendados",     agAgendados);
