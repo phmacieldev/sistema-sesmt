@@ -130,6 +130,7 @@
 
       <form id="mat-form" novalidate>
         <input type="hidden" id="mat-id" name="_atId" value="">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
 
         <div class="form-group">
           <label class="form-label">Funcionário <span style="color:var(--danger)">*</span></label>

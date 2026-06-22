@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2026 Pedro Henrique Maciel da Silva Faria. Todos os direitos reservados.
  * modal-atestado.js — Modal global de novo atestado / edição.
+ * Disponível em todas as páginas via footer.
  */
 (function () {
     var _tiposCache = null;
@@ -28,10 +29,12 @@
     function preencherTipos(valorAtual) {
         var sel = document.getElementById("mat-tipo");
         if (!sel || !_tiposCache) return;
-        sel.innerHTML = _tiposCache.map(function (t) {
-            return '<option value="' + escH(t.value) + '"' + (t.value === valorAtual ? ' selected' : '') + '>'
-                + escH(t.label) + '</option>';
-        }).join("");
+        sel.innerHTML = '<option value="">Selecione</option>' +
+            _tiposCache.map(function (t) {
+                return '<option value="' + escH(t.value) + '"' +
+                    (t.value === valorAtual ? ' selected' : '') + '>' +
+                    escH(t.label) + '</option>';
+            }).join("");
     }
 
     function abrirModalAtestado(modoEdicao, dados) {
@@ -41,26 +44,28 @@
             form.reset();
 
             preencherTipos(dados && dados.tipo || "");
-            val("mat-id",            dados && dados.id || "");
-            val("mat-funcionario-id", dados && dados.funcionarioId || "");
-            val("mat-funcionario-nome", dados && dados.funcionarioNome || "");
-            val("mat-data",          dados && dados.dataAfastamento || "");
-            val("mat-dias",          dados && dados.diasAfastamento || "");
-            val("mat-cid",           dados && dados.cid || "");
-            val("mat-medico-nome",   dados && dados.medicoNome || "");
-            val("mat-medico-crm",    dados && dados.medicoCrm || "");
+            val("mat-id",              dados && dados.id              || "");
+            val("mat-funcionario-id",  dados && dados.funcionarioId   || "");
+            val("mat-funcionario-nome",dados && dados.funcionarioNome || "");
+            val("mat-data",            dados && dados.dataAfastamento || "");
+            val("mat-dias",            dados && dados.diasAfastamento || "");
+            val("mat-cid",             dados && dados.cid             || "");
+            val("mat-medico-nome",     dados && dados.medicoNome      || "");
+            val("mat-medico-crm",      dados && dados.medicoCrm       || "");
 
             var sugestoes = document.getElementById("mat-sugestoes");
             if (sugestoes) { sugestoes.innerHTML = ""; sugestoes.style.display = "none"; }
 
-            document.getElementById("mat-titulo").textContent = modoEdicao ? "Editar Atestado" : "Lançar Atestado";
+            document.getElementById("mat-titulo").textContent    = modoEdicao ? "Editar Atestado" : "Lançar Atestado";
             document.getElementById("mat-btn-salvar").textContent = modoEdicao ? "Salvar Alterações" : "Lançar";
             document.getElementById("modal-form-atestado").classList.add("show");
         });
     }
 
     window.abrirModalAtestadoNovo = function (funcionarioId, funcionarioNome) {
-        abrirModalAtestado(false, funcionarioId ? { funcionarioId: funcionarioId, funcionarioNome: funcionarioNome || "" } : null);
+        abrirModalAtestado(false, funcionarioId
+            ? { funcionarioId: funcionarioId, funcionarioNome: funcionarioNome || "" }
+            : null);
     };
 
     window.abrirModalAtestadoEditar = function (id) {
@@ -122,7 +127,10 @@
             inputNome.addEventListener("input", function () {
                 clearTimeout(deb);
                 var q = this.value.trim();
-                if (q.length < 2) { if (sugestoes) { sugestoes.innerHTML = ""; sugestoes.style.display = "none"; } return; }
+                if (q.length < 2) {
+                    if (sugestoes) { sugestoes.innerHTML = ""; sugestoes.style.display = "none"; }
+                    return;
+                }
                 deb = setTimeout(function () {
                     fetch("/buscar_funcionarios_nome?q=" + encodeURIComponent(q))
                         .then(function (r) { return r.json(); })
@@ -132,7 +140,9 @@
                                 return '<div class="suggestion-item"'
                                     + ' data-id="' + escH(f.id) + '" data-nome="' + escH(f.nome) + '">'
                                     + escH(f.nome)
-                                    + '<div class="suggestion-sub">' + escH(f.setor || "") + " · " + escH(f.matricula || "") + '</div></div>';
+                                    + '<div class="suggestion-sub">'
+                                    + escH(f.setor || "") + " · " + escH(f.matricula || "")
+                                    + '</div></div>';
                             }).join("");
                             sugestoes.style.display = lista.length ? "block" : "none";
                         });
@@ -140,6 +150,7 @@
             });
         }
 
+        // Clique nas sugestões
         document.addEventListener("click", function (e) {
             var item = e.target.closest("#modal-form-atestado .suggestion-item");
             if (item) {
@@ -156,19 +167,19 @@
         // Submit
         form.addEventListener("submit", function (e) {
             e.preventDefault();
-            var id          = document.getElementById("mat-id").value;
-            var funcId      = document.getElementById("mat-funcionario-id").value;
-            var data        = document.getElementById("mat-data").value;
-            var dias        = document.getElementById("mat-dias").value;
-            var tipo        = document.getElementById("mat-tipo").value;
+            var id     = document.getElementById("mat-id").value;
+            var funcId = document.getElementById("mat-funcionario-id").value;
+            var data   = document.getElementById("mat-data").value;
+            var dias   = document.getElementById("mat-dias").value;
+            var tipo   = document.getElementById("mat-tipo").value;
 
             if (!funcId || !data || !dias || !tipo) {
                 toast("Preencha todos os campos obrigatórios.", "danger");
                 return;
             }
 
-            var url = id ? "/atestados/" + id + "/editar/modal" : "/atestados/novo/modal";
-            var fd  = new FormData(form);
+            var url  = id ? "/atestados/" + id + "/editar/modal" : "/atestados/novo/modal";
+            var fd   = new FormData(form);
             var csrf = document.querySelector("[name=_csrf]");
 
             fetch(url, {
@@ -184,11 +195,33 @@
                 if (!resp.ok) { toast(resp.mensagem || "Erro ao salvar.", "danger"); return; }
                 window.fecharModalAtestado();
                 toast(id ? "Atestado atualizado!" : "Atestado lançado!", "success");
-                // Recarrega a tabela da página se estiver na lista
-                if (typeof recarregarTabelaAtestados === "function") recarregarTabelaAtestados();
-                else setTimeout(function () { window.location.reload(); }, 800);
+                recarregarPagina();
             })
             .catch(function () { toast("Erro ao comunicar com o servidor.", "danger"); });
         });
     });
+
+    function recarregarPagina() {
+        // Tenta atualizar só a tabela via AJAX; se não encontrar, faz reload
+        var wrap = document.getElementById("tabelaWrap");
+        if (!wrap) { setTimeout(function () { window.location.reload(); }, 600); return; }
+        fetch(window.location.href)
+            .then(function (r) { return r.text(); })
+            .then(function (html) {
+                var tmp = document.createElement("div");
+                tmp.innerHTML = html;
+                // Atualiza tabela
+                var novaTabela = tmp.querySelector("#tabelaWrap");
+                if (novaTabela) wrap.innerHTML = novaTabela.innerHTML;
+                // Atualiza resumo semanal (stats)
+                var novoResumo = tmp.querySelector("#resumoSemana");
+                var resumo     = document.getElementById("resumoSemana");
+                if (novoResumo && resumo) resumo.innerHTML = novoResumo.innerHTML;
+                // Atualiza totais por setor/tipo
+                var novosTotais = tmp.querySelector("#totaisWrap");
+                var totais      = document.getElementById("totaisWrap");
+                if (novosTotais && totais) totais.innerHTML = novosTotais.innerHTML;
+            })
+            .catch(function () { window.location.reload(); });
+    }
 })();

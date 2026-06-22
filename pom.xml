@@ -132,8 +132,8 @@
         <!-- WebJars — assets locais sem dependência de CDN externo -->
         <dependency>
             <groupId>org.webjars</groupId>
-            <artifactId>webjars-locator-lite</artifactId>
-            <version>1.0.1</version>
+            <artifactId>webjars-locator</artifactId>
+            <version>0.52</version>
         </dependency>
         <dependency>
             <groupId>org.webjars</groupId>
