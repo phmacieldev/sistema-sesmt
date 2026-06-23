@@ -387,7 +387,9 @@
         return r.json();
       })
       .then(function(data) {
-        document.getElementById('guias-titulo').textContent = '📧 Guias da Semana — ' + data.semana;
+        document.getElementById('guias-titulo').textContent = '📧 Guias — Semana ' + data.semana;
+        var lblSangue = document.querySelector('#guias-sangue-count');
+        if (lblSangue && data.dataSangue) lblSangue.textContent = '(amanhã: ' + data.dataSangue + ')';
         _guiasSangue  = data.sangue.map(function(a) { return Object.assign({}, a, {removido: false}); });
         _guiasClinico = data.clinico.map(function(a) { return Object.assign({}, a, {removido: false}); });
         renderGuiasLista('sangue');

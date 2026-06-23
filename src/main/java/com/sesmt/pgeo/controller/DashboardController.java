@@ -484,18 +484,23 @@ public class DashboardController {
     @ResponseBody
     public Map<String, Object> guiasSemana() {
         LocalDate hoje = LocalDate.now();
-        LocalDate proxSegunda = hoje.with(DayOfWeek.MONDAY).plusWeeks(1);
-        LocalDate proxSexta   = proxSegunda.plusDays(4);
-
-        List<Agendamento> todos = agendamentoRepo
-            .findByDataClinicoBetweenOrderByDataClinicoAsc(proxSegunda, proxSexta);
-
         DateTimeFormatter dayFmt   = DateTimeFormatter.ofPattern("EEE dd/MM", Locale.of("pt", "BR"));
         DateTimeFormatter startFmt = DateTimeFormatter.ofPattern("dd/MM");
         DateTimeFormatter endFmt   = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-        List<Map<String, Object>> sangueList = todos.stream()
-            .filter(a -> a.getDataSangue() != null)
+        // Sangue: próximo dia útil (para enviar hoje ao laboratório)
+        LocalDate proximoDiaUtil = proximoDiaUtil(hoje);
+
+        // Clínico: semana atual (segunda a sexta)
+        LocalDate segunda = hoje.with(DayOfWeek.MONDAY);
+        LocalDate sexta   = segunda.plusDays(4);
+
+        // Busca agendamentos da semana atual para ambos
+        List<Agendamento> semanaAtual = agendamentoRepo
+            .findByDataClinicoBetweenOrderByDataClinicoAsc(segunda, sexta);
+
+        List<Map<String, Object>> sangueList = semanaAtual.stream()
+            .filter(a -> a.getDataSangue() != null && a.getDataSangue().equals(proximoDiaUtil))
             .map(a -> {
                 Map<String, Object> m = new LinkedHashMap<>();
                 m.put("id",     a.getId());
@@ -508,7 +513,7 @@ public class DashboardController {
             })
             .toList();
 
-        List<Map<String, Object>> clinicoList = todos.stream()
+        List<Map<String, Object>> clinicoList = semanaAtual.stream()
             .map(a -> {
                 Map<String, Object> m = new LinkedHashMap<>();
                 m.put("id",    a.getId());
@@ -522,10 +527,20 @@ public class DashboardController {
             .toList();
 
         return Map.of(
-            "semana",   proxSegunda.format(startFmt) + " a " + proxSexta.format(endFmt),
-            "sangue",   sangueList,
-            "clinico",  clinicoList
+            "semana",       segunda.format(startFmt) + " a " + sexta.format(endFmt),
+            "dataSangue",   proximoDiaUtil.format(dayFmt),
+            "sangue",       sangueList,
+            "clinico",      clinicoList
         );
+    }
+
+    private LocalDate proximoDiaUtil(LocalDate ref) {
+        LocalDate proximo = ref.plusDays(1);
+        while (proximo.getDayOfWeek() == DayOfWeek.SATURDAY
+            || proximo.getDayOfWeek() == DayOfWeek.SUNDAY) {
+            proximo = proximo.plusDays(1);
+        }
+        return proximo;
     }
 
 }
