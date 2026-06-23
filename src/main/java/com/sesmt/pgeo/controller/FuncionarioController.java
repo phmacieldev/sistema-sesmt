@@ -228,4 +228,60 @@ public class FuncionarioController {
         }
         return "redirect:/admin/funcionarios/importar";
     }
+
+    @PostMapping("/admin/funcionarios/importar/preview")
+    @PreAuthorize("hasRole('ADMIN')")
+    @ResponseBody
+    public Map<String, Object> importarPreview(@RequestParam("arquivo") MultipartFile arquivo,
+                                                jakarta.servlet.http.HttpSession session) {
+        if (arquivo.isEmpty()) {
+            return Map.of("erro", true, "mensagem", "Nenhum arquivo selecionado.");
+        }
+        try {
+            var preview = importService.preview(arquivo);
+            session.setAttribute("importArquivoBytes", arquivo.getBytes());
+            session.setAttribute("importArquivoNome", arquivo.getOriginalFilename());
+            return Map.of(
+                "ok",           true,
+                "novos",        preview.novos(),
+                "conflitantes", preview.conflitantes(),
+                "semConflito",  preview.semConflito(),
+                "erros",        preview.erros(),
+                "linhas",       preview.linhas().stream().filter(l -> !l.novo() && !l.conflitos().isEmpty()).toList()
+            );
+        } catch (Exception e) {
+            return Map.of("erro", true, "mensagem", "Erro ao analisar o arquivo.");
+        }
+    }
+
+    @PostMapping("/admin/funcionarios/importar/confirmar")
+    @PreAuthorize("hasRole('ADMIN')")
+    @ResponseBody
+    public Map<String, Object> importarConfirmar(@RequestBody Map<String, Object> body,
+                                                  jakarta.servlet.http.HttpSession session) {
+        byte[] bytes = (byte[]) session.getAttribute("importArquivoBytes");
+        String nome  = (String) session.getAttribute("importArquivoNome");
+        if (bytes == null) {
+            return Map.of("erro", true, "mensagem", "Sessão expirada. Faça o upload novamente.");
+        }
+
+        @SuppressWarnings("unchecked")
+        java.util.List<String> aceitos = (java.util.List<String>) body.getOrDefault("aceitos", java.util.List.of());
+        java.util.Set<String> aceitosSet = new java.util.HashSet<>(aceitos);
+
+        try {
+            var resultado = importService.aplicarComSelecao(bytes, nome, aceitosSet);
+            session.removeAttribute("importArquivoBytes");
+            session.removeAttribute("importArquivoNome");
+            return Map.of(
+                "ok",          true,
+                "criados",     resultado.criados(),
+                "atualizados", resultado.atualizados(),
+                "ignorados",   resultado.ignorados(),
+                "erros",       resultado.erros()
+            );
+        } catch (Exception e) {
+            return Map.of("erro", true, "mensagem", "Erro ao aplicar importação.");
+        }
+    }
 }
