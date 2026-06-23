@@ -83,7 +83,7 @@
         </div>
 
         <div class="modal-footer mt-20" style="gap:8px;">
-          <button type="submit" id="mf-btn-salvar" class="btn btn-success btn-sm">Agendar</button>
+          <button type="submit" id="mf-btn-salvar" class="btn btn-success btn-sm"><span class="btn-text">Agendar</span></button>
           <button type="button" class="btn btn-secondary btn-sm" data-modal-fechar>Cancelar</button>
         </div>
       </form>
@@ -96,7 +96,7 @@
       <div class="modal-title">Confirma o agendamento?</div>
       <div class="modal-body pre-line line-h-17" id="mf-confirm-text"></div>
       <div class="modal-footer">
-        <button id="mf-btn-confirm" class="btn btn-success">Confirmar</button>
+        <button id="mf-btn-confirm" class="btn btn-success"><span class="btn-text">Confirmar</span></button>
         <button class="btn btn-secondary" id="mf-btn-confirm-cancelar">Cancelar</button>
       </div>
     </div>
@@ -118,6 +118,7 @@
 
   <link rel="stylesheet" th:href="@{/webjars/flatpickr/4.6.13/dist/flatpickr.min.css}">
   <script th:src="@{/webjars/flatpickr/4.6.13/dist/flatpickr.min.js}"></script>
+  <script th:src="@{/js/api.js}" th:attr="nonce=${cspNonce}"></script>
   <script th:src="@{/js/modal-agendamento.js}" th:attr="nonce=${cspNonce}"></script>
 
   <!-- ── Modal global de atestado (novo / editar) ── -->
@@ -130,6 +131,7 @@
 
       <form id="mat-form" novalidate>
         <input type="hidden" id="mat-id" name="_atId" value="">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
 
         <div class="form-group">
           <label class="form-label">Funcionário <span style="color:var(--danger)">*</span></label>
@@ -179,7 +181,7 @@
         </div>
 
         <div class="modal-footer mt-20" style="gap:8px;">
-          <button type="submit" id="mat-btn-salvar" class="btn btn-success btn-sm">Lançar</button>
+          <button type="submit" id="mat-btn-salvar" class="btn btn-success btn-sm"><span class="btn-text">Lançar</span></button>
           <button type="button" class="btn btn-secondary btn-sm" data-atestado-fechar>Cancelar</button>
         </div>
       </form>

@@ -51,4 +51,19 @@ public interface FuncionarioRepository extends JpaRepository<Funcionario, Long> 
     /** Ativos com ASO definido e data ≤ limite — usado pelo scheduler de alerta de vencimento */
     @Query("SELECT f FROM Funcionario f WHERE f.ativo = true AND f.aso IS NOT NULL AND f.aso <= :limite ORDER BY f.aso ASC")
     List<Funcionario> findByAsoVencendoAte(@Param("limite") LocalDate limite);
+
+    @Query("SELECT COUNT(f) FROM Funcionario f WHERE f.ativo = true AND f.aso IS NOT NULL AND f.aso < :hoje")
+    long countAsoVencidos(@Param("hoje") LocalDate hoje);
+
+    @Query("SELECT COUNT(f) FROM Funcionario f WHERE f.ativo = true AND f.aso IS NOT NULL AND f.aso >= :hoje AND f.aso < :limite")
+    long countAsoAVencer(@Param("hoje") LocalDate hoje, @Param("limite") LocalDate limite);
+
+    @Query("SELECT COUNT(f) FROM Funcionario f WHERE f.ativo = true AND f.aso IS NOT NULL AND f.aso >= :limite")
+    long countAsoEmDia(@Param("limite") LocalDate limite);
+
+    @Query("SELECT COUNT(f) FROM Funcionario f WHERE f.ativo = true AND f.aso IS NULL")
+    long countSemAso();
+
+    @Query("SELECT COUNT(f) FROM Funcionario f WHERE f.ativo = true")
+    long countAtivos();
 }

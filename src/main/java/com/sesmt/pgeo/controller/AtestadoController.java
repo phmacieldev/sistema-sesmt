@@ -20,6 +20,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
@@ -96,6 +98,7 @@ public class AtestadoController {
     }
 
     @PostMapping("/novo")
+    @Transactional
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
     public String novoPost(
             @RequestParam Long funcionarioId,
@@ -136,6 +139,7 @@ public class AtestadoController {
     }
 
     @PostMapping("/{id}/editar")
+    @Transactional
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
     public String editarPost(
             @PathVariable Long id,
@@ -165,6 +169,7 @@ public class AtestadoController {
     }
 
     @PostMapping("/{id}/excluir")
+    @Transactional
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
     public String excluir(@PathVariable Long id,
                           @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate semana) {
@@ -233,7 +238,31 @@ public class AtestadoController {
         return m;
     }
 
+    private String validarAtestadoModal(Long funcionarioId, LocalDate dataAfastamento,
+                                        Integer diasAfastamento, TipoAtestado tipo) {
+        if (funcionarioId == null) return "Funcionário é obrigatório.";
+        if (dataAfastamento == null) return "Data do atestado é obrigatória.";
+        if (diasAfastamento == null || diasAfastamento < 1 || diasAfastamento > 365)
+            return "Dias de afastamento deve ser entre 1 e 365.";
+        if (tipo == null) return "Tipo de atestado é obrigatório.";
+        return null;
+    }
+
+    private void preencherAtestado(MedicalLeave ml, Long funcionarioId, LocalDate dataAfastamento,
+                                    Integer diasAfastamento, String cid, String medicoNome,
+                                    String medicoCrm, TipoAtestado tipo) {
+        ml.setFuncionario(funcRepo.findById(funcionarioId)
+            .orElseThrow(() -> new RecursoNaoEncontradoException("Funcionario", funcionarioId)));
+        ml.setDataAfastamento(dataAfastamento);
+        ml.setDiasAfastamento(diasAfastamento);
+        ml.setCid(cid != null ? cid.toUpperCase().strip() : null);
+        ml.setMedicoNome(medicoNome != null ? medicoNome.strip() : null);
+        ml.setMedicoCrm(medicoCrm != null ? medicoCrm.strip() : null);
+        ml.setTipo(tipo);
+    }
+
     @PostMapping("/novo/modal")
+    @Transactional
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
     @ResponseBody
     public Map<String, Object> novoModal(
@@ -244,24 +273,22 @@ public class AtestadoController {
             @RequestParam(required = false) String medicoNome,
             @RequestParam(required = false) String medicoCrm,
             @RequestParam TipoAtestado tipo) {
+        String erro = validarAtestadoModal(funcionarioId, dataAfastamento, diasAfastamento, tipo);
+        if (erro != null) return Map.of("ok", false, "mensagem", erro);
         try {
             MedicalLeave ml = new MedicalLeave();
-            ml.setFuncionario(funcRepo.findById(funcionarioId)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Funcionario", funcionarioId)));
-            ml.setDataAfastamento(dataAfastamento);
-            ml.setDiasAfastamento(diasAfastamento);
-            ml.setCid(cid != null ? cid.toUpperCase().strip() : null);
-            ml.setMedicoNome(medicoNome);
-            ml.setMedicoCrm(medicoCrm);
-            ml.setTipo(tipo);
+            preencherAtestado(ml, funcionarioId, dataAfastamento, diasAfastamento, cid, medicoNome, medicoCrm, tipo);
             repo.save(ml);
             return Map.of("ok", true);
+        } catch (RecursoNaoEncontradoException e) {
+            return Map.of("ok", false, "mensagem", "Funcionário não encontrado.");
         } catch (Exception e) {
-            return Map.of("ok", false, "mensagem", e.getMessage());
+            return Map.of("ok", false, "mensagem", "Erro ao salvar atestado.");
         }
     }
 
     @PostMapping("/{id}/editar/modal")
+    @Transactional
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
     @ResponseBody
     public Map<String, Object> editarModal(
@@ -273,21 +300,18 @@ public class AtestadoController {
             @RequestParam(required = false) String medicoNome,
             @RequestParam(required = false) String medicoCrm,
             @RequestParam TipoAtestado tipo) {
+        String erro = validarAtestadoModal(funcionarioId, dataAfastamento, diasAfastamento, tipo);
+        if (erro != null) return Map.of("ok", false, "mensagem", erro);
         try {
             MedicalLeave ml = repo.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Atestado", id));
-            ml.setFuncionario(funcRepo.findById(funcionarioId)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Funcionario", funcionarioId)));
-            ml.setDataAfastamento(dataAfastamento);
-            ml.setDiasAfastamento(diasAfastamento);
-            ml.setCid(cid != null ? cid.toUpperCase().strip() : null);
-            ml.setMedicoNome(medicoNome);
-            ml.setMedicoCrm(medicoCrm);
-            ml.setTipo(tipo);
+            preencherAtestado(ml, funcionarioId, dataAfastamento, diasAfastamento, cid, medicoNome, medicoCrm, tipo);
             repo.save(ml);
             return Map.of("ok", true);
+        } catch (RecursoNaoEncontradoException e) {
+            return Map.of("ok", false, "mensagem", "Registro não encontrado.");
         } catch (Exception e) {
-            return Map.of("ok", false, "mensagem", e.getMessage());
+            return Map.of("ok", false, "mensagem", "Erro ao salvar atestado.");
         }
     }
 

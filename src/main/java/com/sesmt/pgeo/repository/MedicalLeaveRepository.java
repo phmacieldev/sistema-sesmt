@@ -42,4 +42,7 @@ public interface MedicalLeaveRepository extends JpaRepository<MedicalLeave, Long
 
     @Query("SELECT MAX(ml.dataAfastamento) FROM MedicalLeave ml")
     java.util.Optional<LocalDate> findDataMaisRecente();
+
+    @Query("SELECT ml FROM MedicalLeave ml WHERE ml.dataAfastamento >= :inicio ORDER BY ml.dataAfastamento ASC")
+    List<MedicalLeave> findDesde(@Param("inicio") LocalDate inicio);
 }

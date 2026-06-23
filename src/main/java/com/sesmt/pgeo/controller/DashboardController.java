@@ -343,20 +343,17 @@ public class DashboardController {
     public String dashboardEstatisticas(
             @RequestParam(required = false) Integer ano, Model model) {
 
-        List<Agendamento> todos = agendamentoRepo.findAll();
+        List<Integer> anosDisp = agendamentoRepo.findAnosDisponiveis();
+        Set<Integer> anosDisponiveis = new TreeSet<>(anosDisp);
+        List<Agendamento> filtrados = agendamentoRepo.findByAnoOptional(ano);
+
         Map<String, Integer> contadorTipo  = new LinkedHashMap<>();
         Map<String, Integer> contadorSetor = new LinkedHashMap<>();
         Map<String, Integer> contadorEstab = new LinkedHashMap<>();
         int[] contadorMes = new int[12];
-        Set<Integer> anosDisponiveis = new TreeSet<>();
-        int totalFiltrado = 0;
+        int totalFiltrado = filtrados.size();
 
-        for (Agendamento a : todos) {
-            if (a.getDataClinico() == null) continue;
-            int anoAg = a.getDataClinico().getYear();
-            anosDisponiveis.add(anoAg);
-            if (ano != null && ano != anoAg) continue;
-            totalFiltrado++;
+        for (Agendamento a : filtrados) {
             int mes = a.getDataClinico().getMonthValue() - 1;
             String tipo  = a.getTipoExameDescricao();
             String setor = a.getFuncionarioSetor() != null && !a.getFuncionarioSetor().isBlank() ? a.getFuncionarioSetor() : "Não informado";
@@ -413,18 +410,16 @@ public class DashboardController {
         LocalDate hoje     = LocalDate.now();
         LocalDate limite30 = hoje.plusDays(30);
 
-        // ── Status dos ASOs ─────────────────────────────────────────────
-        List<Funcionario> ativos = funcionarioRepo.findByAtivoTrue();
-        long qtdVencidos = ativos.stream().filter(f -> f.getAso() != null && f.getAso().isBefore(hoje)).count();
-        long qtdAVencer  = ativos.stream().filter(f -> f.getAso() != null && !f.getAso().isBefore(hoje) && f.getAso().isBefore(limite30)).count();
-        long qtdEmDia    = ativos.stream().filter(f -> f.getAso() != null && !f.getAso().isBefore(limite30)).count();
-        long qtdSemAso   = ativos.stream().filter(f -> f.getAso() == null).count();
+        // ── Status dos ASOs (queries COUNT, sem carregar entidades) ──────
+        long qtdVencidos = funcionarioRepo.countAsoVencidos(hoje);
+        long qtdAVencer  = funcionarioRepo.countAsoAVencer(hoje, limite30);
+        long qtdEmDia    = funcionarioRepo.countAsoEmDia(limite30);
+        long qtdSemAso   = funcionarioRepo.countSemAso();
+        long totalAtivosCount = funcionarioRepo.countAtivos();
 
-        // ── Atestados por mês (últimos 12 meses) ────────────────────────
+        // ── Atestados por mês (últimos 12 meses, query filtrada) ────────
         LocalDate inicioPeriodo = hoje.minusMonths(11).withDayOfMonth(1);
-        List<MedicalLeave> mlRecentes = medicalLeaveRepo.findAll().stream()
-            .filter(ml -> ml.getDataAfastamento() != null && !ml.getDataAfastamento().isBefore(inicioPeriodo))
-            .toList();
+        List<MedicalLeave> mlRecentes = medicalLeaveRepo.findDesde(inicioPeriodo);
 
         List<String>  labelesMeses    = new ArrayList<>();
         List<Integer> atestadosPorMes = new ArrayList<>();
@@ -439,19 +434,10 @@ public class DashboardController {
                 .count());
         }
 
-        // ── Status dos agendamentos futuros ──────────────────────────────
-        List<Agendamento> todosAg = agendamentoRepo.findAll();
-        long agAgendados = todosAg.stream()
-            .filter(a -> a.getDataClinico() != null && a.getDataClinico().isAfter(hoje))
-            .count();
-        long agEmDia = todosAg.stream()
-            .filter(a -> a.getDataClinico() != null && !a.getDataClinico().isAfter(hoje)
-                      && a.isAsoRecebido())
-            .count();
-        long agAtrasados = todosAg.stream()
-            .filter(a -> a.getDataClinico() != null && a.getDataClinico().isBefore(hoje)
-                      && !a.isAsoRecebido())
-            .count();
+        // ── Status dos agendamentos (queries COUNT, sem carregar entidades)
+        long agAgendados = agendamentoRepo.countAgendados(hoje);
+        long agEmDia     = agendamentoRepo.countEmDia(hoje);
+        long agAtrasados = agendamentoRepo.countAtrasados(hoje);
 
         // ── Ranking de atestados (paginado) ─────────────────────────────
         LocalDate limiteDias = hoje.minusDays(dias);
@@ -475,7 +461,7 @@ public class DashboardController {
         model.addAttribute("qtdAVencer",    qtdAVencer);
         model.addAttribute("qtdEmDia",      qtdEmDia);
         model.addAttribute("qtdSemAso",     qtdSemAso);
-        model.addAttribute("totalAtivos",   ativos.size());
+        model.addAttribute("totalAtivos",   totalAtivosCount);
         model.addAttribute("labelesMeses",    labelesMeses);
         model.addAttribute("atestadosPorMes", atestadosPorMes);
         model.addAttribute("agAgendados",     agAgendados);
@@ -498,18 +484,23 @@ public class DashboardController {
     @ResponseBody
     public Map<String, Object> guiasSemana() {
         LocalDate hoje = LocalDate.now();
-        LocalDate proxSegunda = hoje.with(DayOfWeek.MONDAY).plusWeeks(1);
-        LocalDate proxSexta   = proxSegunda.plusDays(4);
-
-        List<Agendamento> todos = agendamentoRepo
-            .findByDataClinicoBetweenOrderByDataClinicoAsc(proxSegunda, proxSexta);
-
         DateTimeFormatter dayFmt   = DateTimeFormatter.ofPattern("EEE dd/MM", Locale.of("pt", "BR"));
         DateTimeFormatter startFmt = DateTimeFormatter.ofPattern("dd/MM");
         DateTimeFormatter endFmt   = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-        List<Map<String, Object>> sangueList = todos.stream()
-            .filter(a -> a.getDataSangue() != null)
+        // Sangue: próximo dia útil (para enviar hoje ao laboratório)
+        LocalDate proximoDiaUtil = proximoDiaUtil(hoje);
+
+        // Clínico: semana atual (segunda a sexta)
+        LocalDate segunda = hoje.with(DayOfWeek.MONDAY);
+        LocalDate sexta   = segunda.plusDays(4);
+
+        // Busca agendamentos da semana atual para ambos
+        List<Agendamento> semanaAtual = agendamentoRepo
+            .findByDataClinicoBetweenOrderByDataClinicoAsc(segunda, sexta);
+
+        List<Map<String, Object>> sangueList = semanaAtual.stream()
+            .filter(a -> a.getDataSangue() != null && a.getDataSangue().equals(proximoDiaUtil))
             .map(a -> {
                 Map<String, Object> m = new LinkedHashMap<>();
                 m.put("id",     a.getId());
@@ -522,7 +513,7 @@ public class DashboardController {
             })
             .toList();
 
-        List<Map<String, Object>> clinicoList = todos.stream()
+        List<Map<String, Object>> clinicoList = semanaAtual.stream()
             .map(a -> {
                 Map<String, Object> m = new LinkedHashMap<>();
                 m.put("id",    a.getId());
@@ -536,10 +527,20 @@ public class DashboardController {
             .toList();
 
         return Map.of(
-            "semana",   proxSegunda.format(startFmt) + " a " + proxSexta.format(endFmt),
-            "sangue",   sangueList,
-            "clinico",  clinicoList
+            "semana",       segunda.format(startFmt) + " a " + sexta.format(endFmt),
+            "dataSangue",   proximoDiaUtil.format(dayFmt),
+            "sangue",       sangueList,
+            "clinico",      clinicoList
         );
+    }
+
+    private LocalDate proximoDiaUtil(LocalDate ref) {
+        LocalDate proximo = ref.plusDays(1);
+        while (proximo.getDayOfWeek() == DayOfWeek.SATURDAY
+            || proximo.getDayOfWeek() == DayOfWeek.SUNDAY) {
+            proximo = proximo.plusDays(1);
+        }
+        return proximo;
     }
 
 }

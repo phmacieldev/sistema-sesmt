@@ -170,8 +170,7 @@
             <option value="CORRECAO">Correção de dado</option>
           </select>
         </div>
-        <button type="submit" class="btn btn-warning btn-block"
-                onclick="return confirm('Confirma a alteração de cargo?')">
+        <button type="submit" class="btn btn-warning btn-block btn-confirma-cargo">
           Salvar Alteração
         </button>
       </form>
@@ -186,8 +185,7 @@
               class="d-flex gap-8">
           <input type="text" name="matriculaReal" class="form-control"
                  placeholder="Matrícula real">
-          <button type="submit" class="btn btn-success"
-                  onclick="return confirm('Confirma a efetivação?')">Efetivar</button>
+          <button type="submit" class="btn btn-success btn-confirma-efetivar">Efetivar</button>
         </form>
       </div>
     </div>
@@ -322,6 +320,13 @@
   btnCancelar.addEventListener("click", fecharEdicao);
   btnCancelarForm.addEventListener("click", fecharEdicao);
 })();
+
+document.addEventListener("submit", function(e) {
+  var cargo = e.target.querySelector(".btn-confirma-cargo");
+  if (cargo && !confirm("Confirma a alteração de cargo?")) { e.preventDefault(); return; }
+  var efetivar = e.target.querySelector(".btn-confirma-efetivar");
+  if (efetivar && !confirm("Confirma a efetivação?")) { e.preventDefault(); return; }
+});
 </script>
 <div th:replace="~{components/footer :: footer}"></div>
 </body>

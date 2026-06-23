@@ -85,7 +85,7 @@
                 <button type="button" class="btn btn-primary btn-icon btn-sm" title="Editar"
                         data-atestado-editar th:attr="data-id=${ml.id}">✏️</button>
                 <form th:action="@{/atestados/{id}/excluir(id=${ml.id})}" method="POST"
-                      onsubmit="return confirm('Excluir este atestado?')">
+                      class="form-excluir-atestado">
                   <button class="btn btn-danger btn-icon btn-sm" title="Excluir">🗑</button>
                 </form>
               </div>
@@ -148,18 +148,10 @@
 </div>
 
 <script th:attr="nonce=${cspNonce}">
-window.recarregarTabelaAtestados = function() {
-  var wrap = document.getElementById("tabelaWrap");
-  if (!wrap) { window.location.reload(); return; }
-  fetch(window.location.href)
-    .then(function(r) { return r.text(); })
-    .then(function(html) {
-      var tmp = document.createElement("div");
-      tmp.innerHTML = html;
-      var nova = tmp.querySelector("#tabelaWrap .table-wrapper");
-      if (nova) wrap.innerHTML = nova.outerHTML;
-    });
-};
+document.addEventListener("submit", function(e) {
+  var form = e.target.closest(".form-excluir-atestado");
+  if (form && !confirm("Excluir este atestado?")) e.preventDefault();
+});
 
 (function() {
   var input      = document.getElementById("buscaNome");

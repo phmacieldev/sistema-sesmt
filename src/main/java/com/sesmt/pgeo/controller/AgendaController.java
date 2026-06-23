@@ -65,13 +65,14 @@ public class AgendaController {
         return agendamentoService.getHorariosDisponiveis();
     }
 
-    @Operation(summary = "Lista eventos do calendário", description = "Retorna todos os agendamentos formatados para o FullCalendar")
+    @Operation(summary = "Lista eventos do calendário", description = "Retorna agendamentos recentes/futuros para o FullCalendar")
     @GetMapping("/agenda_events_json")
     @ResponseBody
     public List<Map<String, Object>> agendaEventsJson() {
-        return agendamentoRepo.findAllByOrderByDataClinicoAsc()
+        LocalDate inicio = LocalDate.now().minusMonths(3);
+        return agendamentoRepo.findByDataClinicoDesde(inicio)
             .stream()
-            .filter(a -> a.getDataClinico() != null && a.getHoraClinico() != null)
+            .filter(a -> a.getHoraClinico() != null)
             .map(this::toEventoCalendario)
             .toList();
     }
@@ -146,7 +147,6 @@ public class AgendaController {
 
         } catch (RegraDeNegocioException ex) {
             String msg = ex.getMessage();
-            // Duplicado: a mensagem começa com "DUPLICADO:{id}"
             if (msg.startsWith("DUPLICADO:")) {
                 String[] partes = msg.split(" — ", 2);
                 Long idExistente = Long.valueOf(partes[0].replace("DUPLICADO:", ""));
@@ -157,6 +157,8 @@ public class AgendaController {
                 );
             }
             return Map.of("erro", true, "mensagem", msg);
+        } catch (Exception ex) {
+            return Map.of("erro", true, "mensagem", "Erro interno ao criar agendamento.");
         }
     }
 
@@ -201,9 +203,13 @@ public class AgendaController {
         TipoExame tipoEnum = TipoExame.fromDescricao(tipo_exame);
         if (tipoEnum == null) tipoEnum = TipoExame.PERIODICO;
 
-        agendamentoService.editar(id, nome, setor, funcao, tipoEnum, data_clinico, data_sangue, hora,
-            observacoes, exames_sangue);
-        return Map.of("ok", true);
+        try {
+            agendamentoService.editar(id, nome, setor, funcao, tipoEnum, data_clinico, data_sangue, hora,
+                observacoes, exames_sangue);
+            return Map.of("ok", true);
+        } catch (Exception ex) {
+            return Map.of("erro", true, "mensagem", "Erro ao atualizar agendamento.");
+        }
     }
 
     // ── Drag & drop ───────────────────────────────────────────────────
