@@ -23,6 +23,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -48,13 +49,12 @@ class AsoControllerTest {
     // ── Segurança ─────────────────────────────────────────────────────
 
     @Test
-    void atualizarStatusAso_semAutenticacao_redirecionaParaLogin() throws Exception {
-        // /atualizar_status_aso é CSRF-exempt mas ainda requer autenticação
+    void atualizarStatusAso_semAutenticacao_retorna403() throws Exception {
         mvc.perform(post("/atualizar_status_aso")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"agendamento_id\":1,\"campo\":\"enviado\",\"valor\":true}"))
-            .andExpect(status().is3xxRedirection())
-            .andExpect(redirectedUrlPattern("**/login"));
+                .content("{\"agendamento_id\":1,\"campo\":\"enviado\",\"valor\":true}")
+                .with(csrf()))
+            .andExpect(status().is3xxRedirection());
     }
 
     // ── Sucesso ───────────────────────────────────────────────────────
@@ -67,7 +67,8 @@ class AsoControllerTest {
 
         mvc.perform(post("/atualizar_status_aso")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"agendamento_id\":1,\"campo\":\"enviado\",\"valor\":true}"))
+                .content("{\"agendamento_id\":1,\"campo\":\"enviado\",\"valor\":true}")
+                .with(csrf()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.sucesso").value(true));
     }
@@ -80,7 +81,8 @@ class AsoControllerTest {
 
         mvc.perform(post("/atualizar_status_aso")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"agendamento_id\":2,\"campo\":\"recebido\",\"valor\":true}"))
+                .content("{\"agendamento_id\":2,\"campo\":\"recebido\",\"valor\":true}")
+                .with(csrf()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.sucesso").value(true));
     }
@@ -95,7 +97,8 @@ class AsoControllerTest {
 
         mvc.perform(post("/atualizar_status_aso")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"agendamento_id\":999,\"campo\":\"enviado\",\"valor\":true}"))
+                .content("{\"agendamento_id\":999,\"campo\":\"enviado\",\"valor\":true}")
+                .with(csrf()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.sucesso").value(false))
             .andExpect(jsonPath("$.erro").exists());
@@ -107,7 +110,8 @@ class AsoControllerTest {
         // Sem agendamento_id → NullPointerException na conversão
         mvc.perform(post("/atualizar_status_aso")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"campo\":\"enviado\",\"valor\":true}"))
+                .content("{\"campo\":\"enviado\",\"valor\":true}")
+                .with(csrf()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.sucesso").value(false));
     }
