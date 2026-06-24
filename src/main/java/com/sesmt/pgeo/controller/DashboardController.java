@@ -482,55 +482,47 @@ public class DashboardController {
 
     @GetMapping("/guias-semana")
     @ResponseBody
-    public Map<String, Object> guiasSemana() {
+    public com.sesmt.pgeo.dto.GuiasSemanaResponseDto guiasSemana() {
         LocalDate hoje = LocalDate.now();
         DateTimeFormatter dayFmt   = DateTimeFormatter.ofPattern("EEE dd/MM", Locale.of("pt", "BR"));
         DateTimeFormatter startFmt = DateTimeFormatter.ofPattern("dd/MM");
         DateTimeFormatter endFmt   = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-        // Sangue: próximo dia útil (para enviar hoje ao laboratório)
         LocalDate proximoDiaUtil = proximoDiaUtil(hoje);
-
-        // Clínico: semana atual (segunda a sexta)
         LocalDate segunda = hoje.with(DayOfWeek.MONDAY);
         LocalDate sexta   = segunda.plusDays(4);
 
-        // Busca agendamentos da semana atual para ambos
         List<Agendamento> semanaAtual = agendamentoRepo
             .findByDataClinicoBetweenOrderByDataClinicoAsc(segunda, sexta);
 
-        List<Map<String, Object>> sangueList = semanaAtual.stream()
+        var sangueList = semanaAtual.stream()
             .filter(a -> a.getDataSangue() != null && a.getDataSangue().equals(proximoDiaUtil))
-            .map(a -> {
-                Map<String, Object> m = new LinkedHashMap<>();
-                m.put("id",     a.getId());
-                m.put("nome",   a.getFuncionarioNome()  != null ? a.getFuncionarioNome()  : "");
-                m.put("setor",  a.getFuncionarioSetor() != null ? a.getFuncionarioSetor() : "");
-                m.put("data",   a.getDataSangue().format(dayFmt));
-                m.put("hora",   a.getHoraClinico()      != null ? a.getHoraClinico()      : "");
-                m.put("exames", a.getExamesSangue()     != null ? a.getExamesSangue()     : "");
-                return m;
-            })
+            .map(a -> new com.sesmt.pgeo.dto.GuiasSemanaResponseDto.GuiaSangueDto(
+                a.getId(),
+                a.getFuncionarioNome()  != null ? a.getFuncionarioNome()  : "",
+                a.getFuncionarioSetor() != null ? a.getFuncionarioSetor() : "",
+                a.getDataSangue().format(dayFmt),
+                a.getHoraClinico()      != null ? a.getHoraClinico()      : "",
+                a.getExamesSangue()     != null ? a.getExamesSangue()     : ""
+            ))
             .toList();
 
-        List<Map<String, Object>> clinicoList = semanaAtual.stream()
-            .map(a -> {
-                Map<String, Object> m = new LinkedHashMap<>();
-                m.put("id",    a.getId());
-                m.put("nome",  a.getFuncionarioNome()  != null ? a.getFuncionarioNome()  : "");
-                m.put("setor", a.getFuncionarioSetor() != null ? a.getFuncionarioSetor() : "");
-                m.put("data",  a.getDataClinico().format(dayFmt));
-                m.put("hora",  a.getHoraClinico()      != null ? a.getHoraClinico()      : "");
-                m.put("tipo",  a.getTipoExameDescricao());
-                return m;
-            })
+        var clinicoList = semanaAtual.stream()
+            .map(a -> new com.sesmt.pgeo.dto.GuiasSemanaResponseDto.GuiaClinicoDto(
+                a.getId(),
+                a.getFuncionarioNome()  != null ? a.getFuncionarioNome()  : "",
+                a.getFuncionarioSetor() != null ? a.getFuncionarioSetor() : "",
+                a.getDataClinico().format(dayFmt),
+                a.getHoraClinico()      != null ? a.getHoraClinico()      : "",
+                a.getTipoExameDescricao()
+            ))
             .toList();
 
-        return Map.of(
-            "semana",       segunda.format(startFmt) + " a " + sexta.format(endFmt),
-            "dataSangue",   proximoDiaUtil.format(dayFmt),
-            "sangue",       sangueList,
-            "clinico",      clinicoList
+        return new com.sesmt.pgeo.dto.GuiasSemanaResponseDto(
+            segunda.format(startFmt) + " a " + sexta.format(endFmt),
+            proximoDiaUtil.format(dayFmt),
+            sangueList,
+            clinicoList
         );
     }
 

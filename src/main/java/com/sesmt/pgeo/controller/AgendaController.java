@@ -70,43 +70,13 @@ public class AgendaController {
     @Operation(summary = "Lista eventos do calendário", description = "Retorna agendamentos recentes/futuros para o FullCalendar")
     @GetMapping("/agenda_events_json")
     @ResponseBody
-    public List<Map<String, Object>> agendaEventsJson() {
+    public List<CalendarioEventoDto> agendaEventsJson() {
         LocalDate inicio = LocalDate.now().minusMonths(3);
         return agendamentoRepo.findByDataClinicoDesde(inicio)
             .stream()
             .filter(a -> a.getHoraClinico() != null)
-            .map(this::toEventoCalendario)
+            .map(CalendarioEventoDto::fromEntity)
             .toList();
-    }
-
-    private Map<String, Object> toEventoCalendario(Agendamento a) {
-        // Cor por tipo de exame — usa Enum, sem comparação de string solta
-        String cor = switch (a.getTipoExame() != null ? a.getTipoExame() : TipoExame.PERIODICO) {
-            case PERIODICO          -> "#27ae60";
-            case ADMISSIONAL        -> "#2980b9";
-            case DEMISSIONAL        -> "#e74c3c";
-            case RETORNO_AO_TRABALHO-> "#f1c40f";
-            case MUDANCA_DE_RISCO   -> "#ff8800";
-        };
-
-        String primeiroNome = a.getFuncionarioNome() != null
-            ? a.getFuncionarioNome().split(" ")[0] : "?";
-
-        Map<String, Object> ext = new LinkedHashMap<>();
-        ext.put("nome",    a.getFuncionarioNome());
-        ext.put("setor",   a.getFuncionarioSetor());
-        ext.put("funcao",  a.getFuncionarioFuncao());
-        ext.put("tipo",    a.getTipoExameDescricao());
-        ext.put("sangue",  a.getDataSangue());
-        ext.put("exigeSangue", a.isExigeSangue());
-
-        Map<String, Object> ev = new LinkedHashMap<>();
-        ev.put("id",            a.getId());
-        ev.put("title",         primeiroNome + " | " + a.getTipoExameDescricao());
-        ev.put("start",         a.getDataClinico() + "T" + a.getHoraClinico());
-        ev.put("color",         cor);
-        ev.put("extendedProps", ext);
-        return ev;
     }
 
     /**
@@ -202,19 +172,10 @@ public class AgendaController {
     @Operation(summary = "Buscar funcionário por matrícula")
     @GetMapping("/buscar_funcionario/{matricula}")
     @ResponseBody
-    public Map<String, Object> buscarFuncionario(@PathVariable String matricula) {
+    public FuncionarioBuscaDto buscarFuncionario(@PathVariable String matricula) {
         return funcionarioRepo.findByMatricula(matricula.strip())
-            .map(f -> {
-                Map<String, Object> r = new LinkedHashMap<>();
-                r.put("encontrado",   true);
-                r.put("nome",         f.getNome());
-                r.put("setor",        f.getSetor());
-                r.put("funcao",       f.getFuncao());
-                r.put("exigeSangue",  f.isExigeSangue());
-                r.put("estabelecimento", f.getEstabelecimentoEfetivo());
-                return r;
-            })
-            .orElse(Map.of("encontrado", false));
+            .map(FuncionarioBuscaDto::encontrado)
+            .orElse(FuncionarioBuscaDto.naoEncontrado());
     }
 
     @Operation(summary = "Autocomplete de funcionários por nome (mínimo 2 caracteres, máximo 10 resultados)")
@@ -275,16 +236,11 @@ public class AgendaController {
     @Operation(summary = "Verifica disponibilidade de sangue para uma data")
     @GetMapping("/verificar_limite_sangue")
     @ResponseBody
-    public Map<String, Object> verificarLimiteSangue(
+    public LimiteSangueResponseDto verificarLimiteSangue(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data) {
         long atual = agendamentoService.countSanguePorData(data);
         boolean atingido = atual >= AppConstants.LIMITE_SANGUE_DIA;
-        Map<String, Object> r = new LinkedHashMap<>();
-        r.put("atual",    atual);
-        r.put("limite",   AppConstants.LIMITE_SANGUE_DIA);
-        r.put("atingido", atingido);
-        r.put("vagas",    Math.max(0L, AppConstants.LIMITE_SANGUE_DIA - atual));
-        return r;
+        return new LimiteSangueResponseDto(atingido, atual);
     }
 
     // ── Detalhe do agendamento ────────────────────────────────────────
