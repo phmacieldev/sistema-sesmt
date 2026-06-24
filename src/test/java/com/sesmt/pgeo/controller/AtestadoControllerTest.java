@@ -72,6 +72,9 @@ class AtestadoControllerTest {
 
         when(service.semanaInicio(any())).thenReturn(inicio);
         when(service.semanaFim(any())).thenReturn(fim);
+        when(service.buscarPorId(1L)).thenReturn(atestado);
+        when(service.buscarPorId(999L)).thenThrow(
+            new com.sesmt.pgeo.exception.RecursoNaoEncontradoException("Atestado", 999L));
         when(repo.findBySemanaOrdemLancamento(any(), any())).thenReturn(List.of(atestado));
         when(repo.findBySemana(any(), any())).thenReturn(List.of(atestado));
         when(service.totalPorSetor(any())).thenReturn(Map.of("Enfermagem", 3));

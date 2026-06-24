@@ -5,9 +5,17 @@
  */
 package com.sesmt.pgeo.service;
 
+import com.sesmt.pgeo.dto.CreateAtestadoDto;
+import com.sesmt.pgeo.dto.UpdateAtestadoDto;
+import com.sesmt.pgeo.exception.RecursoNaoEncontradoException;
 import com.sesmt.pgeo.model.MedicalLeave;
+import com.sesmt.pgeo.model.enums.TipoAtestado;
+import com.sesmt.pgeo.repository.FuncionarioRepository;
+import com.sesmt.pgeo.repository.MedicalLeaveRepository;
 import lombok.Data;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -15,7 +23,77 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class AtestadoService {
+
+    private final MedicalLeaveRepository repo;
+    private final FuncionarioRepository  funcRepo;
+
+    // ── CRUD ──────────────────────────────────────────────────────────
+
+    @Transactional
+    public MedicalLeave criar(CreateAtestadoDto dto) {
+        MedicalLeave ml = new MedicalLeave();
+        preencherCampos(ml, dto.funcionarioId(), dto.dataAfastamento(),
+            dto.diasAfastamento(), dto.cid(), dto.medicoNome(), dto.medicoCrm(), dto.tipo());
+        return repo.save(ml);
+    }
+
+    @Transactional
+    public MedicalLeave criar(Long funcionarioId, LocalDate dataAfastamento,
+                               Integer diasAfastamento, String motivo, String cid,
+                               String medicoNome, String medicoCrm, TipoAtestado tipo) {
+        MedicalLeave ml = new MedicalLeave();
+        preencherCampos(ml, funcionarioId, dataAfastamento, diasAfastamento,
+            cid, medicoNome, medicoCrm, tipo);
+        ml.setMotivo(motivo);
+        return repo.save(ml);
+    }
+
+    @Transactional
+    public MedicalLeave editar(Long id, UpdateAtestadoDto dto) {
+        MedicalLeave ml = buscarPorId(id);
+        preencherCampos(ml, dto.funcionarioId(), dto.dataAfastamento(),
+            dto.diasAfastamento(), dto.cid(), dto.medicoNome(), dto.medicoCrm(), dto.tipo());
+        return repo.save(ml);
+    }
+
+    @Transactional
+    public MedicalLeave editar(Long id, Long funcionarioId, LocalDate dataAfastamento,
+                                Integer diasAfastamento, String motivo, String cid,
+                                String medicoNome, String medicoCrm, TipoAtestado tipo) {
+        MedicalLeave ml = buscarPorId(id);
+        preencherCampos(ml, funcionarioId, dataAfastamento, diasAfastamento,
+            cid, medicoNome, medicoCrm, tipo);
+        ml.setMotivo(motivo);
+        return repo.save(ml);
+    }
+
+    @Transactional
+    public void excluir(Long id) {
+        MedicalLeave ml = buscarPorId(id);
+        repo.delete(ml);
+    }
+
+    public MedicalLeave buscarPorId(Long id) {
+        return repo.findById(id)
+            .orElseThrow(() -> new RecursoNaoEncontradoException("Atestado", id));
+    }
+
+    private void preencherCampos(MedicalLeave ml, Long funcionarioId, LocalDate dataAfastamento,
+                                  Integer diasAfastamento, String cid, String medicoNome,
+                                  String medicoCrm, TipoAtestado tipo) {
+        ml.setFuncionario(funcRepo.findById(funcionarioId)
+            .orElseThrow(() -> new RecursoNaoEncontradoException("Funcionario", funcionarioId)));
+        ml.setDataAfastamento(dataAfastamento);
+        ml.setDiasAfastamento(diasAfastamento);
+        ml.setCid(cid != null ? cid.toUpperCase().strip() : null);
+        ml.setMedicoNome(medicoNome != null ? medicoNome.strip() : null);
+        ml.setMedicoCrm(medicoCrm != null ? medicoCrm.strip() : null);
+        ml.setTipo(tipo);
+    }
+
+    // ── Semana e estatísticas ─────────────────────────────────────────
 
     /** Encontra a terça-feira que inicia a semana do dia fornecido. */
     public LocalDate semanaInicio(LocalDate referencia) {

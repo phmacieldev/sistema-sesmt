@@ -124,7 +124,8 @@ class AgendaControllerTest {
                 .param("data_clinico", "2026-07-01")
                 .param("hora",         "08:00"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.erro").value(true));
+            .andExpect(jsonPath("$.ok").value(false))
+            .andExpect(jsonPath("$.mensagem").exists());
     }
 
     @Test

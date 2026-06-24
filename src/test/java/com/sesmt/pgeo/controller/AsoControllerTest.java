@@ -106,13 +106,11 @@ class AsoControllerTest {
 
     @Test
     @WithMockUser(roles = "OPERADOR")
-    void atualizarStatusAso_campoAusente_retornaErro() throws Exception {
-        // Sem agendamento_id → NullPointerException na conversão
+    void atualizarStatusAso_campoAusente_retornaBadRequest() throws Exception {
         mvc.perform(post("/atualizar_status_aso")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"campo\":\"enviado\",\"valor\":true}")
                 .with(csrf()))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.sucesso").value(false));
+            .andExpect(status().isBadRequest());
     }
 }

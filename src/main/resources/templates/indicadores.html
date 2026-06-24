@@ -102,12 +102,12 @@
           <tr th:each="entry, stat : ${resultados}">
             <td style="color:var(--text-muted);font-weight:600;"
                 th:text="${paginaAtual * 15 + stat.index + 1}">1</td>
-            <td th:text="${entry.key}">Nome</td>
+            <td th:text="${entry.nome}">Nome</td>
             <td>
               <span class="badge"
-                    th:class="${entry.value >= 15 ? 'badge badge-danger' :
-                               entry.value >= 7  ? 'badge badge-warning' : 'badge badge-gray'}"
-                    th:text="${entry.value + ' dias'}">0</span>
+                    th:class="${entry.dias >= 15 ? 'badge badge-danger' :
+                               entry.dias >= 7  ? 'badge badge-warning' : 'badge badge-gray'}"
+                    th:text="${entry.dias + ' dias'}">0</span>
             </td>
           </tr>
           <tr th:if="${#lists.isEmpty(resultados)}">

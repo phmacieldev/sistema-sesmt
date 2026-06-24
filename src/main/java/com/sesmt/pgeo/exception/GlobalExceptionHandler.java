@@ -18,10 +18,12 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import jakarta.persistence.OptimisticLockException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @ControllerAdvice
@@ -108,6 +110,24 @@ public class GlobalExceptionHandler {
         model.addAttribute("titulo", "Acesso negado");
         model.addAttribute("mensagem", "Você não tem permissão para realizar esta ação.");
         model.addAttribute("status", 403);
+        return "error/erro";
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public Object handleValidacao(MethodArgumentNotValidException ex,
+                                   Model model, HttpServletRequest req) {
+        String mensagens = ex.getBindingResult().getFieldErrors().stream()
+            .map(e -> e.getDefaultMessage())
+            .collect(Collectors.joining("; "));
+        log.warn("Validação falhou [{}]: {}", req.getRequestURI(), mensagens);
+        if (isJsonRequest(req)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("ok", false, "mensagem", mensagens));
+        }
+        model.addAttribute("titulo", "Dados inválidos");
+        model.addAttribute("mensagem", mensagens);
+        model.addAttribute("status", 400);
         return "error/erro";
     }
 

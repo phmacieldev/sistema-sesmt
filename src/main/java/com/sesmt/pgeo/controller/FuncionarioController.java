@@ -187,20 +187,10 @@ public class FuncionarioController {
     @GetMapping("/api/funcionario/{matricula}")
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
     @ResponseBody
-    public Map<String, Object> apiBuscar(@PathVariable String matricula) {
+    public com.sesmt.pgeo.dto.FuncionarioBuscaDto apiBuscar(@PathVariable String matricula) {
         return funcionarioRepo.findByMatricula(matricula.strip())
-            .map(f -> Map.<String, Object>of(
-                "encontrado",       true,
-                "id",               f.getId(),
-                "nome",             f.getNome(),
-                "setor",            f.getSetor() != null ? f.getSetor() : "",
-                "funcao",           f.getFuncao() != null ? f.getFuncao() : "",
-                "exigeSangue",      f.isExigeSangue(),
-                "status",           f.getStatus().name(),
-                "preAdmissional",   f.isPreAdmissional(),
-                "estabelecimento",  f.getEstabelecimentoEfetivo()
-            ))
-            .orElse(Map.of("encontrado", false));
+            .map(com.sesmt.pgeo.dto.FuncionarioBuscaDto::encontrado)
+            .orElse(com.sesmt.pgeo.dto.FuncionarioBuscaDto.naoEncontrado());
     }
 
     // ── Importação CSV / Excel (admin) ────────────────────────────────
@@ -257,17 +247,17 @@ public class FuncionarioController {
     @PostMapping("/admin/funcionarios/importar/confirmar")
     @PreAuthorize("hasRole('ADMIN')")
     @ResponseBody
-    public Map<String, Object> importarConfirmar(@RequestBody Map<String, Object> body,
-                                                  jakarta.servlet.http.HttpSession session) {
+    public Map<String, Object> importarConfirmar(
+            @RequestBody com.sesmt.pgeo.dto.ConfirmarImportacaoDto dto,
+            jakarta.servlet.http.HttpSession session) {
         byte[] bytes = (byte[]) session.getAttribute("importArquivoBytes");
         String nome  = (String) session.getAttribute("importArquivoNome");
         if (bytes == null) {
             return Map.of("erro", true, "mensagem", "Sessão expirada. Faça o upload novamente.");
         }
 
-        @SuppressWarnings("unchecked")
-        java.util.List<String> aceitos = (java.util.List<String>) body.getOrDefault("aceitos", java.util.List.of());
-        java.util.Set<String> aceitosSet = new java.util.HashSet<>(aceitos);
+        java.util.Set<String> aceitosSet = new java.util.HashSet<>(
+            dto.aceitos() != null ? dto.aceitos() : java.util.List.of());
 
         try {
             var resultado = importService.aplicarComSelecao(bytes, nome, aceitosSet);

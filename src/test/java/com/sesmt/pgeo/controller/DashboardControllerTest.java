@@ -43,6 +43,8 @@ class DashboardControllerTest {
     @MockBean FuncionarioRepository  funcionarioRepo;
     @MockBean MedicalLeaveRepository medicalLeaveRepo;
     @MockBean ExcelService           excelService;
+    @MockBean com.sesmt.pgeo.service.IndicadorService  indicadorService;
+    @MockBean com.sesmt.pgeo.service.GuiaSemanaService guiaSemanaService;
 
     // Deps do SecurityConfig
     @MockBean UsuarioRepository    usuarioRepo;
@@ -59,6 +61,18 @@ class DashboardControllerTest {
         when(agendamentoRepo.findByDataClinicoBetweenOrderByDataClinicoAsc(any(), any()))
             .thenReturn(List.of());
         when(excelService.gerarPlanilha(any())).thenReturn(new byte[]{});
+        when(indicadorService.calcularStatusAso())
+            .thenReturn(new com.sesmt.pgeo.service.IndicadorService.AsoStatus(0, 0, 0, 0, 0));
+        when(indicadorService.calcularStatusAgendamentos())
+            .thenReturn(new com.sesmt.pgeo.service.IndicadorService.AgendamentoStatus(0, 0, 0));
+        when(indicadorService.calcularAtestadosPorMes())
+            .thenReturn(new com.sesmt.pgeo.service.IndicadorService.AtestadosPorMes(List.of(), List.of()));
+        when(indicadorService.calcularRanking(anyInt()))
+            .thenReturn(new com.sesmt.pgeo.service.IndicadorService.RankingAtestados(List.of(), 0));
+        when(indicadorService.calcularEstatisticas(any()))
+            .thenReturn(new com.sesmt.pgeo.service.IndicadorService.EstatisticasExames(
+                new java.util.LinkedHashMap<>(), new int[12], new java.util.LinkedHashMap<>(),
+                new java.util.LinkedHashMap<>(), 0, new java.util.TreeSet<>()));
     }
 
     // ── Segurança ─────────────────────────────────────────────────────
