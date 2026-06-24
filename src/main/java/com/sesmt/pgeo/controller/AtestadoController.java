@@ -5,9 +5,11 @@
  */
 package com.sesmt.pgeo.controller;
 
+import com.sesmt.pgeo.dto.*;
 import com.sesmt.pgeo.exception.RecursoNaoEncontradoException;
 import com.sesmt.pgeo.model.MedicalLeave;
 import com.sesmt.pgeo.model.enums.TipoAtestado;
+import jakarta.validation.Valid;
 import com.sesmt.pgeo.repository.FuncionarioRepository;
 import com.sesmt.pgeo.repository.MedicalLeaveRepository;
 import com.sesmt.pgeo.service.AtestadoService;
@@ -222,68 +224,48 @@ public class AtestadoController {
 
     @GetMapping("/{id}/json")
     @ResponseBody
-    public Map<String, Object> atestadoJson(@PathVariable Long id) {
+    public AtestadoResponseDto atestadoJson(@PathVariable Long id) {
         MedicalLeave ml = repo.findById(id)
             .orElseThrow(() -> new RecursoNaoEncontradoException("Atestado", id));
-        java.util.LinkedHashMap<String, Object> m = new java.util.LinkedHashMap<>();
-        m.put("id",               ml.getId());
-        m.put("funcionarioId",    ml.getFuncionario() != null ? ml.getFuncionario().getId() : null);
-        m.put("funcionarioNome",  ml.getFuncionario() != null ? ml.getFuncionario().getNome() : "");
-        m.put("dataAfastamento",  ml.getDataAfastamento() != null ? ml.getDataAfastamento().toString() : "");
-        m.put("diasAfastamento",  ml.getDiasAfastamento());
-        m.put("tipo",             ml.getTipo() != null ? ml.getTipo().name() : "");
-        m.put("cid",              ml.getCid() != null ? ml.getCid() : "");
-        m.put("medicoNome",       ml.getMedicoNome() != null ? ml.getMedicoNome() : "");
-        m.put("medicoCrm",        ml.getMedicoCrm() != null ? ml.getMedicoCrm() : "");
-        return m;
+        return AtestadoResponseDto.fromEntity(ml);
     }
 
-    private String validarAtestadoModal(Long funcionarioId, LocalDate dataAfastamento,
-                                        Integer diasAfastamento, TipoAtestado tipo) {
-        if (funcionarioId == null) return "Funcionário é obrigatório.";
-        if (dataAfastamento == null) return "Data do atestado é obrigatória.";
-        if (diasAfastamento == null || diasAfastamento < 1 || diasAfastamento > 365)
-            return "Dias de afastamento deve ser entre 1 e 365.";
-        if (tipo == null) return "Tipo de atestado é obrigatório.";
-        return null;
+    private void preencherAtestado(MedicalLeave ml, CreateAtestadoDto dto) {
+        ml.setFuncionario(funcRepo.findById(dto.funcionarioId())
+            .orElseThrow(() -> new RecursoNaoEncontradoException("Funcionario", dto.funcionarioId())));
+        ml.setDataAfastamento(dto.dataAfastamento());
+        ml.setDiasAfastamento(dto.diasAfastamento());
+        ml.setCid(dto.cid() != null ? dto.cid().toUpperCase().strip() : null);
+        ml.setMedicoNome(dto.medicoNome() != null ? dto.medicoNome().strip() : null);
+        ml.setMedicoCrm(dto.medicoCrm() != null ? dto.medicoCrm().strip() : null);
+        ml.setTipo(dto.tipo());
     }
 
-    private void preencherAtestado(MedicalLeave ml, Long funcionarioId, LocalDate dataAfastamento,
-                                    Integer diasAfastamento, String cid, String medicoNome,
-                                    String medicoCrm, TipoAtestado tipo) {
-        ml.setFuncionario(funcRepo.findById(funcionarioId)
-            .orElseThrow(() -> new RecursoNaoEncontradoException("Funcionario", funcionarioId)));
-        ml.setDataAfastamento(dataAfastamento);
-        ml.setDiasAfastamento(diasAfastamento);
-        ml.setCid(cid != null ? cid.toUpperCase().strip() : null);
-        ml.setMedicoNome(medicoNome != null ? medicoNome.strip() : null);
-        ml.setMedicoCrm(medicoCrm != null ? medicoCrm.strip() : null);
-        ml.setTipo(tipo);
+    private void preencherAtestado(MedicalLeave ml, UpdateAtestadoDto dto) {
+        ml.setFuncionario(funcRepo.findById(dto.funcionarioId())
+            .orElseThrow(() -> new RecursoNaoEncontradoException("Funcionario", dto.funcionarioId())));
+        ml.setDataAfastamento(dto.dataAfastamento());
+        ml.setDiasAfastamento(dto.diasAfastamento());
+        ml.setCid(dto.cid() != null ? dto.cid().toUpperCase().strip() : null);
+        ml.setMedicoNome(dto.medicoNome() != null ? dto.medicoNome().strip() : null);
+        ml.setMedicoCrm(dto.medicoCrm() != null ? dto.medicoCrm().strip() : null);
+        ml.setTipo(dto.tipo());
     }
 
     @PostMapping("/novo/modal")
     @Transactional
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
     @ResponseBody
-    public Map<String, Object> novoModal(
-            @RequestParam Long funcionarioId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataAfastamento,
-            @RequestParam Integer diasAfastamento,
-            @RequestParam(required = false) String cid,
-            @RequestParam(required = false) String medicoNome,
-            @RequestParam(required = false) String medicoCrm,
-            @RequestParam TipoAtestado tipo) {
-        String erro = validarAtestadoModal(funcionarioId, dataAfastamento, diasAfastamento, tipo);
-        if (erro != null) return Map.of("ok", false, "mensagem", erro);
+    public ApiResponseDto novoModal(@Valid CreateAtestadoDto dto) {
         try {
             MedicalLeave ml = new MedicalLeave();
-            preencherAtestado(ml, funcionarioId, dataAfastamento, diasAfastamento, cid, medicoNome, medicoCrm, tipo);
+            preencherAtestado(ml, dto);
             repo.save(ml);
-            return Map.of("ok", true);
+            return ApiResponseDto.sucesso();
         } catch (RecursoNaoEncontradoException e) {
-            return Map.of("ok", false, "mensagem", "Funcionário não encontrado.");
+            return ApiResponseDto.erro("Funcionário não encontrado.");
         } catch (Exception e) {
-            return Map.of("ok", false, "mensagem", "Erro ao salvar atestado.");
+            return ApiResponseDto.erro("Erro ao salvar atestado.");
         }
     }
 
@@ -291,27 +273,17 @@ public class AtestadoController {
     @Transactional
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
     @ResponseBody
-    public Map<String, Object> editarModal(
-            @PathVariable Long id,
-            @RequestParam Long funcionarioId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataAfastamento,
-            @RequestParam Integer diasAfastamento,
-            @RequestParam(required = false) String cid,
-            @RequestParam(required = false) String medicoNome,
-            @RequestParam(required = false) String medicoCrm,
-            @RequestParam TipoAtestado tipo) {
-        String erro = validarAtestadoModal(funcionarioId, dataAfastamento, diasAfastamento, tipo);
-        if (erro != null) return Map.of("ok", false, "mensagem", erro);
+    public ApiResponseDto editarModal(@PathVariable Long id, @Valid UpdateAtestadoDto dto) {
         try {
             MedicalLeave ml = repo.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Atestado", id));
-            preencherAtestado(ml, funcionarioId, dataAfastamento, diasAfastamento, cid, medicoNome, medicoCrm, tipo);
+            preencherAtestado(ml, dto);
             repo.save(ml);
-            return Map.of("ok", true);
+            return ApiResponseDto.sucesso();
         } catch (RecursoNaoEncontradoException e) {
-            return Map.of("ok", false, "mensagem", "Registro não encontrado.");
+            return ApiResponseDto.erro("Registro não encontrado.");
         } catch (Exception e) {
-            return Map.of("ok", false, "mensagem", "Erro ao salvar atestado.");
+            return ApiResponseDto.erro("Erro ao salvar atestado.");
         }
     }
 
