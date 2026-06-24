@@ -10,7 +10,6 @@ import com.sesmt.pgeo.exception.RecursoNaoEncontradoException;
 import com.sesmt.pgeo.model.MedicalLeave;
 import com.sesmt.pgeo.model.enums.TipoAtestado;
 import jakarta.validation.Valid;
-import com.sesmt.pgeo.repository.FuncionarioRepository;
 import com.sesmt.pgeo.repository.MedicalLeaveRepository;
 import com.sesmt.pgeo.service.AtestadoService;
 import com.sesmt.pgeo.service.AtestadoPdfService;
@@ -21,8 +20,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.Arrays;
@@ -35,7 +32,6 @@ import java.util.Map;
 public class AtestadoController {
 
     private final MedicalLeaveRepository repo;
-    private final FuncionarioRepository funcRepo;
     private final AtestadoService service;
     private final AtestadoPdfService pdfService;
 
@@ -100,7 +96,6 @@ public class AtestadoController {
     }
 
     @PostMapping("/novo")
-    @Transactional
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
     public String novoPost(
             @RequestParam Long funcionarioId,
@@ -112,27 +107,15 @@ public class AtestadoController {
             @RequestParam(required = false) String medicoCrm,
             @RequestParam TipoAtestado tipo) {
 
-        MedicalLeave ml = new MedicalLeave();
-        ml.setFuncionario(funcRepo.findById(funcionarioId)
-            .orElseThrow(() -> new RecursoNaoEncontradoException("Funcionario", funcionarioId)));
-        ml.setDataAfastamento(dataAfastamento);
-        ml.setDiasAfastamento(diasAfastamento);
-        ml.setMotivo(motivo);
-        ml.setCid(cid != null ? cid.toUpperCase().strip() : null);
-        ml.setMedicoNome(medicoNome);
-        ml.setMedicoCrm(medicoCrm);
-        ml.setTipo(tipo);
-        repo.save(ml);
-
-        LocalDate inicio = service.semanaInicio(dataAfastamento);
-        return "redirect:/atestados?semana=" + inicio;
+        service.criar(funcionarioId, dataAfastamento, diasAfastamento, motivo,
+            cid, medicoNome, medicoCrm, tipo);
+        return "redirect:/atestados?semana=" + service.semanaInicio(dataAfastamento);
     }
 
     @GetMapping("/{id}/editar")
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
     public String editarForm(@PathVariable Long id, Model model) {
-        MedicalLeave ml = repo.findById(id)
-            .orElseThrow(() -> new RecursoNaoEncontradoException("Atestado", id));
+        MedicalLeave ml = service.buscarPorId(id);
         model.addAttribute("atestado",     ml);
         model.addAttribute("tipos",        TipoAtestado.values());
         model.addAttribute("semanaInicio", service.semanaInicio(ml.getDataAfastamento()));
@@ -141,7 +124,6 @@ public class AtestadoController {
     }
 
     @PostMapping("/{id}/editar")
-    @Transactional
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
     public String editarPost(
             @PathVariable Long id,
@@ -154,31 +136,18 @@ public class AtestadoController {
             @RequestParam(required = false) String medicoCrm,
             @RequestParam TipoAtestado tipo) {
 
-        MedicalLeave ml = repo.findById(id)
-            .orElseThrow(() -> new RecursoNaoEncontradoException("Atestado", id));
-        ml.setFuncionario(funcRepo.findById(funcionarioId)
-            .orElseThrow(() -> new RecursoNaoEncontradoException("Funcionario", funcionarioId)));
-        ml.setDataAfastamento(dataAfastamento);
-        ml.setDiasAfastamento(diasAfastamento);
-        ml.setMotivo(motivo);
-        ml.setCid(cid != null ? cid.toUpperCase().strip() : null);
-        ml.setMedicoNome(medicoNome);
-        ml.setMedicoCrm(medicoCrm);
-        ml.setTipo(tipo);
-        repo.save(ml);
-
+        service.editar(id, funcionarioId, dataAfastamento, diasAfastamento, motivo,
+            cid, medicoNome, medicoCrm, tipo);
         return "redirect:/atestados?semana=" + service.semanaInicio(dataAfastamento);
     }
 
     @PostMapping("/{id}/excluir")
-    @Transactional
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
     public String excluir(@PathVariable Long id,
                           @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate semana) {
-        MedicalLeave ml = repo.findById(id)
-            .orElseThrow(() -> new RecursoNaoEncontradoException("Atestado", id));
+        MedicalLeave ml = service.buscarPorId(id);
         LocalDate inicio = service.semanaInicio(ml.getDataAfastamento());
-        repo.delete(ml);
+        service.excluir(id);
         return "redirect:/atestados?semana=" + inicio;
     }
 
@@ -225,42 +194,16 @@ public class AtestadoController {
     @GetMapping("/{id}/json")
     @ResponseBody
     public AtestadoResponseDto atestadoJson(@PathVariable Long id) {
-        MedicalLeave ml = repo.findById(id)
-            .orElseThrow(() -> new RecursoNaoEncontradoException("Atestado", id));
-        return AtestadoResponseDto.fromEntity(ml);
+        return AtestadoResponseDto.fromEntity(service.buscarPorId(id));
     }
 
-    private void preencherAtestado(MedicalLeave ml, CreateAtestadoDto dto) {
-        ml.setFuncionario(funcRepo.findById(dto.funcionarioId())
-            .orElseThrow(() -> new RecursoNaoEncontradoException("Funcionario", dto.funcionarioId())));
-        ml.setDataAfastamento(dto.dataAfastamento());
-        ml.setDiasAfastamento(dto.diasAfastamento());
-        ml.setCid(dto.cid() != null ? dto.cid().toUpperCase().strip() : null);
-        ml.setMedicoNome(dto.medicoNome() != null ? dto.medicoNome().strip() : null);
-        ml.setMedicoCrm(dto.medicoCrm() != null ? dto.medicoCrm().strip() : null);
-        ml.setTipo(dto.tipo());
-    }
-
-    private void preencherAtestado(MedicalLeave ml, UpdateAtestadoDto dto) {
-        ml.setFuncionario(funcRepo.findById(dto.funcionarioId())
-            .orElseThrow(() -> new RecursoNaoEncontradoException("Funcionario", dto.funcionarioId())));
-        ml.setDataAfastamento(dto.dataAfastamento());
-        ml.setDiasAfastamento(dto.diasAfastamento());
-        ml.setCid(dto.cid() != null ? dto.cid().toUpperCase().strip() : null);
-        ml.setMedicoNome(dto.medicoNome() != null ? dto.medicoNome().strip() : null);
-        ml.setMedicoCrm(dto.medicoCrm() != null ? dto.medicoCrm().strip() : null);
-        ml.setTipo(dto.tipo());
-    }
 
     @PostMapping("/novo/modal")
-    @Transactional
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
     @ResponseBody
     public ApiResponseDto novoModal(@Valid CreateAtestadoDto dto) {
         try {
-            MedicalLeave ml = new MedicalLeave();
-            preencherAtestado(ml, dto);
-            repo.save(ml);
+            service.criar(dto);
             return ApiResponseDto.sucesso();
         } catch (RecursoNaoEncontradoException e) {
             return ApiResponseDto.erro("Funcionário não encontrado.");
@@ -270,15 +213,11 @@ public class AtestadoController {
     }
 
     @PostMapping("/{id}/editar/modal")
-    @Transactional
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
     @ResponseBody
     public ApiResponseDto editarModal(@PathVariable Long id, @Valid UpdateAtestadoDto dto) {
         try {
-            MedicalLeave ml = repo.findById(id)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Atestado", id));
-            preencherAtestado(ml, dto);
-            repo.save(ml);
+            service.editar(id, dto);
             return ApiResponseDto.sucesso();
         } catch (RecursoNaoEncontradoException e) {
             return ApiResponseDto.erro("Registro não encontrado.");
