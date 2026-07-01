@@ -7,11 +7,11 @@ package com.sesmt.pgeo.config;
 
 import com.sesmt.pgeo.model.Usuario;
 import com.sesmt.pgeo.repository.UsuarioRepository;
+import com.sesmt.pgeo.security.ClientIpResolver;
 import com.sesmt.pgeo.security.CspNonceFilter;
 import com.sesmt.pgeo.security.LoginRateLimitFilter;
 import com.sesmt.pgeo.security.NonceCspHeaderWriter;
 import com.sesmt.pgeo.service.LoginAttemptService;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -104,7 +104,7 @@ public class SecurityConfig {
                                                               LoginAttemptService loginAttemptService) {
         return (request, response, authentication) -> {
             String username = authentication.getName();
-            String ip = getClientIp(request);
+            String ip = ClientIpResolver.resolve(request);
             loginAttemptService.registrarSucesso(ip);
             usuarioRepo.findByUsername(username).ifPresent(u -> {
                 u.setUltimoLogin(LocalDateTime.now());
@@ -121,27 +121,12 @@ public class SecurityConfig {
     private AuthenticationFailureHandler loginFailureHandler(LoginAttemptService loginAttemptService) {
         return (request, response, exception) -> {
             String username = request.getParameter("username");
-            String ip = getClientIp(request);
+            String ip = ClientIpResolver.resolve(request);
             loginAttemptService.registrarFalha(ip);
             log.warn("LOGIN FALHOU | usuario={} | ip={} | motivo={}",
                 username, ip, exception.getMessage());
             response.sendRedirect("/login?error=true");
         };
-    }
-
-    /**
-     * Extrai o IP real do cliente considerando proxies/load balancers.
-     */
-    private String getClientIp(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",")[0].strip();
-        }
-        String realIp = request.getHeader("X-Real-IP");
-        if (realIp != null && !realIp.isBlank()) {
-            return realIp;
-        }
-        return request.getRemoteAddr();
     }
 
     @Bean

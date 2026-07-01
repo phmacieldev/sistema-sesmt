@@ -107,6 +107,7 @@ Sistema web para controle de agendamentos de exames clínicos (ASO), atestados m
    ADMIN_PASSWORD=<senha forte>
    OPERADOR_PASSWORD=<senha forte>
    VISUALIZADOR_PASSWORD=<senha forte>
+   SENTRY_DSN=<opcional — DSN do projeto criado em sentry.io, para monitorar erros>
    ```
 4. O deploy automático (após o CI passar no `main`) é feito pelo workflow `.github/workflows/deploy.yml` via Railway CLI — requer o secret `RAILWAY_TOKEN` no GitHub (ver comentário no início do arquivo).
 5. Domínio HTTPS é gerado automaticamente pelo Railway (Settings → Networking → Generate Domain).
