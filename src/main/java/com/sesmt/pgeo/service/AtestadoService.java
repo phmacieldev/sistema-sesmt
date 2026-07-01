@@ -5,6 +5,7 @@
  */
 package com.sesmt.pgeo.service;
 
+import com.sesmt.pgeo.audit.AuditService;
 import com.sesmt.pgeo.dto.CreateAtestadoDto;
 import com.sesmt.pgeo.dto.UpdateAtestadoDto;
 import com.sesmt.pgeo.exception.RecursoNaoEncontradoException;
@@ -28,6 +29,7 @@ public class AtestadoService {
 
     private final MedicalLeaveRepository repo;
     private final FuncionarioRepository  funcRepo;
+    private final AuditService           auditService;
 
     // ── CRUD ──────────────────────────────────────────────────────────
 
@@ -36,7 +38,10 @@ public class AtestadoService {
         MedicalLeave ml = new MedicalLeave();
         preencherCampos(ml, dto.funcionarioId(), dto.dataAfastamento(),
             dto.diasAfastamento(), dto.cid(), dto.medicoNome(), dto.medicoCrm(), dto.tipo());
-        return repo.save(ml);
+        MedicalLeave salvo = repo.save(ml);
+        auditService.registrarCriacao("Atestado", salvo.getId(),
+            "Atestado de " + salvo.getFuncionario().getNome() + " (" + salvo.getDiasAfastamento() + " dias)");
+        return salvo;
     }
 
     @Transactional
@@ -47,15 +52,22 @@ public class AtestadoService {
         preencherCampos(ml, funcionarioId, dataAfastamento, diasAfastamento,
             cid, medicoNome, medicoCrm, tipo);
         ml.setMotivo(motivo);
-        return repo.save(ml);
+        MedicalLeave salvo = repo.save(ml);
+        auditService.registrarCriacao("Atestado", salvo.getId(),
+            "Atestado de " + salvo.getFuncionario().getNome() + " (" + salvo.getDiasAfastamento() + " dias)");
+        return salvo;
     }
 
     @Transactional
     public MedicalLeave editar(Long id, UpdateAtestadoDto dto) {
         MedicalLeave ml = buscarPorId(id);
+        String antes = descricaoAuditoria(ml);
         preencherCampos(ml, dto.funcionarioId(), dto.dataAfastamento(),
             dto.diasAfastamento(), dto.cid(), dto.medicoNome(), dto.medicoCrm(), dto.tipo());
-        return repo.save(ml);
+        MedicalLeave salvo = repo.save(ml);
+        auditService.registrarEdicao("Atestado", id,
+            "Edição de atestado de " + salvo.getFuncionario().getNome(), antes, descricaoAuditoria(salvo));
+        return salvo;
     }
 
     @Transactional
@@ -63,16 +75,27 @@ public class AtestadoService {
                                 Integer diasAfastamento, String motivo, String cid,
                                 String medicoNome, String medicoCrm, TipoAtestado tipo) {
         MedicalLeave ml = buscarPorId(id);
+        String antes = descricaoAuditoria(ml);
         preencherCampos(ml, funcionarioId, dataAfastamento, diasAfastamento,
             cid, medicoNome, medicoCrm, tipo);
         ml.setMotivo(motivo);
-        return repo.save(ml);
+        MedicalLeave salvo = repo.save(ml);
+        auditService.registrarEdicao("Atestado", id,
+            "Edição de atestado de " + salvo.getFuncionario().getNome(), antes, descricaoAuditoria(salvo));
+        return salvo;
     }
 
     @Transactional
     public void excluir(Long id) {
         MedicalLeave ml = buscarPorId(id);
+        String desc = descricaoAuditoria(ml);
+        String nome = ml.getFuncionario().getNome();
         repo.delete(ml);
+        auditService.registrarExclusao("Atestado", id, "Exclusão de atestado de " + nome, desc);
+    }
+
+    private String descricaoAuditoria(MedicalLeave ml) {
+        return ml.getDataAfastamento() + " | " + ml.getDiasAfastamento() + " dias | " + ml.getCid();
     }
 
     public MedicalLeave buscarPorId(Long id) {

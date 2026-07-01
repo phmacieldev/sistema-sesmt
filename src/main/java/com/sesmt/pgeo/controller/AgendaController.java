@@ -16,9 +16,11 @@ import com.sesmt.pgeo.repository.FuncionarioRepository;
 import com.sesmt.pgeo.service.AgendamentoService;
 import com.sesmt.pgeo.service.PdfService;
 import com.sesmt.pgeo.util.AppConstants;
+import io.sentry.Sentry;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -31,6 +33,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.Arrays;
 
+@Slf4j
 @Tag(name = "Agendamentos", description = "Criação, edição, calendário e APIs de suporte para agendamentos de exames")
 @Controller
 @RequiredArgsConstructor
@@ -112,6 +115,8 @@ public class AgendaController {
             }
             return ApiResponseDto.erro(msg);
         } catch (Exception ex) {
+            log.error("Erro ao criar agendamento", ex);
+            Sentry.captureException(ex);
             return ApiResponseDto.erro("Erro interno ao criar agendamento.");
         }
     }
@@ -138,7 +143,11 @@ public class AgendaController {
                 tipoEnum, dto.data_clinico(), dto.data_sangue(), dto.hora(),
                 dto.observacoes(), dto.exames_sangue());
             return ApiResponseDto.sucesso();
+        } catch (RegraDeNegocioException ex) {
+            return ApiResponseDto.erro(ex.getMessage());
         } catch (Exception ex) {
+            log.error("Erro ao editar agendamento {}", id, ex);
+            Sentry.captureException(ex);
             return ApiResponseDto.erro("Erro ao atualizar agendamento.");
         }
     }
