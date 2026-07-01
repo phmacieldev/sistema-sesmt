@@ -9,11 +9,13 @@ import com.sesmt.pgeo.dto.*;
 import com.sesmt.pgeo.exception.RecursoNaoEncontradoException;
 import com.sesmt.pgeo.model.MedicalLeave;
 import com.sesmt.pgeo.model.enums.TipoAtestado;
+import io.sentry.Sentry;
 import jakarta.validation.Valid;
 import com.sesmt.pgeo.repository.MedicalLeaveRepository;
 import com.sesmt.pgeo.service.AtestadoService;
 import com.sesmt.pgeo.service.AtestadoPdfService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -26,6 +28,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Controller
 @RequestMapping("/atestados")
 @RequiredArgsConstructor
@@ -208,6 +211,8 @@ public class AtestadoController {
         } catch (RecursoNaoEncontradoException e) {
             return ApiResponseDto.erro("Funcionário não encontrado.");
         } catch (Exception e) {
+            log.error("Erro ao criar atestado", e);
+            Sentry.captureException(e);
             return ApiResponseDto.erro("Erro ao salvar atestado.");
         }
     }
@@ -222,6 +227,8 @@ public class AtestadoController {
         } catch (RecursoNaoEncontradoException e) {
             return ApiResponseDto.erro("Registro não encontrado.");
         } catch (Exception e) {
+            log.error("Erro ao editar atestado {}", id, e);
+            Sentry.captureException(e);
             return ApiResponseDto.erro("Erro ao salvar atestado.");
         }
     }

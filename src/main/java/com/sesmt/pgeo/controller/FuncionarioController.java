@@ -17,7 +17,9 @@ import com.sesmt.pgeo.repository.FuncionarioRepository;
 import com.sesmt.pgeo.repository.HistoricoCargoRepository;
 import com.sesmt.pgeo.repository.MedicalLeaveRepository;
 import com.sesmt.pgeo.service.FuncionarioService;
+import io.sentry.Sentry;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +33,7 @@ import org.springframework.data.domain.PageRequest;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Tag(name = "Funcionários", description = "Perfil, alteração de cargo e gestão de funcionários")
 @Controller
 @RequiredArgsConstructor
@@ -214,6 +217,8 @@ public class FuncionarioController {
             var resultado = importService.importar(arquivo);
             redirect.addFlashAttribute("resultado", resultado);
         } catch (Exception e) {
+            log.error("Erro ao importar planilha de funcionários", e);
+            Sentry.captureException(e);
             redirect.addFlashAttribute("erro", "Erro ao processar o arquivo. Verifique o formato e tente novamente.");
         }
         return "redirect:/admin/funcionarios/importar";
@@ -240,6 +245,8 @@ public class FuncionarioController {
                 "linhas",       preview.linhas().stream().filter(l -> !l.novo() && !l.conflitos().isEmpty()).toList()
             );
         } catch (Exception e) {
+            log.error("Erro ao gerar preview de importação de funcionários", e);
+            Sentry.captureException(e);
             return Map.of("erro", true, "mensagem", "Erro ao analisar o arquivo.");
         }
     }
@@ -271,6 +278,8 @@ public class FuncionarioController {
                 "erros",       resultado.erros()
             );
         } catch (Exception e) {
+            log.error("Erro ao aplicar importação de funcionários", e);
+            Sentry.captureException(e);
             return Map.of("erro", true, "mensagem", "Erro ao aplicar importação.");
         }
     }

@@ -165,6 +165,55 @@ class AgendamentoServiceTest {
             .hasMessageContaining("Matrícula é obrigatória");
     }
 
+    // ── editar ────────────────────────────────────────────────────────
+
+    @Test
+    void editar_atualizaDadosDoFuncionarioVinculado_quandoDivergem() {
+        Funcionario func = funcionarioAtivo(1L, "Nome Antigo");
+        func.setSetor("Setor Antigo");
+        func.setFuncao("Funcao Antiga");
+
+        Agendamento ag = new Agendamento();
+        ag.setId(20L);
+        ag.setFuncionario(func);
+        ag.setDataClinico(proximoDiaUtil(DayOfWeek.MONDAY));
+        ag.setHoraClinico("08:00");
+
+        when(agendamentoRepo.findById(20L)).thenReturn(Optional.of(ag));
+        when(agendamentoRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        agendamentoService.editar(20L, "Nome Novo", "Setor Novo", "Funcao Nova",
+            TipoExame.PERIODICO, proximoDiaUtil(DayOfWeek.TUESDAY), null, "09:00", null, null);
+
+        // Antes da correção, esses campos eram setados só no cache do Agendamento
+        // e descartados pelo @PreUpdate — a mudança real precisa refletir no Funcionario.
+        assertThat(func.getNome()).isEqualTo("Nome Novo");
+        assertThat(func.getSetor()).isEqualTo("Setor Novo");
+        assertThat(func.getFuncao()).isEqualTo("Funcao Nova");
+        verify(funcionarioRepo).save(func);
+    }
+
+    @Test
+    void editar_naoSalvaFuncionario_quandoDadosNaoMudam() {
+        Funcionario func = funcionarioAtivo(1L, "Nome Igual");
+        func.setSetor("Setor Igual");
+        func.setFuncao("Funcao Igual");
+
+        Agendamento ag = new Agendamento();
+        ag.setId(21L);
+        ag.setFuncionario(func);
+        ag.setDataClinico(proximoDiaUtil(DayOfWeek.MONDAY));
+        ag.setHoraClinico("08:00");
+
+        when(agendamentoRepo.findById(21L)).thenReturn(Optional.of(ag));
+        when(agendamentoRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        agendamentoService.editar(21L, "Nome Igual", "Setor Igual", "Funcao Igual",
+            TipoExame.PERIODICO, proximoDiaUtil(DayOfWeek.TUESDAY), null, "09:00", null, null);
+
+        verify(funcionarioRepo, never()).save(any());
+    }
+
     // ── excluir ───────────────────────────────────────────────────────
 
     @Test
