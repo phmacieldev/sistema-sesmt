@@ -92,7 +92,30 @@ Sistema web para controle de agendamentos de exames clínicos (ASO), atestados m
 
 ## Como rodar
 
-### Opção 1 — Docker (recomendado para produção)
+### Opção 1 — Railway (ambiente de produção/testes atual)
+
+1. Criar o projeto no Railway a partir deste repositório (build automático via `Dockerfile`).
+2. Adicionar o plugin **PostgreSQL** do Railway ao projeto.
+3. No serviço da aplicação, configurar as variáveis de ambiente (referenciando as do plugin do Postgres quando possível):
+   ```
+   DB_HOST=${{Postgres.PGHOST}}
+   DB_PORT=${{Postgres.PGPORT}}
+   DB_NAME=${{Postgres.PGDATABASE}}
+   DB_USER=${{Postgres.PGUSER}}
+   DB_PASSWORD=${{Postgres.PGPASSWORD}}
+   SECRET_KEY=<gerar com: openssl rand -hex 32>
+   ADMIN_PASSWORD=<senha forte>
+   OPERADOR_PASSWORD=<senha forte>
+   VISUALIZADOR_PASSWORD=<senha forte>
+   ```
+4. O deploy automático (após o CI passar no `main`) é feito pelo workflow `.github/workflows/deploy.yml` via Railway CLI — requer o secret `RAILWAY_TOKEN` no GitHub (ver comentário no início do arquivo).
+5. Domínio HTTPS é gerado automaticamente pelo Railway (Settings → Networking → Generate Domain).
+
+> No plano free/trial do Railway o app não hiberna por inatividade (diferente do Render), mas o uso é medido — para manter algo rodando continuamente em teste, o plano Hobby (uso avulso, ~US$5/mês) evita ficar sem créditos no meio do teste.
+
+---
+
+### Opção 2 — Docker (VPS / servidor on-premise)
 
 **Pré-requisitos:** Docker + Docker Compose
 
@@ -129,7 +152,7 @@ docker compose restart app
 
 ---
 
-### Opção 2 — Desenvolvimento local (IDE)
+### Opção 3 — Desenvolvimento local (IDE)
 
 **Pré-requisitos:** Java 21, Maven 3.9+, PostgreSQL 16 local ou via Docker
 
@@ -147,9 +170,15 @@ Acesse: http://localhost:8080
 
 ## Credenciais padrão
 
-| Usuário | Senha | Papel |
+Criadas automaticamente no primeiro boot (só quando a tabela de usuários está vazia):
+
+| Usuário | Senha (padrão dev, sem env var) | Papel |
 |---|---|---|
-| `admin` | `admin123` | ADMIN |
+| `admin` | `admin@123` | ADMIN |
+| `operador` | `oper@123` | OPERADOR |
+| `visualizador` | `view@123` | VISUALIZADOR |
+
+Em produção, defina `ADMIN_PASSWORD`, `OPERADOR_PASSWORD` e `VISUALIZADOR_PASSWORD` (ver `.env.example`) para não subir com as senhas padrão.
 
 > **Troque a senha no primeiro acesso em:** Navbar → 🔑 → Alterar senha
 

@@ -10,13 +10,15 @@ import com.sesmt.pgeo.model.enums.Role;
 import com.sesmt.pgeo.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 /**
  * Cria usuários padrão na primeira execução.
- * Troque as senhas imediatamente após o primeiro acesso!
+ * Senhas vêm de ADMIN_PASSWORD/OPERADOR_PASSWORD/VISUALIZADOR_PASSWORD (com fallback
+ * para uso em dev/local) — troque-as em produção antes de expor a aplicação.
  */
 @Slf4j
 @Component
@@ -26,18 +28,27 @@ public class DataSeeder implements CommandLineRunner {
     private final UsuarioRepository usuarioRepo;
     private final PasswordEncoder passwordEncoder;
 
+    @Value("${pgeo.seed.admin.senha}")
+    private String senhaAdmin;
+
+    @Value("${pgeo.seed.operador.senha}")
+    private String senhaOperador;
+
+    @Value("${pgeo.seed.visualizador.senha}")
+    private String senhaVisualizador;
+
     @Override
     public void run(String... args) {
         if (usuarioRepo.count() == 0) {
-            criarUsuario("admin",       "Admin SESMT",    "admin@123",  Role.ADMIN);
-            criarUsuario("operador",    "Operador SESMT", "oper@123",   Role.OPERADOR);
-            criarUsuario("visualizador","Visualizador",   "view@123",   Role.VISUALIZADOR);
+            criarUsuario("admin",       "Admin SESMT",    senhaAdmin,       Role.ADMIN);
+            criarUsuario("operador",    "Operador SESMT", senhaOperador,    Role.OPERADOR);
+            criarUsuario("visualizador","Visualizador",   senhaVisualizador,Role.VISUALIZADOR);
 
             log.warn("╔══════════════════════════════════════════════════════╗");
             log.warn("║  USUÁRIOS PADRÃO CRIADOS — TROQUE AS SENHAS!         ║");
-            log.warn("║  admin / admin@123       → ADMIN (acesso total)      ║");
-            log.warn("║  operador / oper@123     → OPERADOR                  ║");
-            log.warn("║  visualizador / view@123 → VISUALIZADOR (read-only)  ║");
+            log.warn("║  admin / operador / visualizador                     ║");
+            log.warn("║  Senhas definidas via ADMIN_PASSWORD / OPERADOR_PASSWORD ║");
+            log.warn("║  / VISUALIZADOR_PASSWORD (ou padrão de dev, se ausentes) ║");
             log.warn("╚══════════════════════════════════════════════════════╝");
         }
     }
