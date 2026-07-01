@@ -1,39 +1,30 @@
-name: Deploy — Servidor Interno
+name: Deploy — Railway
 
 # ──────────────────────────────────────────────────────────────────────────────
-# PRÉ-REQUISITOS (TI faz UMA VEZ no servidor):
+# PRÉ-REQUISITOS (uma vez, no Railway + GitHub):
 #
-# 1. Instalar Docker + Docker Compose no servidor Linux
+# 1. No Railway: Project Settings → Tokens → gerar um token do projeto.
+# 2. No GitHub: Settings → Secrets and Variables → Actions → criar o secret
+#    RAILWAY_TOKEN com o valor gerado acima.
+# 3. Variáveis de ambiente da aplicação (DB_*, SECRET_KEY, ADMIN_PASSWORD, ...)
+#    ficam configuradas direto no serviço do Railway, não aqui.
 #
-# 2. Instalar o self-hosted runner do GitHub no servidor:
-#    github.com/phmacieldev/sistema-sesmt → Settings → Actions → Runners → New
-#    O agente CHAMA o GitHub (sem precisar abrir nenhuma porta no firewall).
-#
-# 3. Criar Secrets no GitHub (Settings → Secrets and Variables → Actions):
-#    DB_PASSWORD  → senha que será usada pelo PostgreSQL interno
-#    SECRET_KEY   → string aleatória longa (ex: openssl rand -hex 32)
-#
-# Opcionais (têm padrão):
-#    DB_NAME      → nome do banco (padrão: pgeo_db)
-#    DB_USER      → usuário do banco (padrão: pgeo_user)
-#
-# Após esses passos, cada push na branch main fará deploy automático.
+# Esse workflow só dispara o deploy depois que o CI (testes + build) passa no
+# main — o Railway não decide isso por conta própria.
 # ──────────────────────────────────────────────────────────────────────────────
 
 on:
-  # Aciona deploy somente depois que o CI (testes + build) passou no main
   workflow_run:
     workflows: ["CI — Build & Testes"]
     types: [completed]
     branches: [main]
 
-  # Permite acionar manualmente pela interface do GitHub (útil para rollback)
   workflow_dispatch:
 
 jobs:
   deploy:
-    name: Deploy no Servidor Interno
-    runs-on: self-hosted   # agente instalado no servidor da empresa
+    name: Deploy no Railway
+    runs-on: ubuntu-latest
 
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
@@ -41,60 +32,26 @@ jobs:
       - name: Checkout do código
         uses: actions/checkout@v4
 
-      - name: Criar arquivo .env com secrets do GitHub
-        # O docker-compose.yml lê as variáveis deste arquivo
-        run: |
-          cat > .env << 'ENVEOF'
-          DB_NAME=${{ secrets.DB_NAME || 'pgeo_db' }}
-          DB_USER=${{ secrets.DB_USER || 'pgeo_user' }}
-          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-          SECRET_KEY=${{ secrets.SECRET_KEY }}
-          ENVEOF
+      - name: Instalar Railway CLI
+        run: npm install -g @railway/cli
 
-      - name: Validar secrets obrigatórios
+      - name: Validar secret obrigatório
         run: |
-          if [ -z "${{ secrets.DB_PASSWORD }}" ]; then
-            echo "ERRO: Secret DB_PASSWORD não configurado."
+          if [ -z "${{ secrets.RAILWAY_TOKEN }}" ]; then
+            echo "ERRO: Secret RAILWAY_TOKEN não configurado."
             echo "Acesse: github.com/phmacieldev/sistema-sesmt → Settings → Secrets → Actions"
             exit 1
           fi
-          if [ -z "${{ secrets.SECRET_KEY }}" ]; then
-            echo "ERRO: Secret SECRET_KEY não configurado."
-            exit 1
-          fi
-          echo "✓ Secrets validados"
 
-      - name: Build e deploy
-        run: |
-          docker compose build --no-cache --pull
-          docker compose up -d --force-recreate
-          docker compose ps
-
-      - name: Aguardar aplicação iniciar (máx 90s)
-        run: |
-          echo "Aguardando aplicação subir..."
-          for i in $(seq 1 18); do
-            STATUS=$(docker inspect --format='{{.State.Health.Status}}' pgeo-app 2>/dev/null || echo "waiting")
-            if [ "$STATUS" = "healthy" ]; then
-              echo "✓ Aplicação saudável após $((i * 5))s"
-              exit 0
-            fi
-            echo "  $((i * 5))s — status: $STATUS"
-            sleep 5
-          done
-          echo "✗ Timeout — últimos logs:"
-          docker compose logs --tail=50 app
-          exit 1
-
-      - name: Limpar imagens Docker antigas
-        if: success()
-        run: docker image prune -f
+      - name: Deploy
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway up --detach
 
       - name: Resumo do deploy
         if: success()
         run: |
           echo "============================================"
-          echo "  Deploy concluído com sucesso"
+          echo "  Deploy disparado com sucesso no Railway"
           echo "  Commit: ${{ github.sha }}"
-          echo "  Acesso: http://<IP-DO-SERVIDOR>:8080"
           echo "============================================"
