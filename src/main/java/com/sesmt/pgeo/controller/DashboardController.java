@@ -497,19 +497,19 @@ public class DashboardController {
     @GetMapping("/guias-semana")
     @ResponseBody
     public Map<String, Object> guiasSemana() {
-        LocalDate hoje = LocalDate.now();
+        LocalDate hoje       = LocalDate.now();
+        LocalDate amanha     = hoje.plusDays(1);
         LocalDate proxSegunda = hoje.with(DayOfWeek.MONDAY).plusWeeks(1);
-        LocalDate proxSexta   = proxSegunda.plusDays(4);
+        LocalDate proxSexta  = proxSegunda.plusDays(4);
 
-        List<Agendamento> todos = agendamentoRepo
-            .findByDataClinicoBetweenOrderByDataClinicoAsc(proxSegunda, proxSexta);
+        DateTimeFormatter dayFmt     = DateTimeFormatter.ofPattern("EEE dd/MM", Locale.of("pt", "BR"));
+        DateTimeFormatter dataFmt    = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        DateTimeFormatter rangeStart = DateTimeFormatter.ofPattern("dd/MM");
 
-        DateTimeFormatter dayFmt   = DateTimeFormatter.ofPattern("EEE dd/MM", Locale.of("pt", "BR"));
-        DateTimeFormatter startFmt = DateTimeFormatter.ofPattern("dd/MM");
-        DateTimeFormatter endFmt   = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-
-        List<Map<String, Object>> sangueList = todos.stream()
-            .filter(a -> a.getDataSangue() != null)
+        // Sangue: exames de amanhã
+        List<Map<String, Object>> sangueList = agendamentoRepo
+            .findByDataSangueOrderByDataSangueAscHoraClinicoAsc(amanha)
+            .stream()
             .map(a -> {
                 Map<String, Object> m = new LinkedHashMap<>();
                 m.put("id",     a.getId());
@@ -522,7 +522,10 @@ public class DashboardController {
             })
             .toList();
 
-        List<Map<String, Object>> clinicoList = todos.stream()
+        // Clínico: exames da semana seguinte (seg–sex)
+        List<Map<String, Object>> clinicoList = agendamentoRepo
+            .findByDataClinicoBetweenOrderByDataClinicoAsc(proxSegunda, proxSexta)
+            .stream()
             .map(a -> {
                 Map<String, Object> m = new LinkedHashMap<>();
                 m.put("id",    a.getId());
@@ -536,9 +539,10 @@ public class DashboardController {
             .toList();
 
         return Map.of(
-            "semana",   proxSegunda.format(startFmt) + " a " + proxSexta.format(endFmt),
-            "sangue",   sangueList,
-            "clinico",  clinicoList
+            "periodoSangue",  amanha.format(dataFmt),
+            "periodoClinico", proxSegunda.format(rangeStart) + " a " + proxSexta.format(dataFmt),
+            "sangue",         sangueList,
+            "clinico",        clinicoList
         );
     }
 

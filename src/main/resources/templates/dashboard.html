@@ -33,7 +33,8 @@
     <div style="margin-bottom:20px;">
       <div style="font-size:13px;font-weight:700;margin-bottom:8px;">
         🩸 Exames de Sangue
-        <span id="guias-sangue-count" style="font-size:12px;font-weight:400;color:var(--text-muted);margin-left:6px;"></span>
+        <span id="guias-sangue-periodo" style="font-size:12px;font-weight:400;color:var(--text-muted);margin-left:6px;"></span>
+        <span id="guias-sangue-count" style="font-size:12px;font-weight:400;color:var(--text-muted);margin-left:4px;"></span>
       </div>
       <div id="guias-sangue-lista" style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:10px;"></div>
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
@@ -49,7 +50,8 @@
     <div style="margin-bottom:20px;">
       <div style="font-size:13px;font-weight:700;margin-bottom:8px;">
         💊 Exames Clínicos
-        <span id="guias-clinico-count" style="font-size:12px;font-weight:400;color:var(--text-muted);margin-left:6px;"></span>
+        <span id="guias-clinico-periodo" style="font-size:12px;font-weight:400;color:var(--text-muted);margin-left:6px;"></span>
+        <span id="guias-clinico-count" style="font-size:12px;font-weight:400;color:var(--text-muted);margin-left:4px;"></span>
       </div>
       <div id="guias-clinico-lista" style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:10px;"></div>
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
@@ -366,6 +368,8 @@
     var modal = document.getElementById('modalGuiasSemana');
     modal.classList.add('show');
     document.getElementById('guias-titulo').textContent = '⏳ Carregando…';
+    document.getElementById('guias-sangue-periodo').textContent  = '';
+    document.getElementById('guias-clinico-periodo').textContent = '';
     document.getElementById('guias-sangue-lista').innerHTML  = '';
     document.getElementById('guias-clinico-lista').innerHTML = '';
     fetch('/guias-semana')
@@ -374,7 +378,9 @@
         return r.json();
       })
       .then(function(data) {
-        document.getElementById('guias-titulo').textContent = '📧 Guias da Semana — ' + data.semana;
+        document.getElementById('guias-titulo').textContent = '📧 Guias da Semana';
+        document.getElementById('guias-sangue-periodo').textContent  = data.periodoSangue  ? '— ' + data.periodoSangue  : '';
+        document.getElementById('guias-clinico-periodo').textContent = data.periodoClinico ? '— ' + data.periodoClinico : '';
         _guiasSangue  = data.sangue.map(function(a) { return Object.assign({}, a, {removido: false}); });
         _guiasClinico = data.clinico.map(function(a) { return Object.assign({}, a, {removido: false}); });
         renderGuiasLista('sangue');

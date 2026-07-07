@@ -30,6 +30,8 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long>,
 
     List<Agendamento> findByDataClinicoBetweenOrderByDataClinicoAsc(LocalDate inicio, LocalDate fim);
 
+    List<Agendamento> findByDataSangueOrderByDataSangueAscHoraClinicoAsc(LocalDate dataSangue);
+
     // ── Duplicidade ───────────────────────────────────────────────────
     @Query("SELECT a FROM Agendamento a WHERE a.funcionarioMatricula = :matricula AND year(a.dataClinico) = :ano ORDER BY a.dataClinico DESC")
     List<Agendamento> findByMatriculaEAnoList(@Param("matricula") String matricula, @Param("ano") int ano, Pageable pageable);
