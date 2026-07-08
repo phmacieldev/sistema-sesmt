@@ -6,8 +6,8 @@ package com.sesmt.pgeo.dto;
 import java.util.List;
 
 public record GuiasSemanaResponseDto(
-    String semana,
-    String dataSangue,
+    String periodoSangue,
+    String periodoClinico,
     List<GuiaSangueDto> sangue,
     List<GuiaClinicoDto> clinico
 ) {

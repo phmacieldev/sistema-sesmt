@@ -29,15 +29,16 @@ public class GuiaSemanaService {
         DateTimeFormatter startFmt = DateTimeFormatter.ofPattern("dd/MM");
         DateTimeFormatter endFmt   = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
+        // Sangue: próximo dia útil (pula fim de semana)
         LocalDate proximoDiaUtil = proximoDiaUtil(hoje);
-        LocalDate segunda = hoje.with(DayOfWeek.MONDAY);
-        LocalDate sexta   = segunda.plusDays(4);
 
-        List<Agendamento> semanaAtual = agendamentoRepo
-            .findByDataClinicoBetweenOrderByDataClinicoAsc(segunda, sexta);
+        // Clínico: semana seguinte (seg–sex)
+        LocalDate proxSegunda = hoje.with(DayOfWeek.MONDAY).plusWeeks(1);
+        LocalDate proxSexta   = proxSegunda.plusDays(4);
 
-        var sangue = semanaAtual.stream()
-            .filter(a -> a.getDataSangue() != null && a.getDataSangue().equals(proximoDiaUtil))
+        var sangue = agendamentoRepo
+            .findByDataSangueOrderByDataSangueAscHoraClinicoAsc(proximoDiaUtil)
+            .stream()
             .map(a -> new GuiaSangueDto(
                 a.getId(),
                 a.getFuncionarioNome()  != null ? a.getFuncionarioNome()  : "",
@@ -48,7 +49,9 @@ public class GuiaSemanaService {
             ))
             .toList();
 
-        var clinico = semanaAtual.stream()
+        var clinico = agendamentoRepo
+            .findByDataClinicoBetweenOrderByDataClinicoAsc(proxSegunda, proxSexta)
+            .stream()
             .map(a -> new GuiaClinicoDto(
                 a.getId(),
                 a.getFuncionarioNome()  != null ? a.getFuncionarioNome()  : "",
@@ -60,8 +63,8 @@ public class GuiaSemanaService {
             .toList();
 
         return new GuiasSemanaResponseDto(
-            segunda.format(startFmt) + " a " + sexta.format(endFmt),
-            proximoDiaUtil.format(dayFmt),
+            proximoDiaUtil.format(endFmt),
+            proxSegunda.format(startFmt) + " a " + proxSexta.format(endFmt),
             sangue,
             clinico
         );
