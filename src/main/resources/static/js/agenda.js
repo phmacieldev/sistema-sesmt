@@ -80,14 +80,10 @@ document.addEventListener('DOMContentLoaded', function() {
         },
 
         eventDrop: function(info) {
-            fetch("/mover_agendamento", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({
-                    id:   info.event.id,
-                    data: info.event.start.toISOString().slice(0, 10),
-                    hora: info.event.start.toTimeString().slice(0, 5)
-                })
+            pgeoPostJson("/mover_agendamento", {
+                id:   info.event.id,
+                data: info.event.start.toISOString().slice(0, 10),
+                hora: info.event.start.toTimeString().slice(0, 5)
             })
             .then(r => r.json())
             .then(data => {

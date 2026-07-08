@@ -18,8 +18,12 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import jakarta.persistence.OptimisticLockException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @ControllerAdvice
@@ -52,13 +56,14 @@ public class GlobalExceptionHandler {
     public Object handleNaoEncontrado(RecursoNaoEncontradoException ex,
                                       Model model, HttpServletRequest req) {
         log.warn("Recurso não encontrado [{}]: {}", req.getRequestURI(), ex.getMessage());
+        String msgCliente = "O recurso solicitado não foi encontrado.";
         if (isJsonRequest(req)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of("erro", true, "mensagem", ex.getMessage()));
+                .body(Map.of("erro", true, "mensagem", msgCliente));
         }
         model.addAttribute("titulo", "Não encontrado");
-        model.addAttribute("mensagem", ex.getMessage());
+        model.addAttribute("mensagem", msgCliente);
         model.addAttribute("status", 404);
         return "error/erro";
     }
@@ -105,6 +110,39 @@ public class GlobalExceptionHandler {
         model.addAttribute("titulo", "Acesso negado");
         model.addAttribute("mensagem", "Você não tem permissão para realizar esta ação.");
         model.addAttribute("status", 403);
+        return "error/erro";
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public Object handleValidacao(MethodArgumentNotValidException ex,
+                                   Model model, HttpServletRequest req) {
+        String mensagens = ex.getBindingResult().getFieldErrors().stream()
+            .map(e -> e.getDefaultMessage())
+            .collect(Collectors.joining("; "));
+        log.warn("Validação falhou [{}]: {}", req.getRequestURI(), mensagens);
+        if (isJsonRequest(req)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("ok", false, "mensagem", mensagens));
+        }
+        model.addAttribute("titulo", "Dados inválidos");
+        model.addAttribute("mensagem", mensagens);
+        model.addAttribute("status", 400);
+        return "error/erro";
+    }
+
+    @ExceptionHandler({MethodArgumentTypeMismatchException.class, MissingServletRequestParameterException.class})
+    public Object handleBadRequest(Exception ex, Model model, HttpServletRequest req) {
+        log.warn("Parâmetro inválido [{}]: {}", req.getRequestURI(), ex.getMessage());
+        String msg = "Parâmetro inválido na requisição.";
+        if (isJsonRequest(req)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("erro", true, "mensagem", msg));
+        }
+        model.addAttribute("titulo", "Requisição inválida");
+        model.addAttribute("mensagem", msg);
+        model.addAttribute("status", 400);
         return "error/erro";
     }
 

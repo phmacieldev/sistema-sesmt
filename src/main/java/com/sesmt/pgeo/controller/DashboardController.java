@@ -12,6 +12,8 @@ import com.sesmt.pgeo.repository.AgendamentoRepository;
 import com.sesmt.pgeo.repository.FuncionarioRepository;
 import com.sesmt.pgeo.repository.MedicalLeaveRepository;
 import com.sesmt.pgeo.service.ExcelService;
+import com.sesmt.pgeo.service.GuiaSemanaService;
+import com.sesmt.pgeo.service.IndicadorService;
 import com.sesmt.pgeo.util.AppConstants;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -40,6 +42,8 @@ public class DashboardController {
     private final FuncionarioRepository funcionarioRepo;
     private final MedicalLeaveRepository medicalLeaveRepo;
     private final ExcelService excelService;
+    private final IndicadorService indicadorService;
+    private final GuiaSemanaService guiaSemanaService;
 
     @GetMapping("/")
     public String root() { return "redirect:/home"; }
@@ -343,61 +347,22 @@ public class DashboardController {
     public String dashboardEstatisticas(
             @RequestParam(required = false) Integer ano, Model model) {
 
-        List<Agendamento> todos = agendamentoRepo.findAll();
-        Map<String, Integer> contadorTipo  = new LinkedHashMap<>();
-        Map<String, Integer> contadorSetor = new LinkedHashMap<>();
-        Map<String, Integer> contadorEstab = new LinkedHashMap<>();
-        int[] contadorMes = new int[12];
-        Set<Integer> anosDisponiveis = new TreeSet<>();
-        int totalFiltrado = 0;
+        var est = indicadorService.calcularEstatisticas(ano);
 
-        for (Agendamento a : todos) {
-            if (a.getDataClinico() == null) continue;
-            int anoAg = a.getDataClinico().getYear();
-            anosDisponiveis.add(anoAg);
-            if (ano != null && ano != anoAg) continue;
-            totalFiltrado++;
-            int mes = a.getDataClinico().getMonthValue() - 1;
-            String tipo  = a.getTipoExameDescricao();
-            String setor = a.getFuncionarioSetor() != null && !a.getFuncionarioSetor().isBlank() ? a.getFuncionarioSetor() : "Não informado";
-            String estab = "Não informado";
-            try {
-                if (a.getFuncionario() != null && a.getFuncionario().getEstabelecimentoEfetivo() != null
-                        && !a.getFuncionario().getEstabelecimentoEfetivo().isBlank())
-                    estab = a.getFuncionario().getEstabelecimentoEfetivo();
-            } catch (Exception ignored) {}
-            contadorMes[mes]++;
-            contadorTipo.merge(tipo, 1, Integer::sum);
-            contadorSetor.merge(setor, 1, Integer::sum);
-            contadorEstab.merge(estab, 1, Integer::sum);
-        }
-
-        // Top 10 setores por volume
-        Map<String, Integer> topSetores = contadorSetor.entrySet().stream()
-            .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
-            .limit(10)
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
-                     (e1, e2) -> e1, LinkedHashMap::new));
-
-        Map<String, Integer> topEstab = contadorEstab.entrySet().stream()
-            .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
-                     (e1, e2) -> e1, LinkedHashMap::new));
-
-        model.addAttribute("contadorTipoExame",  contadorTipo);
-        model.addAttribute("contadorExamesMes",  contadorMes);
-        model.addAttribute("contadorSetor",      topSetores);
-        model.addAttribute("contadorEstab",      topEstab);
-        model.addAttribute("totalExames",        totalFiltrado);
-        model.addAttribute("tiposLabels",        new ArrayList<>(contadorTipo.keySet()));
-        model.addAttribute("tiposVals",          new ArrayList<>(contadorTipo.values()));
-        model.addAttribute("setorLabels",        new ArrayList<>(topSetores.keySet()));
-        model.addAttribute("setorVals",          new ArrayList<>(topSetores.values()));
-        model.addAttribute("estabLabels",        new ArrayList<>(topEstab.keySet()));
-        model.addAttribute("estabVals",          new ArrayList<>(topEstab.values()));
+        model.addAttribute("contadorTipoExame",  est.porTipo());
+        model.addAttribute("contadorExamesMes",  est.porMes());
+        model.addAttribute("contadorSetor",      est.porSetor());
+        model.addAttribute("contadorEstab",      est.porEstabelecimento());
+        model.addAttribute("totalExames",        est.total());
+        model.addAttribute("tiposLabels",        new ArrayList<>(est.porTipo().keySet()));
+        model.addAttribute("tiposVals",          new ArrayList<>(est.porTipo().values()));
+        model.addAttribute("setorLabels",        new ArrayList<>(est.porSetor().keySet()));
+        model.addAttribute("setorVals",          new ArrayList<>(est.porSetor().values()));
+        model.addAttribute("estabLabels",        new ArrayList<>(est.porEstabelecimento().keySet()));
+        model.addAttribute("estabVals",          new ArrayList<>(est.porEstabelecimento().values()));
         model.addAttribute("meses", List.of("Jan","Fev","Mar","Abr","Mai","Jun",
                                             "Jul","Ago","Set","Out","Nov","Dez"));
-        model.addAttribute("anosDisponiveis", new ArrayList<>(anosDisponiveis));
+        model.addAttribute("anosDisponiveis", new ArrayList<>(est.anosDisponiveis()));
         model.addAttribute("anoFiltro", ano);
         return "dashboard_estatisticas";
     }
@@ -410,82 +375,32 @@ public class DashboardController {
             @RequestParam(defaultValue = "0")   int  pagina,
             Model model) {
 
-        LocalDate hoje     = LocalDate.now();
-        LocalDate limite30 = hoje.plusDays(30);
+        var aso      = indicadorService.calcularStatusAso();
+        var atMes    = indicadorService.calcularAtestadosPorMes();
+        var agStatus = indicadorService.calcularStatusAgendamentos();
+        var ranking  = indicadorService.calcularRanking(dias);
 
-        // ── Status dos ASOs ─────────────────────────────────────────────
-        List<Funcionario> ativos = funcionarioRepo.findByAtivoTrue();
-        long qtdVencidos = ativos.stream().filter(f -> f.getAso() != null && f.getAso().isBefore(hoje)).count();
-        long qtdAVencer  = ativos.stream().filter(f -> f.getAso() != null && !f.getAso().isBefore(hoje) && f.getAso().isBefore(limite30)).count();
-        long qtdEmDia    = ativos.stream().filter(f -> f.getAso() != null && !f.getAso().isBefore(limite30)).count();
-        long qtdSemAso   = ativos.stream().filter(f -> f.getAso() == null).count();
+        int totalPaginas = ranking.totalItens() == 0 ? 1
+            : (int) Math.ceil((double) ranking.totalItens() / ATESTADOS_POR_PAGINA);
+        int paginaSeg = Math.max(0, Math.min(pagina, totalPaginas - 1));
+        int from = paginaSeg * ATESTADOS_POR_PAGINA;
+        int to   = Math.min(from + ATESTADOS_POR_PAGINA, ranking.totalItens());
 
-        // ── Atestados por mês (últimos 12 meses) ────────────────────────
-        LocalDate inicioPeriodo = hoje.minusMonths(11).withDayOfMonth(1);
-        List<MedicalLeave> mlRecentes = medicalLeaveRepo.findAll().stream()
-            .filter(ml -> ml.getDataAfastamento() != null && !ml.getDataAfastamento().isBefore(inicioPeriodo))
-            .toList();
-
-        List<String>  labelesMeses    = new ArrayList<>();
-        List<Integer> atestadosPorMes = new ArrayList<>();
-        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MMM/yy", new java.util.Locale("pt", "BR"));
-        for (int i = 11; i >= 0; i--) {
-            LocalDate m = hoje.minusMonths(i).withDayOfMonth(1);
-            labelesMeses.add(m.format(fmt));
-            int anoM = m.getYear(), mesM = m.getMonthValue();
-            atestadosPorMes.add((int) mlRecentes.stream()
-                .filter(ml -> ml.getDataAfastamento().getYear() == anoM
-                           && ml.getDataAfastamento().getMonthValue() == mesM)
-                .count());
-        }
-
-        // ── Status dos agendamentos futuros ──────────────────────────────
-        List<Agendamento> todosAg = agendamentoRepo.findAll();
-        long agAgendados = todosAg.stream()
-            .filter(a -> a.getDataClinico() != null && a.getDataClinico().isAfter(hoje))
-            .count();
-        long agEmDia = todosAg.stream()
-            .filter(a -> a.getDataClinico() != null && !a.getDataClinico().isAfter(hoje)
-                      && a.isAsoRecebido())
-            .count();
-        long agAtrasados = todosAg.stream()
-            .filter(a -> a.getDataClinico() != null && a.getDataClinico().isBefore(hoje)
-                      && !a.isAsoRecebido())
-            .count();
-
-        // ── Ranking de atestados (paginado) ─────────────────────────────
-        LocalDate limiteDias = hoje.minusDays(dias);
-        List<Map.Entry<String, Integer>> todosPorDias = medicalLeaveRepo.findRecentes(limiteDias)
-            .stream()
-            .collect(Collectors.groupingBy(
-                ml -> ml.getFuncionario().getNome(),
-                Collectors.summingInt(MedicalLeave::getDiasAfastamento)))
-            .entrySet().stream()
-            .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
-            .toList();
-
-        int totalItens    = todosPorDias.size();
-        int totalPaginas  = totalItens == 0 ? 1 : (int) Math.ceil((double) totalItens / ATESTADOS_POR_PAGINA);
-        int paginaSeg     = Math.max(0, Math.min(pagina, totalPaginas - 1));
-        int from          = paginaSeg * ATESTADOS_POR_PAGINA;
-        int to            = Math.min(from + ATESTADOS_POR_PAGINA, totalItens);
-        List<Map.Entry<String, Integer>> pagina_ = todosPorDias.subList(from, to);
-
-        model.addAttribute("qtdVencidos",   qtdVencidos);
-        model.addAttribute("qtdAVencer",    qtdAVencer);
-        model.addAttribute("qtdEmDia",      qtdEmDia);
-        model.addAttribute("qtdSemAso",     qtdSemAso);
-        model.addAttribute("totalAtivos",   ativos.size());
-        model.addAttribute("labelesMeses",    labelesMeses);
-        model.addAttribute("atestadosPorMes", atestadosPorMes);
-        model.addAttribute("agAgendados",     agAgendados);
-        model.addAttribute("agEmDia",         agEmDia);
-        model.addAttribute("agAtrasados",     agAtrasados);
-        model.addAttribute("resultados",    pagina_);
-        model.addAttribute("totalItens",    totalItens);
-        model.addAttribute("totalPaginas",  totalPaginas);
-        model.addAttribute("paginaAtual",   paginaSeg);
-        model.addAttribute("dias",          dias);
+        model.addAttribute("qtdVencidos",     aso.vencidos());
+        model.addAttribute("qtdAVencer",      aso.aVencer());
+        model.addAttribute("qtdEmDia",        aso.emDia());
+        model.addAttribute("qtdSemAso",       aso.semAso());
+        model.addAttribute("totalAtivos",     aso.totalAtivos());
+        model.addAttribute("labelesMeses",    atMes.labels());
+        model.addAttribute("atestadosPorMes", atMes.valores());
+        model.addAttribute("agAgendados",     agStatus.agendados());
+        model.addAttribute("agEmDia",         agStatus.emDia());
+        model.addAttribute("agAtrasados",     agStatus.atrasados());
+        model.addAttribute("resultados",      ranking.todos().subList(from, to));
+        model.addAttribute("totalItens",      ranking.totalItens());
+        model.addAttribute("totalPaginas",    totalPaginas);
+        model.addAttribute("paginaAtual",     paginaSeg);
+        model.addAttribute("dias",            dias);
         return "indicadores";
     }
 
@@ -496,54 +411,8 @@ public class DashboardController {
 
     @GetMapping("/guias-semana")
     @ResponseBody
-    public Map<String, Object> guiasSemana() {
-        LocalDate hoje       = LocalDate.now();
-        LocalDate amanha     = hoje.plusDays(1);
-        LocalDate proxSegunda = hoje.with(DayOfWeek.MONDAY).plusWeeks(1);
-        LocalDate proxSexta  = proxSegunda.plusDays(4);
-
-        DateTimeFormatter dayFmt     = DateTimeFormatter.ofPattern("EEE dd/MM", Locale.of("pt", "BR"));
-        DateTimeFormatter dataFmt    = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-        DateTimeFormatter rangeStart = DateTimeFormatter.ofPattern("dd/MM");
-
-        // Sangue: exames de amanhã
-        List<Map<String, Object>> sangueList = agendamentoRepo
-            .findByDataSangueOrderByDataSangueAscHoraClinicoAsc(amanha)
-            .stream()
-            .map(a -> {
-                Map<String, Object> m = new LinkedHashMap<>();
-                m.put("id",     a.getId());
-                m.put("nome",   a.getFuncionarioNome()  != null ? a.getFuncionarioNome()  : "");
-                m.put("setor",  a.getFuncionarioSetor() != null ? a.getFuncionarioSetor() : "");
-                m.put("data",   a.getDataSangue().format(dayFmt));
-                m.put("hora",   a.getHoraClinico()      != null ? a.getHoraClinico()      : "");
-                m.put("exames", a.getExamesSangue()     != null ? a.getExamesSangue()     : "");
-                return m;
-            })
-            .toList();
-
-        // Clínico: exames da semana seguinte (seg–sex)
-        List<Map<String, Object>> clinicoList = agendamentoRepo
-            .findByDataClinicoBetweenOrderByDataClinicoAsc(proxSegunda, proxSexta)
-            .stream()
-            .map(a -> {
-                Map<String, Object> m = new LinkedHashMap<>();
-                m.put("id",    a.getId());
-                m.put("nome",  a.getFuncionarioNome()  != null ? a.getFuncionarioNome()  : "");
-                m.put("setor", a.getFuncionarioSetor() != null ? a.getFuncionarioSetor() : "");
-                m.put("data",  a.getDataClinico().format(dayFmt));
-                m.put("hora",  a.getHoraClinico()      != null ? a.getHoraClinico()      : "");
-                m.put("tipo",  a.getTipoExameDescricao());
-                return m;
-            })
-            .toList();
-
-        return Map.of(
-            "periodoSangue",  amanha.format(dataFmt),
-            "periodoClinico", proxSegunda.format(rangeStart) + " a " + proxSexta.format(dataFmt),
-            "sangue",         sangueList,
-            "clinico",        clinicoList
-        );
+    public com.sesmt.pgeo.dto.GuiasSemanaResponseDto guiasSemana() {
+        return guiaSemanaService.montar();
     }
 
 }

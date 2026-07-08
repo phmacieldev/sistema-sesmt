@@ -116,6 +116,14 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
+        <!-- Sentry — captura de exceções não tratadas em produção -->
+        <!-- Fica inativo se SENTRY_DSN não estiver definido (ver application-prod.properties) -->
+        <dependency>
+            <groupId>io.sentry</groupId>
+            <artifactId>sentry-spring-boot-starter-jakarta</artifactId>
+            <version>7.14.0</version>
+        </dependency>
+
         <!-- WebSocket + STOMP (real-time para todos os usuários) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -132,8 +140,8 @@
         <!-- WebJars — assets locais sem dependência de CDN externo -->
         <dependency>
             <groupId>org.webjars</groupId>
-            <artifactId>webjars-locator-lite</artifactId>
-            <version>1.0.1</version>
+            <artifactId>webjars-locator</artifactId>
+            <version>0.52</version>
         </dependency>
         <dependency>
             <groupId>org.webjars</groupId>

@@ -17,9 +17,12 @@ import com.sesmt.pgeo.repository.FuncionarioRepository;
 import com.sesmt.pgeo.repository.HistoricoCargoRepository;
 import com.sesmt.pgeo.repository.MedicalLeaveRepository;
 import com.sesmt.pgeo.service.FuncionarioService;
+import io.sentry.Sentry;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -30,6 +33,7 @@ import org.springframework.data.domain.PageRequest;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Tag(name = "Funcionários", description = "Perfil, alteração de cargo e gestão de funcionários")
 @Controller
 @RequiredArgsConstructor
@@ -112,6 +116,7 @@ public class FuncionarioController {
     // ── Editar dados básicos do funcionário (somente ADMIN) ──────────
 
     @PostMapping("/funcionario/{id}/editar")
+    @Transactional
     @PreAuthorize("hasRole('ADMIN')")
     public String editar(
             @PathVariable Long id,
@@ -185,20 +190,10 @@ public class FuncionarioController {
     @GetMapping("/api/funcionario/{matricula}")
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
     @ResponseBody
-    public Map<String, Object> apiBuscar(@PathVariable String matricula) {
+    public com.sesmt.pgeo.dto.FuncionarioBuscaDto apiBuscar(@PathVariable String matricula) {
         return funcionarioRepo.findByMatricula(matricula.strip())
-            .map(f -> Map.<String, Object>of(
-                "encontrado",       true,
-                "id",               f.getId(),
-                "nome",             f.getNome(),
-                "setor",            f.getSetor() != null ? f.getSetor() : "",
-                "funcao",           f.getFuncao() != null ? f.getFuncao() : "",
-                "exigeSangue",      f.isExigeSangue(),
-                "status",           f.getStatus().name(),
-                "preAdmissional",   f.isPreAdmissional(),
-                "estabelecimento",  f.getEstabelecimentoEfetivo()
-            ))
-            .orElse(Map.of("encontrado", false));
+            .map(com.sesmt.pgeo.dto.FuncionarioBuscaDto::encontrado)
+            .orElse(com.sesmt.pgeo.dto.FuncionarioBuscaDto.naoEncontrado());
     }
 
     // ── Importação CSV / Excel (admin) ────────────────────────────────
@@ -222,8 +217,70 @@ public class FuncionarioController {
             var resultado = importService.importar(arquivo);
             redirect.addFlashAttribute("resultado", resultado);
         } catch (Exception e) {
-            redirect.addFlashAttribute("erro", "Erro ao processar arquivo: " + e.getMessage());
+            log.error("Erro ao importar planilha de funcionários", e);
+            Sentry.captureException(e);
+            redirect.addFlashAttribute("erro", "Erro ao processar o arquivo. Verifique o formato e tente novamente.");
         }
         return "redirect:/admin/funcionarios/importar";
+    }
+
+    @PostMapping("/admin/funcionarios/importar/preview")
+    @PreAuthorize("hasRole('ADMIN')")
+    @ResponseBody
+    public Map<String, Object> importarPreview(@RequestParam("arquivo") MultipartFile arquivo,
+                                                jakarta.servlet.http.HttpSession session) {
+        if (arquivo.isEmpty()) {
+            return Map.of("erro", true, "mensagem", "Nenhum arquivo selecionado.");
+        }
+        try {
+            var preview = importService.preview(arquivo);
+            session.setAttribute("importArquivoBytes", arquivo.getBytes());
+            session.setAttribute("importArquivoNome", arquivo.getOriginalFilename());
+            return Map.of(
+                "ok",           true,
+                "novos",        preview.novos(),
+                "conflitantes", preview.conflitantes(),
+                "semConflito",  preview.semConflito(),
+                "erros",        preview.erros(),
+                "linhas",       preview.linhas().stream().filter(l -> !l.novo() && !l.conflitos().isEmpty()).toList()
+            );
+        } catch (Exception e) {
+            log.error("Erro ao gerar preview de importação de funcionários", e);
+            Sentry.captureException(e);
+            return Map.of("erro", true, "mensagem", "Erro ao analisar o arquivo.");
+        }
+    }
+
+    @PostMapping("/admin/funcionarios/importar/confirmar")
+    @PreAuthorize("hasRole('ADMIN')")
+    @ResponseBody
+    public Map<String, Object> importarConfirmar(
+            @RequestBody com.sesmt.pgeo.dto.ConfirmarImportacaoDto dto,
+            jakarta.servlet.http.HttpSession session) {
+        byte[] bytes = (byte[]) session.getAttribute("importArquivoBytes");
+        String nome  = (String) session.getAttribute("importArquivoNome");
+        if (bytes == null) {
+            return Map.of("erro", true, "mensagem", "Sessão expirada. Faça o upload novamente.");
+        }
+
+        java.util.Set<String> aceitosSet = new java.util.HashSet<>(
+            dto.aceitos() != null ? dto.aceitos() : java.util.List.of());
+
+        try {
+            var resultado = importService.aplicarComSelecao(bytes, nome, aceitosSet);
+            session.removeAttribute("importArquivoBytes");
+            session.removeAttribute("importArquivoNome");
+            return Map.of(
+                "ok",          true,
+                "criados",     resultado.criados(),
+                "atualizados", resultado.atualizados(),
+                "ignorados",   resultado.ignorados(),
+                "erros",       resultado.erros()
+            );
+        } catch (Exception e) {
+            log.error("Erro ao aplicar importação de funcionários", e);
+            Sentry.captureException(e);
+            return Map.of("erro", true, "mensagem", "Erro ao aplicar importação.");
+        }
     }
 }

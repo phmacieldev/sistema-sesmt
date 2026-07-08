@@ -5,18 +5,22 @@
  */
 package com.sesmt.pgeo.controller;
 
+import com.sesmt.pgeo.dto.*;
 import com.sesmt.pgeo.exception.RecursoNaoEncontradoException;
 import com.sesmt.pgeo.exception.RegraDeNegocioException;
 import com.sesmt.pgeo.model.Agendamento;
 import com.sesmt.pgeo.model.enums.TipoExame;
+import jakarta.validation.Valid;
 import com.sesmt.pgeo.repository.AgendamentoRepository;
 import com.sesmt.pgeo.repository.FuncionarioRepository;
 import com.sesmt.pgeo.service.AgendamentoService;
 import com.sesmt.pgeo.service.PdfService;
 import com.sesmt.pgeo.util.AppConstants;
+import io.sentry.Sentry;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -29,6 +33,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.Arrays;
 
+@Slf4j
 @Tag(name = "Agendamentos", description = "Criação, edição, calendário e APIs de suporte para agendamentos de exames")
 @Controller
 @RequiredArgsConstructor
@@ -65,45 +70,16 @@ public class AgendaController {
         return agendamentoService.getHorariosDisponiveis();
     }
 
-    @Operation(summary = "Lista eventos do calendário", description = "Retorna todos os agendamentos formatados para o FullCalendar")
+    @Operation(summary = "Lista eventos do calendário", description = "Retorna agendamentos recentes/futuros para o FullCalendar")
     @GetMapping("/agenda_events_json")
     @ResponseBody
-    public List<Map<String, Object>> agendaEventsJson() {
-        return agendamentoRepo.findAllByOrderByDataClinicoAsc()
+    public List<CalendarioEventoDto> agendaEventsJson() {
+        LocalDate inicio = LocalDate.now().minusMonths(3);
+        return agendamentoRepo.findByDataClinicoDesde(inicio)
             .stream()
-            .filter(a -> a.getDataClinico() != null && a.getHoraClinico() != null)
-            .map(this::toEventoCalendario)
+            .filter(a -> a.getHoraClinico() != null)
+            .map(CalendarioEventoDto::fromEntity)
             .toList();
-    }
-
-    private Map<String, Object> toEventoCalendario(Agendamento a) {
-        // Cor por tipo de exame — usa Enum, sem comparação de string solta
-        String cor = switch (a.getTipoExame() != null ? a.getTipoExame() : TipoExame.PERIODICO) {
-            case PERIODICO          -> "#27ae60";
-            case ADMISSIONAL        -> "#2980b9";
-            case DEMISSIONAL        -> "#e74c3c";
-            case RETORNO_AO_TRABALHO-> "#f1c40f";
-            case MUDANCA_DE_RISCO   -> "#ff8800";
-        };
-
-        String primeiroNome = a.getFuncionarioNome() != null
-            ? a.getFuncionarioNome().split(" ")[0] : "?";
-
-        Map<String, Object> ext = new LinkedHashMap<>();
-        ext.put("nome",    a.getFuncionarioNome());
-        ext.put("setor",   a.getFuncionarioSetor());
-        ext.put("funcao",  a.getFuncionarioFuncao());
-        ext.put("tipo",    a.getTipoExameDescricao());
-        ext.put("sangue",  a.getDataSangue());
-        ext.put("exigeSangue", a.isExigeSangue());
-
-        Map<String, Object> ev = new LinkedHashMap<>();
-        ev.put("id",            a.getId());
-        ev.put("title",         primeiroNome + " | " + a.getTipoExameDescricao());
-        ev.put("start",         a.getDataClinico() + "T" + a.getHoraClinico());
-        ev.put("color",         cor);
-        ev.put("extendedProps", ext);
-        return ev;
     }
 
     /**
@@ -116,47 +92,32 @@ public class AgendaController {
     @PostMapping("/agendar")
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
     @ResponseBody
-    public Map<String, Object> agendarPost(
-            @RequestParam(defaultValue = "")  String matricula,
-            @RequestParam                     String nome,
-            @RequestParam(defaultValue = "")  String setor,
-            @RequestParam(defaultValue = "")  String funcao,
-            @RequestParam                     String tipo_exame,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data_clinico,
-            @RequestParam                     String hora,
-            // Bug fix: required=false — cargos sem exame de sangue
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-                                              LocalDate data_sangue,
-            @RequestParam(required = false) String observacoes,
-            @RequestParam(required = false) String exames_sangue) {
-
-        if (data_clinico == null) {
-            return Map.of("erro", true, "mensagem", "Data do exame clínico é obrigatória.");
-        }
-        TipoExame tipoEnum = TipoExame.fromDescricao(tipo_exame);
+    public ApiResponseDto agendarPost(@Valid CreateAgendamentoDto dto) {
+        TipoExame tipoEnum = TipoExame.fromDescricao(dto.tipo_exame());
         if (tipoEnum == null) {
-            return Map.of("erro", true, "mensagem", "Tipo de exame inválido: " + tipo_exame);
+            return ApiResponseDto.erro("Tipo de exame inválido: " + dto.tipo_exame());
         }
 
         try {
             Agendamento ag = agendamentoService.criar(
-                matricula, nome, setor, funcao, tipoEnum, data_clinico, hora, data_sangue,
-                observacoes, exames_sangue);
-            return Map.of("ok", true, "id", ag.getId());
+                dto.matricula(), dto.nome(), dto.setor(), dto.funcao(),
+                tipoEnum, dto.data_clinico(), dto.hora(), dto.data_sangue(),
+                dto.observacoes(), dto.exames_sangue());
+            return ApiResponseDto.sucesso(ag.getId());
 
         } catch (RegraDeNegocioException ex) {
             String msg = ex.getMessage();
-            // Duplicado: a mensagem começa com "DUPLICADO:{id}"
             if (msg.startsWith("DUPLICADO:")) {
                 String[] partes = msg.split(" — ", 2);
                 Long idExistente = Long.valueOf(partes[0].replace("DUPLICADO:", ""));
-                return Map.of(
-                    "duplicado", true,
-                    "id",        idExistente,
-                    "mensagem",  partes.length > 1 ? partes[1] : "Já possui agendamento"
-                );
+                return ApiResponseDto.duplicado(idExistente,
+                    partes.length > 1 ? partes[1] : "Já possui agendamento");
             }
-            return Map.of("erro", true, "mensagem", msg);
+            return ApiResponseDto.erro(msg);
+        } catch (Exception ex) {
+            log.error("Erro ao criar agendamento", ex);
+            Sentry.captureException(ex);
+            return ApiResponseDto.erro("Erro interno ao criar agendamento.");
         }
     }
 
@@ -164,46 +125,31 @@ public class AgendaController {
 
     @GetMapping("/agendamento/{id}/json")
     @ResponseBody
-    public Map<String, Object> agendamentoJson(@PathVariable Long id) {
+    public AgendamentoResponseDto agendamentoJson(@PathVariable Long id) {
         Agendamento ag = agendamentoRepo.findById(id)
             .orElseThrow(() -> new RecursoNaoEncontradoException("Agendamento", id));
-        Map<String, Object> r = new LinkedHashMap<>();
-        r.put("id",          ag.getId());
-        r.put("matricula",   ag.getFuncionarioMatricula() != null ? ag.getFuncionarioMatricula() : "");
-        r.put("nome",        ag.getFuncionarioNome());
-        r.put("setor",       ag.getFuncionarioSetor());
-        r.put("funcao",      ag.getFuncionarioFuncao());
-        r.put("tipoExame",   ag.getTipoExameDescricao());
-        r.put("dataSangue",  ag.getDataSangue() != null ? ag.getDataSangue().toString() : "");
-        r.put("dataClinico", ag.getDataClinico() != null ? ag.getDataClinico().toString() : "");
-        r.put("hora",        ag.getHoraClinico() != null ? ag.getHoraClinico() : "");
-        r.put("observacoes",  ag.getObservacoes() != null ? ag.getObservacoes() : "");
-        r.put("examesSangue", ag.getExamesSangue() != null ? ag.getExamesSangue() : "");
-        return r;
+        return AgendamentoResponseDto.fromEntity(ag);
     }
 
     @PostMapping("/editar_agendamento/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
     @ResponseBody
-    public Map<String, Object> editarPost(
-            @PathVariable Long id,
-            @RequestParam String nome,
-            @RequestParam String setor,
-            @RequestParam String funcao,
-            @RequestParam String tipo_exame,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data_clinico,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-                                            LocalDate data_sangue,
-            @RequestParam String hora,
-            @RequestParam(required = false) String observacoes,
-            @RequestParam(required = false) String exames_sangue) {
-
-        TipoExame tipoEnum = TipoExame.fromDescricao(tipo_exame);
+    public ApiResponseDto editarPost(@PathVariable Long id, @Valid UpdateAgendamentoDto dto) {
+        TipoExame tipoEnum = TipoExame.fromDescricao(dto.tipo_exame());
         if (tipoEnum == null) tipoEnum = TipoExame.PERIODICO;
 
-        agendamentoService.editar(id, nome, setor, funcao, tipoEnum, data_clinico, data_sangue, hora,
-            observacoes, exames_sangue);
-        return Map.of("ok", true);
+        try {
+            agendamentoService.editar(id, dto.nome(), dto.setor(), dto.funcao(),
+                tipoEnum, dto.data_clinico(), dto.data_sangue(), dto.hora(),
+                dto.observacoes(), dto.exames_sangue());
+            return ApiResponseDto.sucesso();
+        } catch (RegraDeNegocioException ex) {
+            return ApiResponseDto.erro(ex.getMessage());
+        } catch (Exception ex) {
+            log.error("Erro ao editar agendamento {}", id, ex);
+            Sentry.captureException(ex);
+            return ApiResponseDto.erro("Erro ao atualizar agendamento.");
+        }
     }
 
     // ── Drag & drop ───────────────────────────────────────────────────
@@ -211,12 +157,9 @@ public class AgendaController {
     @PostMapping("/mover_agendamento")
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
     @ResponseBody
-    public Map<String, Object> moverAgendamento(@RequestBody Map<String, Object> dados) {
+    public Map<String, Object> moverAgendamento(@Valid @RequestBody MoverAgendamentoDto dto) {
         try {
-            Long id       = Long.valueOf(dados.get("id").toString());
-            LocalDate data = LocalDate.parse(dados.get("data").toString());
-            String hora   = dados.get("hora").toString();
-            agendamentoService.mover(id, data, hora);
+            agendamentoService.mover(dto.id(), LocalDate.parse(dto.data()), dto.hora());
             return Map.of("status", "ok");
         } catch (RegraDeNegocioException ex) {
             return Map.of("status", "erro", "mensagem", ex.getMessage());
@@ -238,61 +181,34 @@ public class AgendaController {
     @Operation(summary = "Buscar funcionário por matrícula")
     @GetMapping("/buscar_funcionario/{matricula}")
     @ResponseBody
-    public Map<String, Object> buscarFuncionario(@PathVariable String matricula) {
+    public FuncionarioBuscaDto buscarFuncionario(@PathVariable String matricula) {
         return funcionarioRepo.findByMatricula(matricula.strip())
-            .map(f -> {
-                Map<String, Object> r = new LinkedHashMap<>();
-                r.put("encontrado",   true);
-                r.put("nome",         f.getNome());
-                r.put("setor",        f.getSetor());
-                r.put("funcao",       f.getFuncao());
-                r.put("exigeSangue",  f.isExigeSangue());
-                r.put("estabelecimento", f.getEstabelecimentoEfetivo());
-                return r;
-            })
-            .orElse(Map.of("encontrado", false));
+            .map(FuncionarioBuscaDto::encontrado)
+            .orElse(FuncionarioBuscaDto.naoEncontrado());
     }
 
     @Operation(summary = "Autocomplete de funcionários por nome (mínimo 2 caracteres, máximo 10 resultados)")
     @GetMapping("/buscar_funcionarios_nome")
     @ResponseBody
-    public List<Map<String, Object>> buscarPorNome(@RequestParam("q") String q) {
+    public List<FuncionarioResumoDto> buscarPorNome(@RequestParam("q") String q) {
         if (q == null || q.strip().length() < 2) return List.of();
         return funcionarioRepo
             .findByNomeContainingIgnoreCaseOrderByNomeAsc(q.strip())
             .stream()
             .limit(10)
-            .map(f -> {
-                Map<String, Object> r = new LinkedHashMap<>();
-                r.put("id",          f.getId());
-                r.put("matricula",   f.getMatricula() != null ? f.getMatricula() : "");
-                r.put("nome",        f.getNome());
-                r.put("setor",       f.getSetor() != null ? f.getSetor() : "");
-                r.put("funcao",      f.getFuncao() != null ? f.getFuncao() : "");
-                r.put("exigeSangue", f.isExigeSangue());
-                return r;
-            })
+            .map(FuncionarioResumoDto::fromEntity)
             .toList();
     }
 
     @GetMapping("/buscar_funcionarios_matricula")
     @ResponseBody
-    public List<Map<String, Object>> buscarPorMatricula(@RequestParam("q") String q) {
+    public List<FuncionarioResumoDto> buscarPorMatricula(@RequestParam("q") String q) {
         if (q == null || q.strip().length() < 1) return List.of();
         return funcionarioRepo
             .findByMatriculaContainingIgnoreCaseOrderByNomeAsc(q.strip())
             .stream()
             .limit(10)
-            .map(f -> {
-                Map<String, Object> r = new LinkedHashMap<>();
-                r.put("id",          f.getId());
-                r.put("matricula",   f.getMatricula() != null ? f.getMatricula() : "");
-                r.put("nome",        f.getNome());
-                r.put("setor",       f.getSetor() != null ? f.getSetor() : "");
-                r.put("funcao",      f.getFuncao() != null ? f.getFuncao() : "");
-                r.put("exigeSangue", f.isExigeSangue());
-                return r;
-            })
+            .map(FuncionarioResumoDto::fromEntity)
             .toList();
     }
 
@@ -329,16 +245,11 @@ public class AgendaController {
     @Operation(summary = "Verifica disponibilidade de sangue para uma data")
     @GetMapping("/verificar_limite_sangue")
     @ResponseBody
-    public Map<String, Object> verificarLimiteSangue(
+    public LimiteSangueResponseDto verificarLimiteSangue(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data) {
         long atual = agendamentoService.countSanguePorData(data);
         boolean atingido = atual >= AppConstants.LIMITE_SANGUE_DIA;
-        Map<String, Object> r = new LinkedHashMap<>();
-        r.put("atual",    atual);
-        r.put("limite",   AppConstants.LIMITE_SANGUE_DIA);
-        r.put("atingido", atingido);
-        r.put("vagas",    Math.max(0L, AppConstants.LIMITE_SANGUE_DIA - atual));
-        return r;
+        return new LimiteSangueResponseDto(atingido, atual);
     }
 
     // ── Detalhe do agendamento ────────────────────────────────────────

@@ -62,10 +62,8 @@ public class HomeController {
 
         // Próximos agendamentos (até 14 dias)
         List<Agendamento> proximosAgendamentos = agendamentoRepo
-            .findAllByOrderByDataClinicoAsc().stream()
-            .filter(a -> a.getDataClinico() != null
-                      && !a.getDataClinico().isBefore(hoje)
-                      && !a.getDataClinico().isAfter(hoje.plusDays(14)))
+            .findByDataClinicoDesde(hoje).stream()
+            .filter(a -> !a.getDataClinico().isAfter(hoje.plusDays(14)))
             .limit(8)
             .toList();
 

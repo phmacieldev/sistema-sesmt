@@ -173,4 +173,28 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long>,
     List<Agendamento> findAllByOrderByDataClinicoAsc();
 
     List<Agendamento> findByFuncionarioIdOrderByDataClinicoDesc(Long funcionarioId);
+
+    @Query("SELECT COUNT(a) FROM Agendamento a WHERE a.dataClinico IS NOT NULL AND a.dataClinico > :hoje")
+    long countAgendados(@Param("hoje") LocalDate hoje);
+
+    @Query("SELECT COUNT(a) FROM Agendamento a WHERE a.dataClinico IS NOT NULL AND a.dataClinico <= :hoje AND a.asoRecebido = true")
+    long countEmDia(@Param("hoje") LocalDate hoje);
+
+    @Query("SELECT COUNT(a) FROM Agendamento a WHERE a.dataClinico IS NOT NULL AND a.dataClinico < :hoje AND a.asoRecebido = false")
+    long countAtrasados(@Param("hoje") LocalDate hoje);
+
+    @Query("""
+        SELECT a FROM Agendamento a
+        WHERE a.dataClinico IS NOT NULL AND a.dataClinico >= :inicio
+        ORDER BY a.dataClinico ASC, a.horaClinico ASC
+        """)
+    List<Agendamento> findByDataClinicoDesde(@Param("inicio") LocalDate inicio);
+
+    @Query("""
+        SELECT a FROM Agendamento a
+        WHERE a.dataClinico IS NOT NULL
+          AND (:ano IS NULL OR YEAR(a.dataClinico) = :ano)
+        ORDER BY a.dataClinico ASC
+        """)
+    List<Agendamento> findByAnoOptional(@Param("ano") Integer ano);
 }

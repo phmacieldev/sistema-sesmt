@@ -3,6 +3,8 @@
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <body>
 <nav th:fragment="navbar" class="navbar">
+<meta name="_csrf" th:content="${_csrf.token}">
+<meta name="_csrf_header" th:content="${_csrf.headerName}">
 
   <!-- Brand -->
   <div class="navbar-brand">

@@ -7,6 +7,7 @@ package com.sesmt.pgeo.service;
 
 import com.sesmt.pgeo.audit.AuditService;
 import com.sesmt.pgeo.exception.RecursoNaoEncontradoException;
+import com.sesmt.pgeo.exception.RegraDeNegocioException;
 import com.sesmt.pgeo.model.Agendamento;
 import com.sesmt.pgeo.model.Funcionario;
 import com.sesmt.pgeo.repository.AgendamentoRepository;
@@ -15,6 +16,8 @@ import com.sesmt.pgeo.websocket.NotificacaoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Set;
 
 
 @Service
@@ -36,6 +39,10 @@ public class AsoService {
     @Transactional
     public boolean atualizarStatusAso(Long agendamentoId, String campo, boolean valor,
                                       String usuarioAtual) {
+        if (!Set.of("enviado", "guia_sangue", "guia_clinico", "recebido").contains(campo)) {
+            throw new RegraDeNegocioException("Campo inválido: " + campo);
+        }
+
         Agendamento ag = agendamentoRepo.findById(agendamentoId)
             .orElseThrow(() -> new RecursoNaoEncontradoException("Agendamento", agendamentoId));
 

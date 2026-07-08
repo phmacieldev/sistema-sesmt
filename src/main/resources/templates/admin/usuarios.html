@@ -27,8 +27,7 @@
       </div>
       <div class="modal-footer">
         <button type="submit" class="btn btn-warning">Redefinir</button>
-        <button type="button" class="btn btn-secondary"
-                onclick="document.getElementById('modalReset').classList.remove('show')">
+        <button type="button" class="btn btn-secondary" id="btnResetCancelar">
           Cancelar
         </button>
       </div>
@@ -138,10 +137,9 @@
                 </form>
 
                 <!-- Reset de senha -->
-                <button class="btn btn-warning btn-sm"
+                <button class="btn btn-warning btn-sm btn-reset-senha"
                         th:data-uid="${u.id}"
-                        th:data-uname="${u.username}"
-                        onclick="abrirReset(this.dataset.uid, this.dataset.uname)">
+                        th:data-uname="${u.username}">
                   🔑 Reset
                 </button>
               </div>
@@ -155,15 +153,21 @@
 </div>
 
 <script th:attr="nonce=${cspNonce}">
-function abrirReset(id, username) {
-  document.getElementById('modalResetInfo').textContent = 'Redefinindo senha de: ' + username;
-  document.getElementById('formReset').action = '/admin/usuarios/' + id + '/reset-senha';
-  document.getElementById('modalReset').classList.add('show');
-}
-window.addEventListener('click', e => {
-  const modal = document.getElementById('modalReset');
-  if (e.target === modal) modal.classList.remove('show');
-});
+(function() {
+  var modal = document.getElementById('modalReset');
+
+  document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.btn-reset-senha');
+    if (btn) {
+      document.getElementById('modalResetInfo').textContent = 'Redefinindo senha de: ' + btn.dataset.uname;
+      document.getElementById('formReset').action = '/admin/usuarios/' + btn.dataset.uid + '/reset-senha';
+      modal.classList.add('show');
+      return;
+    }
+    if (e.target === modal) modal.classList.remove('show');
+    if (e.target.closest('#btnResetCancelar')) modal.classList.remove('show');
+  });
+})();
 </script>
 <div th:replace="~{components/footer :: footer}"></div>
 </body>

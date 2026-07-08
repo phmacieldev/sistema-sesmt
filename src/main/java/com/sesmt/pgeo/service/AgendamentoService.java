@@ -26,6 +26,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.Year;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -174,9 +175,8 @@ public class AgendamentoService {
 
         String descAntes = ag.getTipoExameDescricao() + " | " + ag.getDataClinico() + " " + ag.getHoraClinico();
 
-        ag.setFuncionarioNome(nome);
-        ag.setFuncionarioSetor(setor);
-        ag.setFuncionarioFuncao(funcao);
+        atualizarDadosFuncionario(ag, nome, setor, funcao);
+
         ag.setTipoExame(tipoExame);
         ag.setDataClinico(dataClinico);
         ag.setDataSangue(dataSangue);
@@ -191,6 +191,33 @@ public class AgendamentoService {
             "Edição de " + ag.getFuncionarioNome(), descAntes, descDepois);
         notificacaoService.broadcastEdicao(salvo, getUsuarioAtual());
         return salvo;
+    }
+
+    /**
+     * funcionarioNome/Setor/Funcao no Agendamento são só cache: o
+     * @PreUpdate (Agendamento.syncCacheDoFuncionario) os resincroniza a
+     * partir do Funcionario vinculado antes de cada flush. Setar esses
+     * campos direto no Agendamento seria descartado silenciosamente no
+     * mesmo save — a correção precisa ir para o Funcionario de fato.
+     */
+    private void atualizarDadosFuncionario(Agendamento ag, String nome, String setor, String funcao) {
+        Funcionario f = ag.getFuncionario();
+        if (f == null) return;
+
+        String nomeNovo = nome != null ? nome.strip() : null;
+        boolean mudou = !Objects.equals(f.getNome(), nomeNovo)
+            || !Objects.equals(f.getSetor(), setor)
+            || !Objects.equals(f.getFuncao(), funcao);
+        if (!mudou) return;
+
+        String antes = f.getNome() + " | " + f.getSetor() + " | " + f.getFuncao();
+        f.setNome(nomeNovo);
+        f.setSetor(setor);
+        f.setFuncao(funcao);
+        funcionarioRepo.save(f);
+        auditService.registrarEdicao("Funcionario", f.getId(),
+            "Dados corrigidos via edição de agendamento",
+            antes, nomeNovo + " | " + setor + " | " + funcao);
     }
 
     @Transactional

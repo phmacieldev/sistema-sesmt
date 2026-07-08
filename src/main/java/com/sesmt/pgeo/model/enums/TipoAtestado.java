@@ -8,6 +8,8 @@ package com.sesmt.pgeo.model.enums;
 public enum TipoAtestado {
     DOENCA("Doença"),
     ACIDENTE_TRABALHO("Acidente de Trabalho"),
+    LICENCA_MATERNIDADE("Licença Maternidade"),
+    LICENCA_AMAMENTACAO("Licença Amamentação"),
     NAO_INFORMADO("Não Informado");
 
     private final String descricao;

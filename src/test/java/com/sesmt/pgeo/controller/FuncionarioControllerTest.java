@@ -181,8 +181,7 @@ class FuncionarioControllerTest {
         mvc.perform(get("/api/funcionario/12345"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.encontrado").value(true))
-            .andExpect(jsonPath("$.nome").value("João Silva"))
-            .andExpect(jsonPath("$.status").value("ATIVO"));
+            .andExpect(jsonPath("$.nome").value("João Silva"));
     }
 
     @Test

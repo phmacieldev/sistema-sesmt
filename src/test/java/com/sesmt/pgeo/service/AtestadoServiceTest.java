@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class AtestadoServiceTest {
 
-    private final AtestadoService service = new AtestadoService();
+    private final AtestadoService service = new AtestadoService(null, null, null);
 
     // ── semanaInicio ──────────────────────────────────────────────────
 

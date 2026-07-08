@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <!-- Copyright (c) 2026 Pedro Henrique Maciel da Silva Faria. Sistema autoral protegido. -->
 <html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
 <head>
@@ -37,6 +37,9 @@
   </div>
   <div th:if="${erro}" class="alert alert-danger" th:text="${erro}"></div>
 
+  <!-- Resultado AJAX -->
+  <div id="resultado-ajax" class="alert alert-success" style="display:none;flex-wrap:wrap;gap:24px;"></div>
+
   <div class="grid-2">
 
     <!-- Formulário de upload -->
@@ -44,18 +47,26 @@
       <div class="card-header">
         <span class="card-title">📂 Selecionar Arquivo</span>
       </div>
-      <form th:action="@{/admin/funcionarios/importar}" method="POST"
-            enctype="multipart/form-data">
-        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-        <div class="form-group">
-          <label class="form-label">Arquivo CSV ou Excel (.xlsx)</label>
-          <input type="file" name="arquivo" class="form-control"
-                 accept=".csv,.xlsx,.xls" required>
-          <span class="form-hint">Máximo 5 MB. Codificação UTF-8 para CSV.</span>
-        </div>
-        <button type="submit" class="btn btn-primary btn-block">
-          📥 Importar
+      <div class="form-group">
+        <label class="form-label">Arquivo CSV ou Excel (.xlsx)</label>
+        <input type="file" id="inputArquivo" class="form-control"
+               accept=".csv,.xlsx,.xls" required>
+        <span class="form-hint">Máximo 5 MB. Codificação UTF-8 para CSV.</span>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button type="button" id="btnPreview" class="btn btn-primary btn-block">
+          <span class="btn-text">🔍 Analisar arquivo</span>
         </button>
+        <button type="button" id="btnImportarDireto" class="btn btn-secondary btn-block"
+                title="Importar sem revisão de conflitos">
+          <span class="btn-text">📥 Importar direto</span>
+        </button>
+      </div>
+      <!-- Form oculto para importação direta -->
+      <form id="formDireto" th:action="@{/admin/funcionarios/importar}" method="POST"
+            enctype="multipart/form-data" style="display:none;">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <input type="file" name="arquivo" id="inputArquivoDireto">
       </form>
     </div>
 
@@ -71,11 +82,7 @@
       <div class="table-wrapper" style="font-size:12px;">
         <table>
           <thead>
-            <tr>
-              <th>Coluna</th>
-              <th>Obrigatório</th>
-              <th>Exemplo</th>
-            </tr>
+            <tr><th>Coluna</th><th>Obrigatório</th><th>Exemplo</th></tr>
           </thead>
           <tbody>
             <tr><td>matricula</td> <td>Não</td> <td>12345 (em branco = pré-admissional)</td></tr>
@@ -109,6 +116,209 @@
   </div>
 
 </div>
+
+<!-- Modal de revisão de conflitos -->
+<div id="modalConflitos" class="modal-overlay">
+  <div class="modal-box" style="max-width:780px;max-height:90vh;overflow-y:auto;">
+    <div class="modal-header-row">
+      <div class="modal-title mb-0" id="conflitos-titulo">Revisão de Importação</div>
+      <button type="button" class="btn btn-ghost btn-icon btn-sm btn-close" id="btnFecharConflitos">✕</button>
+    </div>
+
+    <!-- Resumo -->
+    <div id="conflitos-resumo" style="display:flex;gap:16px;flex-wrap:wrap;margin:12px 0;font-size:13px;"></div>
+
+    <!-- Erros de parse -->
+    <div id="conflitos-erros" style="display:none;" class="alert alert-warning mb-12"></div>
+
+    <!-- Tabela de conflitos -->
+    <div id="conflitos-tabela" class="table-wrapper" style="font-size:13px;"></div>
+
+    <div class="modal-footer mt-20" style="gap:8px;">
+      <button type="button" id="btnAceitarTodos" class="btn btn-ghost btn-sm">Marcar todos</button>
+      <button type="button" id="btnConfirmarImport" class="btn btn-success btn-sm">
+        <span class="btn-text">Confirmar Importação</span>
+      </button>
+      <button type="button" id="btnCancelarImport" class="btn btn-secondary btn-sm">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script th:attr="nonce=${cspNonce}">
+(function() {
+  var inputArquivo     = document.getElementById('inputArquivo');
+  var btnPreview       = document.getElementById('btnPreview');
+  var btnImportarDireto = document.getElementById('btnImportarDireto');
+  var modal            = document.getElementById('modalConflitos');
+  var _conflitosData   = null;
+
+  // Importar direto (sem preview)
+  btnImportarDireto.addEventListener('click', function() {
+    if (!inputArquivo.files.length) {
+      window.showToast && window.showToast('Selecione um arquivo.', 'danger');
+      return;
+    }
+    var dt = new DataTransfer();
+    dt.items.add(inputArquivo.files[0]);
+    document.getElementById('inputArquivoDireto').files = dt.files;
+    document.getElementById('formDireto').submit();
+  });
+
+  // Preview (análise de conflitos)
+  btnPreview.addEventListener('click', function() {
+    if (!inputArquivo.files.length) {
+      window.showToast && window.showToast('Selecione um arquivo.', 'danger');
+      return;
+    }
+
+    btnPreview.classList.add('btn-loading');
+    btnPreview.disabled = true;
+
+    var fd = new FormData();
+    fd.append('arquivo', inputArquivo.files[0]);
+
+    pgeoFetch('/admin/funcionarios/importar/preview', { method: 'POST', body: fd })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        btnPreview.classList.remove('btn-loading');
+        btnPreview.disabled = false;
+
+        if (data.erro) {
+          window.showToast && window.showToast(data.mensagem, 'danger');
+          return;
+        }
+
+        _conflitosData = data;
+
+        // Se não há conflitos, importa direto
+        if (!data.linhas || data.linhas.length === 0) {
+          confirmarImportacao([]);
+          return;
+        }
+
+        abrirModalConflitos(data);
+      })
+      .catch(function() {
+        btnPreview.classList.remove('btn-loading');
+        btnPreview.disabled = false;
+        window.showToast && window.showToast('Erro ao analisar arquivo.', 'danger');
+      });
+  });
+
+  function abrirModalConflitos(data) {
+    // Resumo
+    document.getElementById('conflitos-resumo').innerHTML =
+      '<span>✅ <strong>' + data.novos + '</strong> novo(s)</span>' +
+      '<span>⚠️ <strong>' + data.conflitantes + '</strong> com conflito(s)</span>' +
+      '<span>✔️ <strong>' + data.semConflito + '</strong> sem alteração</span>';
+
+    // Erros
+    var errosDiv = document.getElementById('conflitos-erros');
+    if (data.erros && data.erros.length > 0) {
+      errosDiv.innerHTML = '<strong>Erros no arquivo:</strong><ul style="margin:4px 0 0 16px;">' +
+        data.erros.map(function(e) { return '<li>' + escapeHtml(e) + '</li>'; }).join('') + '</ul>';
+      errosDiv.style.display = 'block';
+    } else {
+      errosDiv.style.display = 'none';
+    }
+
+    // Tabela de conflitos
+    var html = '<table><thead><tr>' +
+      '<th style="width:40px;"><input type="checkbox" id="chkTodos"></th>' +
+      '<th>Matrícula</th><th>Nome</th><th>Campo</th>' +
+      '<th>Valor Atual</th><th>Valor Arquivo</th>' +
+      '</tr></thead><tbody>';
+
+    data.linhas.forEach(function(linha) {
+      linha.conflitos.forEach(function(c, ci) {
+        var chkId = linha.linha + ':' + c.campo;
+        html += '<tr>' +
+          '<td><input type="checkbox" class="chk-conflito" value="' + escapeHtml(chkId) + '"></td>' +
+          (ci === 0 ? '<td rowspan="' + linha.conflitos.length + '">' + escapeHtml(linha.matricula) + '</td>' +
+                      '<td rowspan="' + linha.conflitos.length + '">' + escapeHtml(linha.nome) + '</td>' : '') +
+          '<td>' + escapeHtml(c.campo) + '</td>' +
+          '<td style="color:var(--text-muted);">' + escapeHtml(c.valorAtual) + '</td>' +
+          '<td style="font-weight:600;">' + escapeHtml(c.valorArquivo) + '</td>' +
+          '</tr>';
+      });
+    });
+
+    html += '</tbody></table>';
+    document.getElementById('conflitos-tabela').innerHTML = html;
+
+    // Checkbox "marcar todos"
+    document.getElementById('chkTodos').addEventListener('change', function() {
+      var checked = this.checked;
+      document.querySelectorAll('.chk-conflito').forEach(function(cb) { cb.checked = checked; });
+    });
+
+    modal.classList.add('show');
+  }
+
+  // Botão "Marcar todos"
+  document.getElementById('btnAceitarTodos').addEventListener('click', function() {
+    document.querySelectorAll('.chk-conflito').forEach(function(cb) { cb.checked = true; });
+    var chkTodos = document.getElementById('chkTodos');
+    if (chkTodos) chkTodos.checked = true;
+  });
+
+  // Confirmar importação
+  document.getElementById('btnConfirmarImport').addEventListener('click', function() {
+    var aceitos = [];
+    document.querySelectorAll('.chk-conflito:checked').forEach(function(cb) {
+      aceitos.push(cb.value);
+    });
+    confirmarImportacao(aceitos);
+  });
+
+  function confirmarImportacao(aceitos) {
+    var btn = document.getElementById('btnConfirmarImport');
+    btn.classList.add('btn-loading');
+    btn.disabled = true;
+
+    pgeoPostJson('/admin/funcionarios/importar/confirmar', { aceitos: aceitos })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        btn.classList.remove('btn-loading');
+        btn.disabled = false;
+        modal.classList.remove('show');
+
+        if (data.erro) {
+          window.showToast && window.showToast(data.mensagem, 'danger');
+          return;
+        }
+
+        var resDiv = document.getElementById('resultado-ajax');
+        resDiv.innerHTML =
+          '<span>✅ <strong>' + data.criados + '</strong> criado(s)</span>' +
+          '<span>✏️ <strong>' + data.atualizados + '</strong> atualizado(s)</span>' +
+          '<span>⏭️ <strong>' + data.ignorados + '</strong> ignorado(s)</span>';
+        resDiv.style.display = 'flex';
+
+        if (data.erros && data.erros.length > 0) {
+          resDiv.innerHTML += '<div style="width:100%;margin-top:8px;font-size:12px;color:var(--warning);"><strong>Erros:</strong> ' +
+            data.erros.map(function(e) { return escapeHtml(e); }).join(', ') + '</div>';
+        }
+
+        window.showToast && window.showToast('Importação concluída!', 'success');
+      })
+      .catch(function() {
+        btn.classList.remove('btn-loading');
+        btn.disabled = false;
+        window.showToast && window.showToast('Erro ao confirmar importação.', 'danger');
+      });
+  }
+
+  // Fechar modal
+  document.getElementById('btnFecharConflitos').addEventListener('click', function() { modal.classList.remove('show'); });
+  document.getElementById('btnCancelarImport').addEventListener('click', function() { modal.classList.remove('show'); });
+  modal.addEventListener('click', function(e) { if (e.target === modal) modal.classList.remove('show'); });
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+})();
+</script>
 <div th:replace="~{components/footer :: footer}"></div>
 </body>
 </html>

@@ -38,6 +38,14 @@ public class FuncionarioImportService {
 
     public record ImportacaoResultado(int criados, int atualizados, int ignorados, List<String> erros) {}
 
+    public record ConflitoCampo(String campo, String valorAtual, String valorArquivo) {}
+
+    public record LinhaPreview(int linha, String matricula, String nome, boolean novo,
+                               List<ConflitoCampo> conflitos) {}
+
+    public record PreviewResultado(List<LinhaPreview> linhas, int novos, int conflitantes,
+                                    int semConflito, List<String> erros) {}
+
     @Transactional
     public ImportacaoResultado importar(MultipartFile arquivo) throws Exception {
         String nome = arquivo.getOriginalFilename() != null
@@ -121,7 +129,197 @@ public class FuncionarioImportService {
         return new ImportacaoResultado(criados, atualizados, ignorados, erros);
     }
 
-    // ── Lógica de upsert por linha ────────────────────────────────────
+    // ── Preview: analisa arquivo sem salvar ─────────────────────────────
+
+    public PreviewResultado preview(MultipartFile arquivo) throws Exception {
+        List<String[]> linhas = parsearArquivo(arquivo);
+        List<LinhaPreview> previews = new ArrayList<>();
+        List<String> erros = new ArrayList<>();
+        int novos = 0, conflitantes = 0, semConflito = 0;
+
+        for (int i = 0; i < linhas.size(); i++) {
+            String[] cols = linhas.get(i);
+            try {
+                LinhaPreview lp = analisarLinha(i + 2, cols);
+                if (lp == null) continue;
+                previews.add(lp);
+                if (lp.novo()) novos++;
+                else if (!lp.conflitos().isEmpty()) conflitantes++;
+                else semConflito++;
+            } catch (Exception e) {
+                erros.add("Linha " + (i + 2) + ": " + e.getMessage());
+            }
+        }
+
+        return new PreviewResultado(previews, novos, conflitantes, semConflito, erros);
+    }
+
+    private LinhaPreview analisarLinha(int numLinha, String[] cols) {
+        String nome = get(cols, 1);
+        if (nome == null || nome.isBlank()) return null;
+
+        String mat = get(cols, 0);
+        mat = (mat != null && !mat.isBlank()) ? mat.strip() : null;
+
+        Funcionario func = (mat != null) ? funcionarioRepo.findByMatricula(mat).orElse(null) : null;
+
+        if (func == null) {
+            return new LinhaPreview(numLinha, mat != null ? mat : "(nova)", nome.strip(), true, List.of());
+        }
+
+        List<ConflitoCampo> conflitos = new ArrayList<>();
+        compararCampo(conflitos, "Nome",            func.getNome(),              nome);
+        compararCampo(conflitos, "Setor",           func.getSetor(),             get(cols, 2));
+        compararCampo(conflitos, "Função",          func.getFuncao(),            get(cols, 3));
+        compararCampo(conflitos, "E-mail",          func.getEmail(),             get(cols, 4));
+        compararCampo(conflitos, "ASO",             func.getAso() != null ? func.getAso().format(FMT_DATA) : "",
+                                                    get(cols, 5));
+        compararCampo(conflitos, "Exige Sangue",    func.isExigeSangue() ? "sim" : "nao", get(cols, 6));
+        compararCampo(conflitos, "Estabelecimento", func.getEstabelecimento(),   get(cols, 7));
+
+        return new LinhaPreview(numLinha, mat, func.getNome(), false, conflitos);
+    }
+
+    private void compararCampo(List<ConflitoCampo> lista, String campo, String atual, String arquivo) {
+        if (arquivo == null || arquivo.isBlank()) return;
+        String atualNorm = (atual != null) ? atual.strip() : "";
+        String arquivoNorm = arquivo.strip();
+        if (!atualNorm.equalsIgnoreCase(arquivoNorm)) {
+            lista.add(new ConflitoCampo(campo, atualNorm.isEmpty() ? "(vazio)" : atualNorm, arquivoNorm));
+        }
+    }
+
+    // ── Aplicação seletiva (após preview) ────────────────────────────
+
+    @Transactional
+    public ImportacaoResultado aplicarComSelecao(byte[] bytes, String nomeArquivo,
+                                                 java.util.Set<String> conflitosAceitos) throws Exception {
+        List<String[]> linhas = parsearBytes(bytes, nomeArquivo);
+        int criados = 0, atualizados = 0, ignorados = 0;
+        List<String> erros = new ArrayList<>();
+
+        for (int i = 0; i < linhas.size(); i++) {
+            String[] cols = linhas.get(i);
+            try {
+                int res = processarLinhaComSelecao(i + 2, cols, conflitosAceitos);
+                if (res == 1)      criados++;
+                else if (res == 2) atualizados++;
+                else               ignorados++;
+            } catch (Exception e) {
+                erros.add("Linha " + (i + 2) + ": " + e.getMessage());
+                ignorados++;
+            }
+        }
+
+        registrarAudit(criados, atualizados, ignorados);
+        return new ImportacaoResultado(criados, atualizados, ignorados, erros);
+    }
+
+    private int processarLinhaComSelecao(int numLinha, String[] cols,
+                                          java.util.Set<String> aceitos) {
+        String nome = get(cols, 1);
+        if (nome == null || nome.isBlank()) return 0;
+
+        String mat = get(cols, 0);
+        mat = (mat != null && !mat.isBlank()) ? mat.strip() : null;
+
+        Funcionario func = (mat != null) ? funcionarioRepo.findByMatricula(mat).orElse(null) : null;
+        boolean criando = false;
+
+        if (func == null) {
+            func = new Funcionario();
+            func.setMatricula(mat != null ? mat : gerarMatriculaAdm());
+            func.setStatus(mat != null ? StatusFuncionario.ATIVO : StatusFuncionario.PRE_ADMISSIONAL);
+            func.setAtivo(true);
+            criando = true;
+        }
+
+        // Para novos, aplica tudo. Para existentes, só aplica campos aceitos.
+        aplicarCampoSeletivo(func, "Nome", nome, criando, numLinha, aceitos,
+            (f, v) -> f.setNome(v.strip()));
+        aplicarCampoSeletivo(func, "Setor", get(cols, 2), criando, numLinha, aceitos,
+            (f, v) -> f.setSetor(v.strip()));
+        aplicarCampoSeletivo(func, "Função", get(cols, 3), criando, numLinha, aceitos,
+            (f, v) -> f.setFuncao(v.strip()));
+        aplicarCampoSeletivo(func, "E-mail", get(cols, 4), criando, numLinha, aceitos,
+            (f, v) -> f.setEmail(v.strip()));
+        aplicarCampoSeletivo(func, "Estabelecimento", get(cols, 7), criando, numLinha, aceitos,
+            (f, v) -> f.setEstabelecimento(v.strip().toUpperCase()));
+
+        String asoStr = get(cols, 5);
+        if (asoStr != null && !asoStr.isBlank()) {
+            if (criando || aceitos.contains(numLinha + ":ASO")) {
+                func.setAso(LocalDate.parse(asoStr.strip(), FMT_DATA));
+            }
+        }
+        String exigeSangueStr = get(cols, 6);
+        if (exigeSangueStr != null && !exigeSangueStr.isBlank()) {
+            if (criando || aceitos.contains(numLinha + ":Exige Sangue")) {
+                func.setExigeSangue(parseBoolean(exigeSangueStr));
+            }
+        }
+
+        funcionarioRepo.save(func);
+        return criando ? 1 : 2;
+    }
+
+    private void aplicarCampoSeletivo(Funcionario func, String campo, String valor,
+                                       boolean criando, int numLinha,
+                                       java.util.Set<String> aceitos,
+                                       java.util.function.BiConsumer<Funcionario, String> setter) {
+        if (valor == null || valor.isBlank()) return;
+        if (criando || aceitos.contains(numLinha + ":" + campo)) {
+            setter.accept(func, valor);
+        }
+    }
+
+    // ── Parse do arquivo (reutilizado por preview e importação) ──────
+
+    private List<String[]> parsearArquivo(MultipartFile arquivo) throws Exception {
+        return parsearBytes(arquivo.getBytes(),
+            arquivo.getOriginalFilename() != null ? arquivo.getOriginalFilename() : "");
+    }
+
+    private List<String[]> parsearBytes(byte[] bytes, String nomeArquivo) throws Exception {
+        String nome = nomeArquivo != null ? nomeArquivo.toLowerCase() : "";
+        java.io.InputStream is = new java.io.ByteArrayInputStream(bytes);
+        if (nome.endsWith(".xlsx") || nome.endsWith(".xls")) {
+            return parsearExcelStream(is);
+        }
+        return parsearCsvStream(is);
+    }
+
+    private List<String[]> parsearCsvStream(java.io.InputStream is) throws Exception {
+        List<String[]> linhas = new ArrayList<>();
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+            br.readLine(); // cabeçalho
+            String row;
+            while ((row = br.readLine()) != null) {
+                row = row.replace("﻿", "").strip();
+                if (row.isBlank()) continue;
+                linhas.add(row.split(";", -1));
+            }
+        }
+        return linhas;
+    }
+
+    private List<String[]> parsearExcelStream(java.io.InputStream is) throws Exception {
+        List<String[]> linhas = new ArrayList<>();
+        try (Workbook wb = new XSSFWorkbook(is)) {
+            Sheet sheet = wb.getSheetAt(0);
+            boolean primeiraLinha = true;
+            for (Row row : sheet) {
+                if (primeiraLinha) { primeiraLinha = false; continue; }
+                if (isRowVazia(row)) continue;
+                String[] cols = new String[8];
+                for (int i = 0; i < 8; i++) cols[i] = celula(row, i);
+                linhas.add(cols);
+            }
+        }
+        return linhas;
+    }
+
+    // ── Lógica de upsert por linha (importação direta, sem revisão) ──
     // Retorna: 1 = criado, 2 = atualizado, 0 = ignorado
 
     private int processarLinha(String matricula, String nome, String setor, String funcao,

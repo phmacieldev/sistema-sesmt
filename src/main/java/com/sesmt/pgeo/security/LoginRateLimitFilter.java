@@ -31,19 +31,11 @@ public class LoginRateLimitFilter extends OncePerRequestFilter {
                                     FilterChain chain) throws ServletException, IOException {
 
         if ("POST".equalsIgnoreCase(req.getMethod()) && "/login".equals(req.getServletPath())) {
-            if (loginAttemptService.estaBloqueado(getClientIp(req))) {
+            if (loginAttemptService.estaBloqueado(ClientIpResolver.resolve(req))) {
                 res.sendRedirect("/login?bloqueado=true");
                 return;
             }
         }
         chain.doFilter(req, res);
-    }
-
-    private String getClientIp(HttpServletRequest req) {
-        String forwarded = req.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) return forwarded.split(",")[0].strip();
-        String realIp = req.getHeader("X-Real-IP");
-        if (realIp != null && !realIp.isBlank()) return realIp;
-        return req.getRemoteAddr();
     }
 }
