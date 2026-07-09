@@ -28,6 +28,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -192,10 +193,10 @@ public class AgendaController {
     @ResponseBody
     public List<FuncionarioResumoDto> buscarPorNome(@RequestParam("q") String q) {
         if (q == null || q.strip().length() < 2) return List.of();
+        // Limite aplicado no banco (Pageable) — .limit(10) em stream carregaria todos
         return funcionarioRepo
-            .findByNomeContainingIgnoreCaseOrderByNomeAsc(q.strip())
+            .buscarPorNomeLimitado(q.strip(), org.springframework.data.domain.PageRequest.of(0, 10))
             .stream()
-            .limit(10)
             .map(FuncionarioResumoDto::fromEntity)
             .toList();
     }
@@ -204,10 +205,11 @@ public class AgendaController {
     @ResponseBody
     public List<FuncionarioResumoDto> buscarPorMatricula(@RequestParam("q") String q) {
         if (q == null || q.strip().length() < 1) return List.of();
+        // Limite aplicado no banco (Pageable) — .limit(10) em stream carregaria todos
         return funcionarioRepo
-            .findByMatriculaContainingIgnoreCaseOrderByNomeAsc(q.strip())
+            .findByMatriculaContainingIgnoreCaseOrderByNomeAsc(
+                q.strip(), org.springframework.data.domain.PageRequest.of(0, 10))
             .stream()
-            .limit(10)
             .map(FuncionarioResumoDto::fromEntity)
             .toList();
     }
@@ -267,9 +269,10 @@ public class AgendaController {
         Agendamento ag = agendamentoRepo.findById(id)
             .orElseThrow(() -> new RecursoNaoEncontradoException("Agendamento", id));
         byte[] pdf = pdfService.gerarGuia(ag);
-        String nomeArq = "guia_" + ag.getFuncionarioNome().replace(" ", "_") + ".pdf";
+        String nomeArq = "guia_" + sanitizarNomeArquivo(ag.getFuncionarioNome()) + ".pdf";
         return ResponseEntity.ok()
-            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nomeArq + "\"")
+            .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                .filename(nomeArq, StandardCharsets.UTF_8).build().toString())
             .contentType(MediaType.APPLICATION_PDF)
             .body(pdf);
     }
@@ -279,9 +282,10 @@ public class AgendaController {
         Agendamento ag = agendamentoRepo.findById(id)
             .orElseThrow(() -> new RecursoNaoEncontradoException("Agendamento", id));
         byte[] pdf = pdfService.gerarGuiaSangue(ag);
-        String nomeArq = "guia_sangue_" + ag.getFuncionarioNome().replace(" ", "_") + ".pdf";
+        String nomeArq = "guia_sangue_" + sanitizarNomeArquivo(ag.getFuncionarioNome()) + ".pdf";
         return ResponseEntity.ok()
-            .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + nomeArq + "\"")
+            .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.inline()
+                .filename(nomeArq, StandardCharsets.UTF_8).build().toString())
             .contentType(MediaType.APPLICATION_PDF)
             .body(pdf);
     }
@@ -291,10 +295,17 @@ public class AgendaController {
         Agendamento ag = agendamentoRepo.findById(id)
             .orElseThrow(() -> new RecursoNaoEncontradoException("Agendamento", id));
         byte[] pdf = pdfService.gerarGuiaClinico(ag);
-        String nomeArq = "guia_clinico_" + ag.getFuncionarioNome().replace(" ", "_") + ".pdf";
+        String nomeArq = "guia_clinico_" + sanitizarNomeArquivo(ag.getFuncionarioNome()) + ".pdf";
         return ResponseEntity.ok()
-            .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + nomeArq + "\"")
+            .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.inline()
+                .filename(nomeArq, StandardCharsets.UTF_8).build().toString())
             .contentType(MediaType.APPLICATION_PDF)
             .body(pdf);
+    }
+
+    /** Restringe o nome a caracteres seguros para uso em filename de header HTTP. */
+    private static String sanitizarNomeArquivo(String nome) {
+        if (nome == null || nome.isBlank()) return "funcionario";
+        return nome.strip().replaceAll("[^\\p{L}\\p{N}]+", "_");
     }
 }

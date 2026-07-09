@@ -132,6 +132,22 @@ class FuncionarioServiceTest {
         assertThat(resultado.getMatricula()).startsWith("ADM");
     }
 
+    @Test
+    void criarPreAdmissional_pulaMatriculasJaExistentes() {
+        // Regressão: count()+1 colidia com matrícula existente após exclusões
+        when(funcionarioRepo.count()).thenReturn(5L);
+        String anoAtual = String.valueOf(java.time.Year.now().getValue());
+        String colidida = "ADM" + anoAtual + "0006";
+        when(funcionarioRepo.existsByMatricula(colidida)).thenReturn(true);
+        when(funcionarioRepo.existsByMatricula("ADM" + anoAtual + "0007")).thenReturn(false);
+        when(funcionarioRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        Funcionario resultado = funcionarioService.criarPreAdmissional(
+            "Novo Colaborador", "Produção", "Operador", true);
+
+        assertThat(resultado.getMatricula()).isEqualTo("ADM" + anoAtual + "0007");
+    }
+
     // ── efetivarAdmissional ───────────────────────────────────────────
 
     @Test

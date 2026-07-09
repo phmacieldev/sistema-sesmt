@@ -202,7 +202,8 @@ public class DashboardController {
 
         LocalDate hoje = LocalDate.now();
 
-        List<Funcionario> todos = funcionarioRepo.findByAtivoTrue();
+        List<Funcionario> ativos = funcionarioRepo.findByAtivoTrue();
+        List<Funcionario> todos = ativos;
 
         if (busca != null && !busca.isBlank()) {
             String b = busca.strip().toLowerCase();
@@ -274,7 +275,8 @@ public class DashboardController {
                 Funcionario::getId,
                 f -> ChronoUnit.DAYS.between(hoje, f.getAso())));
 
-        List<String> estabelecimentos = funcionarioRepo.findByAtivoTrue().stream()
+        // Reusa a lista já carregada (antes do filtro de busca/estabelecimento)
+        List<String> estabelecimentos = ativos.stream()
             .map(Funcionario::getEstabelecimentoEfetivo)
             .filter(e -> e != null && !e.isBlank())
             .distinct().sorted().toList();

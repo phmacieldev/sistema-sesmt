@@ -395,7 +395,15 @@ public class FuncionarioImportService {
     }
 
     private String gerarMatriculaAdm() {
-        return String.format("ADM%d%04d", Year.now().getValue(), funcionarioRepo.count() + 1);
+        // count() é só ponto de partida: pode colidir com matrículas existentes
+        // após exclusões, então incrementa até achar uma livre
+        int ano = Year.now().getValue();
+        long proximo = funcionarioRepo.count() + 1;
+        String matricula;
+        do {
+            matricula = String.format("ADM%d%04d", ano, proximo++);
+        } while (funcionarioRepo.existsByMatricula(matricula));
+        return matricula;
     }
 
     private void registrarAudit(int criados, int atualizados, int ignorados) {

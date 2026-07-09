@@ -143,9 +143,15 @@ public class FuncionarioService {
     }
 
     private String gerarMatriculaAdmissional() {
+        // count() é só ponto de partida: pode colidir com matrículas existentes
+        // após exclusões, então incrementa até achar uma livre
         int ano = Year.now().getValue();
         long proximo = funcionarioRepo.count() + 1;
-        return String.format("ADM%d%04d", ano, proximo);
+        String matricula;
+        do {
+            matricula = String.format("ADM%d%04d", ano, proximo++);
+        } while (funcionarioRepo.existsByMatricula(matricula));
+        return matricula;
     }
 
     private static String getUsuarioAtual() {

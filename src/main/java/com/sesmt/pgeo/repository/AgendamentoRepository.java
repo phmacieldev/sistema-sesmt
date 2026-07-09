@@ -6,6 +6,7 @@
 package com.sesmt.pgeo.repository;
 
 import com.sesmt.pgeo.model.Agendamento;
+import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -99,7 +100,7 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long>,
             if (buscaLike != null)
                 predicates.add(cb.like(cb.lower(root.get("funcionarioNome")), buscaLike));
             if (estUpper != null)
-                predicates.add(cb.equal(cb.upper(root.join("funcionario").get("estabelecimento")), estUpper));
+                predicates.add(cb.equal(cb.upper(root.join("funcionario", JoinType.LEFT).get("estabelecimento")), estUpper));
             if (query != null && !Long.class.isAssignableFrom(query.getResultType()))
                 query.orderBy(cb.asc(root.get("dataClinico")), cb.asc(root.get("horaClinico")));
             return cb.and(predicates.toArray(new Predicate[0]));
@@ -119,7 +120,7 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long>,
             if (dataFim != null)
                 predicates.add(cb.lessThanOrEqualTo(root.get("dataClinico"), dataFim));
             if (estUpper != null)
-                predicates.add(cb.equal(cb.upper(root.join("funcionario").get("estabelecimento")), estUpper));
+                predicates.add(cb.equal(cb.upper(root.join("funcionario", JoinType.LEFT).get("estabelecimento")), estUpper));
             if (query != null && !Long.class.isAssignableFrom(query.getResultType()))
                 query.orderBy(cb.asc(root.get("dataClinico")), cb.asc(root.get("horaClinico")));
             return cb.and(predicates.toArray(new Predicate[0]));

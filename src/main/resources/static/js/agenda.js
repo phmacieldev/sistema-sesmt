@@ -24,10 +24,9 @@ document.addEventListener('DOMContentLoaded', function() {
         allDaySlot: false,
 
         eventAllow: function(dropInfo) {
-            let hora = dropInfo.start.getHours();
-            let minuto = dropInfo.start.getMinutes();
-            let horario = hora + ":" + minuto.toString().padStart(2, "0");
-            return !(horario >= "11:00" && horario < "13:30");
+            // Compara em minutos desde 00:00 — comparação de string falha sem zero-pad ("9:00" > "11:00")
+            let minutos = dropInfo.start.getHours() * 60 + dropInfo.start.getMinutes();
+            return !(minutos >= 11 * 60 && minutos < 13 * 60 + 30);
         },
 
         eventDidMount: function(info) {

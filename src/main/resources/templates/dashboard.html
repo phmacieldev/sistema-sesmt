@@ -162,7 +162,10 @@
       pagina
     });
     fetch(`/dashboard_dados?${params}`)
-      .then(res => res.text())
+      .then(res => {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.text();
+      })
       .then(html => {
         const tbody = document.getElementById("corpoTabela");
         tbody.innerHTML = html;
@@ -172,6 +175,10 @@
           meta ? +meta.dataset.totalPaginas : 1,
           meta ? +meta.dataset.paginaAtual  : 0
         );
+      })
+      .catch(err => {
+        console.error("dashboard_dados:", err);
+        window.showToast && window.showToast("Erro ao carregar agendamentos. Verifique a conexão.", "danger");
       });
   }
 
@@ -348,24 +355,32 @@
     else           { btn.classList.replace('pill-ok',   'pill-pend'); }
   }
 
+  // Estado do modal de confirmação — listeners registrados uma única vez
+  // (reatribuir onclick a cada abertura permite handler obsoleto em duplo clique)
+  var _confirmacaoPendente = null;
+  document.getElementById("btnConfirmarModal").addEventListener("click", function() {
+    var p = _confirmacaoPendente;
+    _confirmacaoPendente = null;
+    document.getElementById("modalConfirmacao").classList.remove("show");
+    if (!p) return;
+    toggleStatusAso(p.agId, 'recebido', true);
+    p.btn.textContent = '✅';
+    p.btn.classList.replace('pill-pend', 'pill-ok');
+  });
+  document.getElementById("btnCancelarModal").addEventListener("click", function() {
+    _confirmacaoPendente = null;
+    document.getElementById("modalConfirmacao").classList.remove("show");
+  });
+
   function confirmarRecebido(popId, btnId, agId) {
     var btn = document.getElementById(btnId);
     var novoValor = btn.classList.contains('pill-pend');
     fecharPopover(popId);
     if (novoValor) {
-      var modal = document.getElementById("modalConfirmacao");
       document.getElementById("modalMensagem").textContent =
         "Deseja atualizar a data do ASO do funcionário para a data deste exame?";
-      modal.classList.add("show");
-      document.getElementById("btnConfirmarModal").onclick = function() {
-        toggleStatusAso(agId, 'recebido', true);
-        btn.textContent = '✅';
-        btn.classList.replace('pill-pend', 'pill-ok');
-        modal.classList.remove("show");
-      };
-      document.getElementById("btnCancelarModal").onclick = function() {
-        modal.classList.remove("show");
-      };
+      _confirmacaoPendente = { agId: agId, btn: btn };
+      document.getElementById("modalConfirmacao").classList.add("show");
     } else {
       toggleStatusAso(agId, 'recebido', false);
       btn.textContent = '⏳';
