@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import java.util.Locale;
 
@@ -24,7 +25,11 @@ public class GuiaSemanaService {
     private final AgendamentoRepository agendamentoRepo;
 
     public GuiasSemanaResponseDto montar() {
-        LocalDate hoje = LocalDate.now();
+        return montar(LocalDate.now());
+    }
+
+    /** Sobrecarga com data de referência explícita — facilita testes. */
+    GuiasSemanaResponseDto montar(LocalDate hoje) {
         DateTimeFormatter dayFmt   = DateTimeFormatter.ofPattern("EEE dd/MM", Locale.of("pt", "BR"));
         DateTimeFormatter startFmt = DateTimeFormatter.ofPattern("dd/MM");
         DateTimeFormatter endFmt   = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -32,8 +37,9 @@ public class GuiaSemanaService {
         // Sangue: próximo dia útil (pula fim de semana)
         LocalDate proximoDiaUtil = proximoDiaUtil(hoje);
 
-        // Clínico: semana seguinte (seg–sex)
-        LocalDate proxSegunda = hoje.with(DayOfWeek.MONDAY).plusWeeks(1);
+        // Clínico: semana seguinte (seg–sex). next(MONDAY) garante a próxima
+        // segunda-feira em qualquer dia — with(MONDAY) no domingo pularia uma semana
+        LocalDate proxSegunda = hoje.with(TemporalAdjusters.next(DayOfWeek.MONDAY));
         LocalDate proxSexta   = proxSegunda.plusDays(4);
 
         var sangue = agendamentoRepo
@@ -43,7 +49,7 @@ public class GuiaSemanaService {
                 a.getId(),
                 a.getFuncionarioNome()  != null ? a.getFuncionarioNome()  : "",
                 a.getFuncionarioSetor() != null ? a.getFuncionarioSetor() : "",
-                a.getDataSangue().format(dayFmt),
+                a.getDataSangue()       != null ? a.getDataSangue().format(dayFmt) : "",
                 a.getHoraClinico()      != null ? a.getHoraClinico()      : "",
                 a.getExamesSangue()     != null ? a.getExamesSangue()     : ""
             ))

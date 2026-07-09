@@ -59,4 +59,13 @@ public class LoginAttemptService {
     private boolean expirou(Tentativas t) {
         return Instant.now().isAfter(t.inicio().plusMillis(JANELA_MS));
     }
+
+    /** Remove entradas expiradas — sem isso, IPs que nunca voltam ficam no mapa para sempre. */
+    @org.springframework.scheduling.annotation.Scheduled(fixedDelayString = "PT30M")
+    void limparExpirados() {
+        int antes = mapa.size();
+        mapa.entrySet().removeIf(e -> expirou(e.getValue()));
+        int removidos = antes - mapa.size();
+        if (removidos > 0) log.debug("Rate limit: {} entrada(s) expirada(s) removida(s)", removidos);
+    }
 }

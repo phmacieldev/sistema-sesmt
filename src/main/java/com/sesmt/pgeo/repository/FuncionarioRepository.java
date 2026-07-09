@@ -22,6 +22,8 @@ public interface FuncionarioRepository extends JpaRepository<Funcionario, Long> 
 
     Optional<Funcionario> findByMatricula(String matricula);
 
+    boolean existsByMatricula(String matricula);
+
     List<Funcionario> findByNomeContainingIgnoreCaseOrderByNomeAsc(String nome);
 
     // Fix: LIMIT → Pageable
@@ -41,6 +43,8 @@ public interface FuncionarioRepository extends JpaRepository<Funcionario, Long> 
     List<Funcionario> findByAtivoTrue();
 
     List<Funcionario> findByMatriculaContainingIgnoreCaseOrderByNomeAsc(String matricula);
+
+    List<Funcionario> findByMatriculaContainingIgnoreCaseOrderByNomeAsc(String matricula, Pageable pageable);
 
     @Query("SELECT DISTINCT f.setor FROM Funcionario f WHERE f.setor IS NOT NULL AND f.ativo = true ORDER BY f.setor")
     List<String> findDistinctSetores();

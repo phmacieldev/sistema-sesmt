@@ -321,8 +321,10 @@
                 toast("Preencha todos os campos obrigatórios.", "danger");
                 return;
             }
-            // Segurança extra caso flatpickr não tenha carregado
-            if (clinico < hoje()) {
+            // Segurança extra caso flatpickr não tenha carregado.
+            // Em edição (id preenchido) datas passadas são permitidas —
+            // registro retroativo de exame já realizado
+            if (!id && clinico < hoje()) {
                 toast("A data do exame clínico não pode ser anterior a hoje.", "danger");
                 return;
             }
@@ -346,6 +348,7 @@
 
             document.getElementById("mf-btn-confirm").onclick = function () {
                 var btnConfirm = document.getElementById("mf-btn-confirm");
+                if (btnConfirm.disabled) return; // já há requisição em andamento
                 btnConfirm.classList.add("btn-loading");
                 btnConfirm.disabled = true;
 

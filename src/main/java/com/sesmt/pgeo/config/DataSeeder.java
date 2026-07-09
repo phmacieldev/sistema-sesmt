@@ -37,9 +37,25 @@ public class DataSeeder implements CommandLineRunner {
     @Value("${pgeo.seed.visualizador.senha}")
     private String senhaVisualizador;
 
+    @Value("${spring.profiles.active:}")
+    private String perfilAtivo;
+
+    /** Fallbacks de dev definidos em application.properties — proibidos em produção. */
+    private static final java.util.Set<String> SENHAS_DEV =
+        java.util.Set.of("admin@123", "oper@123", "view@123");
+
     @Override
     public void run(String... args) {
         if (usuarioRepo.count() == 0) {
+            if (perfilAtivo.contains("prod")
+                    && (SENHAS_DEV.contains(senhaAdmin)
+                     || SENHAS_DEV.contains(senhaOperador)
+                     || SENHAS_DEV.contains(senhaVisualizador))) {
+                throw new IllegalStateException(
+                    "Senhas padrão de desenvolvimento detectadas no perfil prod. " +
+                    "Defina ADMIN_PASSWORD, OPERADOR_PASSWORD e VISUALIZADOR_PASSWORD " +
+                    "no ambiente antes de iniciar a aplicação.");
+            }
             criarUsuario("admin",       "Admin SESMT",    senhaAdmin,       Role.ADMIN);
             criarUsuario("operador",    "Operador SESMT", senhaOperador,    Role.OPERADOR);
             criarUsuario("visualizador","Visualizador",   senhaVisualizador,Role.VISUALIZADOR);

@@ -39,6 +39,13 @@ public class SecurityConfig {
     @org.springframework.beans.factory.annotation.Value("${app.rate-limit.enabled:true}")
     private boolean rateLimitEnabled;
 
+    /** Necessário para maxSessionsPreventsLogin: notifica o registro de sessões
+     *  quando uma sessão é destruída (logout/expiração), liberando a vaga. */
+    @Bean
+    public org.springframework.security.web.session.HttpSessionEventPublisher httpSessionEventPublisher() {
+        return new org.springframework.security.web.session.HttpSessionEventPublisher();
+    }
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
                                            UsuarioRepository usuarioRepo,
@@ -91,6 +98,9 @@ public class SecurityConfig {
             // ── Sessão ───────────────────────────────────────────────────
             .sessionManagement(session -> session
                 .maximumSessions(2)
+                // Bloqueia o 3º login em vez de expulsar a sessão mais antiga —
+                // impede que um invasor com credenciais derrube o usuário legítimo
+                .maxSessionsPreventsLogin(true)
                 .expiredUrl("/login?expired=true")
             );
 

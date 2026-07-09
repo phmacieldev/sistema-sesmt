@@ -79,9 +79,14 @@ public class AsoService {
                 " para " + ag.getFuncionarioNome());
 
         } else if ("recebido".equals(campo)) {
+            // Idempotência: se o status já é o solicitado, não reaplica — evita que uma
+            // segunda marcação simultânea sobrescreva dataAsoAnterior com o valor já atualizado
+            if (valor == ag.isAsoRecebido()) {
+                return true;
+            }
             if (valor) {
                 // Guarda a data anterior para possível reversão
-                if (!ag.isAsoRecebido() && func != null) {
+                if (func != null) {
                     ag.setDataAsoAnterior(func.getAso());
                 }
                 // Atualiza o ASO do funcionário: vencimento = data do exame + 12 meses (NR-7)
@@ -94,11 +99,15 @@ public class AsoService {
                     "ASO de " + ag.getFuncionarioNome() + " marcado como recebido. " +
                     "Data ASO atualizada para " + ag.getDataClinico());
             } else {
-                // Revertendo: restaura a data anterior (pode ser null se funcionário não tinha ASO)
-                if (func != null) {
-                    func.setAso(ag.getDataAsoAnterior());
-                    funcionarioRepo.save(func);
+                // Revertendo: restaura a data anterior (pode ser null se funcionário não tinha ASO).
+                // Sem o vínculo com o funcionário não há como restaurar — aborta em vez de
+                // deixar o agendamento "não recebido" com o ASO do funcionário ainda atualizado.
+                if (func == null) {
+                    throw new RegraDeNegocioException(
+                        "Não é possível reverter o recebimento: agendamento sem vínculo com funcionário.");
                 }
+                func.setAso(ag.getDataAsoAnterior());
+                funcionarioRepo.save(func);
                 ag.setDataAsoAnterior(null);
                 ag.setAsoRecebido(false);
                 auditService.registrar("ASO_RECEBIDO_REVERTIDO", "Agendamento", agendamentoId,
